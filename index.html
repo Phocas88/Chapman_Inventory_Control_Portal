@@ -785,6 +785,7 @@ function showScreen(id){
   });
   const map={tracker:'navTracker',form:'navForm',dash:'navDash'};
   if(map[id] && document.getElementById(map[id])) document.getElementById(map[id]).classList.add('active');
+  if(id==='form') setupForm();
 }
 
 /* ══════════════════════════════════════════════════════
@@ -880,12 +881,6 @@ function onDivChange(){
   else pk.innerHTML='<option value="">Select Division First…</option>';
 }
 
-// Override showScreen to trigger form setup when going to form
-const _showScreen = showScreen;
-function showScreen(id){
-  _showScreen(id);
-  if(id==='form') setupForm();
-}
 
 async function submitForm(){
   const div=document.getElementById('fDiv').value;
