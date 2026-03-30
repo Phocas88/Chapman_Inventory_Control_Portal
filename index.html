@@ -498,6 +498,16 @@ button,select,input,textarea{font-family:var(--sans)}
       </div></div>
       <div class="form-row">
         <div class="field">
+          <label>Order Number <span style="font-weight:400;color:var(--subtle);font-size:11px">(if applicable)</span></label>
+          <input type="text" id="fOrderNum" placeholder="e.g. ORD-20250330-001">
+        </div>
+        <div class="field">
+          <label>QTY to Pick for Order</label>
+          <input type="number" id="fQtyPick" placeholder="e.g. 24" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
           <label>Inventory Issue Type</label>
           <select id="fInvIssue"><option value="">None</option><option>Quantity Discrepancy</option><option>Missing Item</option><option>Overstock</option><option>Location Error</option><option>Not Found in System</option><option>Other</option></select>
         </div>
@@ -641,7 +651,7 @@ button,select,input,textarea{font-family:var(--sans)}
    ══════════════════════════════════════════════════════ */
 const CFG = {
   GAS_URL:     'https://script.google.com/macros/s/AKfycbwNZOeZn2QPkhaABdBQo65IFsj9CSsOPpmybmJEoF0sxG0C6EPhPRlLqEyTbRpSk3I/exec',
-  DEMO_MODE:   false,   // ← set false after code.gs is deployed
+  DEMO_MODE:   true,   // ← set false after code.gs is deployed
 
   // PINs
   PIN_ICTEAM:  '7150',
@@ -896,6 +906,8 @@ async function submitForm(){
 
   const payload={
     action:'submitInquiry', division:div, contactEmail:email, productCodes:prod,
+    orderNumber:document.getElementById('fOrderNum').value.trim(),
+    qtyPick:document.getElementById('fQtyPick').value.trim(),
     inventoryIssue:document.getElementById('fInvIssue').value,
     qualityIssue:document.getElementById('fQualIssue').value,
     category:document.getElementById('fCat').value, description:desc,
@@ -937,7 +949,7 @@ function resetForm(){
   document.getElementById('submitBtn').disabled=false;
   formFiles=[];renderFL(formFiles,'fileList','fileLimitWarn');
   ['fInvIssue','fQualIssue','fCat'].forEach(id=>document.getElementById(id).value='');
-  ['fEmailManual','fProducts','fDesc'].forEach(id=>document.getElementById(id).value='');
+  ['fEmailManual','fProducts','fOrderNum','fQtyPick','fDesc'].forEach(id=>document.getElementById(id).value='');
   if(role!=='division') document.getElementById('fDiv').value='';
   onDivChange();
 }
@@ -1013,7 +1025,10 @@ function openTicket(id){
     <div class="meta-item"><div class="ml">Submitted</div><div class="mv mono" style="font-size:11px">${fmtDate(t.timestamp)}</div></div>
     <div class="meta-item"><div class="ml">Contact</div><div class="mv" style="font-size:11px">${esc(t.contactEmail)}</div></div>
     <div class="meta-item"><div class="ml">Product Code(s)</div><div class="mv mono">${esc(t.productCodes)}</div></div>
-    <div class="meta-item"><div class="ml">Category</div><div class="mv">${esc(t.category||'—')}</div></div>`;
+    <div class="meta-item"><div class="ml">Category</div><div class="mv">${esc(t.category||'—')}</div></div>
+    ${t.orderNumber?`<div class="meta-item"><div class="ml">Order Number</div><div class="mv mono">${esc(t.orderNumber)}</div></div>`:''}
+    ${t.qtyPick?`<div class="meta-item"><div class="ml">QTY to Pick</div><div class="mv mono">${esc(t.qtyPick)}</div></div>`:''}
+    `;
   document.getElementById('mDesc').textContent=t.description||'—';
 
   const isIC=role==='icteam', isMgr=role==='manager';
@@ -1105,7 +1120,10 @@ function _applyUpdate(progress,findings,followup,by){
     <div class="meta-item"><div class="ml">Submitted</div><div class="mv mono" style="font-size:11px">${fmtDate(activeTx.timestamp)}</div></div>
     <div class="meta-item"><div class="ml">Contact</div><div class="mv" style="font-size:11px">${esc(activeTx.contactEmail)}</div></div>
     <div class="meta-item"><div class="ml">Product Code(s)</div><div class="mv mono">${esc(activeTx.productCodes)}</div></div>
-    <div class="meta-item"><div class="ml">Category</div><div class="mv">${esc(activeTx.category||'—')}</div></div>`;
+    <div class="meta-item"><div class="ml">Category</div><div class="mv">${esc(activeTx.category||'—')}</div></div>
+    ${activeTx.orderNumber?`<div class="meta-item"><div class="ml">Order Number</div><div class="mv mono">${esc(activeTx.orderNumber)}</div></div>`:''}
+    ${activeTx.qtyPick?`<div class="meta-item"><div class="ml">QTY to Pick</div><div class="mv mono">${esc(activeTx.qtyPick)}</div></div>`:''}
+    `;
 }
 
 async function sendReply(){
@@ -1167,7 +1185,7 @@ function hideLoad(){document.getElementById('loadOv').classList.remove('show');}
    DEMO DATA
    ══════════════════════════════════════════════════════ */
 const DEMO_TIX=[
-  {inquiryId:'IC-1042',division:'BC',contactEmail:'bc-team@cnfei.com',productCodes:'BCH-4421, BCH-4422',category:'Pick Demand',progress:'Investigating',timestamp:'2025-03-28T09:14:00',description:'System shows 48 units available but bin is physically empty. Pick demand was flagged for this SKU yesterday.',findings:'Reviewing cycle count records from last Tuesday.',followUpQuestions:'',
+  {inquiryId:'IC-1042',division:'BC',contactEmail:'bc-team@cnfei.com',productCodes:'BCH-4421, BCH-4422',category:'Pick Demand',progress:'Investigating',timestamp:'2025-03-28T09:14:00',orderNumber:'ORD-20250328-114',qtyPick:'48',description:'System shows 48 units available but bin is physically empty. Pick demand was flagged for this SKU yesterday.',findings:'Reviewing cycle count records from last Tuesday.',followUpQuestions:'',
   conversationLog:[
     {direction:'outbound',body:'Your inquiry IC-1042 has been received. Our IC team is now investigating.',timestamp:'2025-03-28T09:20:00',attachments:[],read:true,divRead:true},
     {direction:'inbound',body:'Thanks! Bin was B-14-C. There might be two bins with similar labels nearby.',timestamp:'2025-03-28T10:45:00',attachments:[],read:true,divRead:true},
