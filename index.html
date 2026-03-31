@@ -1150,7 +1150,7 @@ function buildEmailMultiselect(div){
   emails.forEach((email,i)=>{
     const row=document.createElement('div');
     row.className='email-option';
-    row.innerHTML=`<input type="checkbox" id="eck${i}" value="${email}"><label for="eck${i}">${email}</label>`;
+    row.innerHTML=`<input type="checkbox" id="eck${i}" value="${email}" checked><label for="eck${i}">${email}</label>`;
     row.querySelector('input').addEventListener('change',updateEmailPreview);
     container.appendChild(row);
   });
