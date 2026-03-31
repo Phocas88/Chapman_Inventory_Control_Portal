@@ -655,7 +655,7 @@ button,select,input,textarea{font-family:var(--sans)}
       </div>
       <!-- Dock alert banner — shown when Shipping or Receiving issue selected -->
       <div id="dockAlertBanner" style="display:none;background:var(--orange-l);border:1px solid rgba(234,88,12,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--orange);margin-bottom:4px">
-        📦 <strong>Christian Prater (Inbound Dock Manager)</strong> will automatically be CC'd on this inquiry.
+        📦 <strong>Christian Prater (Inbound Dock Manager)</strong> will automatically be added as a primary recipient on this inquiry.
       </div>
       <div class="form-row one"><div class="field">
         <label>Category</label>
@@ -1100,6 +1100,8 @@ function showScreen(id){
   if(map[id]&&document.getElementById(map[id])) document.getElementById(map[id]).classList.add('active');
   if(id==='form') setupForm();
   if(id==='stats') renderStatsScreen();
+  // Always refresh tracker data when navigating to it (not on initial login load — that's handled separately)
+  if(id==='tracker' && role==='division' && allTix.length>0) renderTrackerCards(allTix);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1303,13 +1305,16 @@ function updateEmailPreview(){
 }
 
 function getSelectedEmails(){
+  // Division emails the user checked
   const divEmails=[...document.querySelectorAll('#emailMultiselect input[type=checkbox]:checked')].map(c=>c.value);
+  // Internal Chapman team the user checked
   const ccEmails=[...document.querySelectorAll('#internalCCselect input[type=checkbox]:checked')].map(c=>c.value);
+  // If Shipping or Receiving issue selected, Christian Prater goes in as PRIMARY recipient
   const ship=document.getElementById('fShipIssue')?.value||'';
   const recv=document.getElementById('fRecvIssue')?.value||'';
   const hasDock=(ship&&ship!=='')||(recv&&recv!=='');
   const all=new Set([...divEmails,...ccEmails]);
-  if(hasDock) all.add(DOCK_EMAIL);
+  if(hasDock) all.add(DOCK_EMAIL); // primary, not CC
   return [...all];
 }
 
@@ -1394,7 +1399,13 @@ async function submitForm(){
   } catch(e){hideLoad();toast('Submission failed: '+e.message,'error');document.getElementById('submitBtn').disabled=false;}
 }
 
-function goTracker(){ resetForm(); if(role==='division'){loadTrackerTix();showScreen('tracker');} }
+function goTracker(){
+  if(role==='division'){
+    // Navigate to tracker and reload fresh — new ticket will be in DEMO_TIX/server
+    showScreen('tracker');
+    loadTrackerTix();
+  }
+}
 
 function resetForm(){
   document.getElementById('formWrap').style.display='';
