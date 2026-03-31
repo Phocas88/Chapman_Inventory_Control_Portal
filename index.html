@@ -3,22 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>IC Inquiry — Chapman Warehouse</title>
+<title>IC Inquiry — C&F Enterprises</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:#f0f2f7; --surface:#fff; --panel:#f7f8fc; --border:#dde1ee; --border2:#c4cadf;
-  --text:#1a1e2e; --muted:#6b7494; --subtle:#9aa0bc;
-  --accent:#2563eb; --accent-l:#eff4ff;
-  --green:#059669; --green-l:#ecfdf5;
-  --yellow:#d97706; --yellow-l:#fffbeb;
-  --red:#dc2626; --red-l:#fef2f2;
-  --orange:#ea580c; --orange-l:#fff7ed;
-  --purple:#7c3aed; --purple-l:#f5f3ff;
+:root{
+  --bg:#f0f2f7;--surface:#fff;--panel:#f7f8fc;--border:#dde1ee;--border2:#c4cadf;
+  --text:#1a1e2e;--muted:#6b7494;--subtle:#9aa0bc;
+  --accent:#2563eb;--accent-l:#eff4ff;
+  --green:#059669;--green-l:#ecfdf5;
+  --yellow:#d97706;--yellow-l:#fffbeb;
+  --red:#dc2626;--red-l:#fef2f2;
+  --orange:#ea580c;--orange-l:#fff7ed;
+  --purple:#7c3aed;--purple-l:#f5f3ff;
   --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.04);
   --shadow-lg:0 4px 24px rgba(0,0,0,.12);
-  --radius:8px; --mono:'DM Mono',monospace; --sans:'DM Sans',sans-serif;
+  --radius:8px;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:14px}
@@ -26,10 +26,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:1
 button,select,input,textarea{font-family:var(--sans)}
 #app{display:flex;flex-direction:column;min-height:100vh}
 
+/* BANNER */
+.sys-banner{display:none;padding:10px 20px;font-size:13px;font-weight:500;text-align:center;position:sticky;top:0;z-index:200}
+.sys-banner.show{display:block}
+.sys-banner.info{background:#fef9c3;color:#854d0e;border-bottom:1px solid #fde047}
+.sys-banner.warn{background:#fee2e2;color:#991b1b;border-bottom:1px solid #fca5a5}
+.sys-banner.maint{background:#faf5ff;color:#6b21a8;border-bottom:1px solid #d8b4fe}
+
 /* TOPBAR */
 .topbar{display:flex;align-items:center;gap:10px;padding:0 20px;height:54px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--border)}
 .brand{display:flex;align-items:center;gap:10px}
-.brand-mark{width:30px;height:30px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:500;color:#fff;flex-shrink:0}
+.brand-mark{width:32px;height:32px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:600;color:#fff;flex-shrink:0;letter-spacing:-.3px}
 .brand-text{font-size:14px;font-weight:600}
 .brand-sub{font-size:11px;color:var(--muted);margin-left:4px}
 .role-chip{font-family:var(--mono);font-size:10px;font-weight:500;padding:3px 9px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase;margin-left:4px}
@@ -46,117 +53,137 @@ button,select,input,textarea{font-family:var(--sans)}
 .screen{display:none;flex:1}
 .screen.active{display:flex;flex-direction:column}
 
-/* ══════════════════════════════════════════════════════
-   LOGIN — main selector
-   ══════════════════════════════════════════════════════ */
+/* ══ LOGIN ══ */
 #loginScreen{justify-content:center;align-items:center;min-height:calc(100vh - 54px);background:linear-gradient(135deg,#eef2ff 0%,#f0f2f7 50%,#faf5ff 100%)}
-.login-wrap{width:100%;max-width:520px;padding:20px}
-.login-header{text-align:center;margin-bottom:32px}
-.login-header .login-icon{font-size:40px;margin-bottom:12px}
-.login-header h1{font-size:22px;font-weight:600;margin-bottom:6px}
+.login-wrap{width:100%;max-width:540px;padding:20px}
+.login-header{text-align:center;margin-bottom:28px}
+.login-header .li{font-size:38px;margin-bottom:10px}
+.login-header h1{font-size:22px;font-weight:600;margin-bottom:4px}
 .login-header p{font-size:13px;color:var(--muted)}
-.login-sections{display:flex;flex-direction:column;gap:12px}
 .login-section-title{font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
-.div-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.div-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 @media(max-width:480px){.div-grid{grid-template-columns:repeat(2,1fr)}}
-.div-btn{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s}
+.div-btn{display:flex;flex-direction:column;align-items:center;gap:5px;padding:14px 8px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s}
 .div-btn:hover{border-color:var(--accent);background:var(--accent-l);transform:translateY(-1px);box-shadow:var(--shadow)}
 .div-btn .db-code{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--accent)}
 .div-btn .db-name{font-size:10px;color:var(--muted);text-align:center;line-height:1.3}
-.ic-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ic-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 .ic-login-btn{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s}
 .ic-login-btn:hover{border-color:var(--purple);background:var(--purple-l);transform:translateY(-1px)}
 .ic-login-btn.manager:hover{border-color:var(--accent);background:var(--accent-l)}
 .ic-login-btn .ib-icon{font-size:22px}
-.ic-login-btn .ib-text .ib-title{font-size:13px;font-weight:600}
-.ic-login-btn .ib-text .ib-sub{font-size:11px;color:var(--muted)}
+.ic-login-btn .ib-title{font-size:13px;font-weight:600}
+.ic-login-btn .ib-sub{font-size:11px;color:var(--muted)}
 
-/* ══════════════════════════════════════════════════════
-   PIN SCREEN
-   ══════════════════════════════════════════════════════ */
+/* ══ PIN ══ */
 #pinScreen{justify-content:center;align-items:center;min-height:calc(100vh - 54px);background:linear-gradient(135deg,#eef2ff 0%,#f0f2f7 50%,#faf5ff 100%)}
-.pin-card{width:320px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:36px 28px;box-shadow:var(--shadow-lg)}
-.pin-div-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:10px;margin-bottom:16px;font-weight:600;font-size:14px}
-.pin-card p{font-size:12px;color:var(--muted);margin-bottom:24px}
-.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:24px}
+.pin-card{width:320px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 28px;box-shadow:var(--shadow-lg)}
+.pin-div-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:10px;margin-bottom:14px;font-weight:600;font-size:14px}
+.pin-card p{font-size:12px;color:var(--muted);margin-bottom:20px}
+.pin-hint{font-size:11px;color:var(--subtle);margin-bottom:16px;font-family:var(--mono)}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:22px}
 .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:all .12s}
 .pin-dot.filled{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
 .pin-dot.error{background:var(--red);border-color:var(--red)}
 .pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .pin-key{font-family:var(--mono);font-size:18px;font-weight:500;padding:13px;border-radius:10px;border:1px solid var(--border);background:var(--panel);color:var(--text);cursor:pointer;transition:all .1s}
 .pin-key:hover{background:var(--border)}
-.pin-key:active{transform:scale(.94)}
+.pin-key.active-press,.pin-key:active{transform:scale(.94);background:var(--border2)}
 .pin-key.clr{font-family:var(--sans);font-size:11px;font-weight:600;color:var(--red)}
 .pin-error{color:var(--red);font-size:11px;font-family:var(--mono);margin-top:12px;min-height:16px}
-.pin-back-btn{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-top:14px;text-decoration:underline;text-underline-offset:2px}
+.pin-back-btn{background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;margin-top:12px;text-decoration:underline;text-underline-offset:2px;display:block;width:100%}
 .pin-back-btn:hover{color:var(--accent)}
+.forgot-pin-btn{background:none;border:none;color:var(--subtle);font-size:11px;cursor:pointer;margin-top:8px;text-decoration:underline;text-underline-offset:2px;display:block;width:100%}
+.forgot-pin-btn:hover{color:var(--muted)}
 
-/* ══════════════════════════════════════════════════════
-   DIVISION TRACKER SCREEN
-   ══════════════════════════════════════════════════════ */
+/* ══ FORGOT PIN MODAL ══ */
+.forgot-modal{display:none;position:fixed;inset:0;z-index:400;background:rgba(15,20,40,.4);backdrop-filter:blur(6px);justify-content:center;align-items:center}
+.forgot-modal.open{display:flex}
+.forgot-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:380px;box-shadow:var(--shadow-lg);animation:slideUp .2s ease}
+.forgot-card h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.forgot-card p{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.forgot-field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.forgot-field label{font-size:12px;font-weight:500;color:var(--text)}
+.forgot-field input{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;padding:10px 12px}
+.forgot-field input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.forgot-actions{display:flex;gap:10px;margin-top:4px}
+.forgot-submit{flex:1;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer}
+.forgot-submit:hover{background:#1d4ed8}
+.forgot-cancel{padding:10px 16px;background:none;border:1.5px solid var(--border);color:var(--muted);border-radius:var(--radius);font-size:12px;cursor:pointer}
+.forgot-cancel:hover{border-color:var(--border2);color:var(--text)}
+.forgot-result{font-size:13px;color:var(--green);margin-top:12px;display:none}
+
+/* ══ STATS BAR (global — visible to all roles) ══ */
+.global-stats{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:none}
+.global-stats.show{display:block}
+.gs-inner{max-width:1100px;margin:0 auto}
+.gs-title{font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.gs-title::after{content:'';flex:1;height:1px;background:var(--border)}
+.gs-grid{display:flex;gap:8px;flex-wrap:wrap}
+.gs-pill{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;white-space:nowrap}
+.gs-pill .gsp-num{font-family:var(--mono);font-weight:600;font-size:12px}
+.gs-pill.inv .gsp-num{color:var(--accent)}
+.gs-pill.qual .gsp-num{color:var(--orange)}
+.gs-pill.total .gsp-num{color:var(--purple)}
+.gs-pill .gsp-lbl{color:var(--muted)}
+
+/* ══ TRACKER ══ */
 #trackerScreen{background:var(--bg)}
-.tracker-wrap{max-width:900px;width:100%;margin:0 auto;padding:32px 20px 60px}
-.tracker-header{margin-bottom:28px}
-.tracker-eyebrow{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--green);background:var(--green-l);border:1px solid rgba(5,150,105,.15);border-radius:20px;padding:3px 10px;margin-bottom:10px;letter-spacing:.08em;text-transform:uppercase}
-.tracker-header h1{font-size:22px;font-weight:600}
-.tracker-header p{font-size:13px;color:var(--muted);margin-top:4px}
-.tracker-actions{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap}
-.new-inquiry-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;box-shadow:0 2px 8px rgba(37,99,235,.25)}
+.tracker-wrap{max-width:900px;width:100%;margin:0 auto;padding:28px 20px 60px}
+.tracker-header{margin-bottom:22px}
+.tracker-eyebrow{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--green);background:var(--green-l);border:1px solid rgba(5,150,105,.15);border-radius:20px;padding:3px 10px;margin-bottom:8px;letter-spacing:.08em;text-transform:uppercase}
+.tracker-header h1{font-size:20px;font-weight:600}
+.tracker-header p{font-size:13px;color:var(--muted);margin-top:3px}
+.tracker-actions{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.new-inquiry-btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;box-shadow:0 2px 8px rgba(37,99,235,.25)}
 .new-inquiry-btn:hover{background:#1d4ed8;transform:translateY(-1px)}
-.tracker-refresh-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:none;border:1.5px solid var(--border);color:var(--muted);border-radius:var(--radius);font-size:12px;cursor:pointer;transition:all .15s}
+.tracker-refresh-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;background:none;border:1.5px solid var(--border);color:var(--muted);border-radius:var(--radius);font-size:12px;cursor:pointer;transition:all .15s}
 .tracker-refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
 .tracker-refresh-btn.spinning svg{animation:spin .8s linear infinite}
-/* status summary bar */
-.status-bar{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap}
+.status-bar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
 .status-pill{flex:1;min-width:90px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow);text-align:center}
 .status-pill .sp-num{font-family:var(--mono);font-size:22px;font-weight:500}
 .status-pill .sp-lbl{font-size:10px;color:var(--muted);margin-top:2px}
 .sp-open .sp-num{color:var(--accent)}
 .sp-wait .sp-num{color:var(--orange)}
 .sp-done .sp-num{color:var(--green)}
-/* ticket cards */
+.sp-days .sp-num{color:var(--purple)}
 .ticket-cards{display:flex;flex-direction:column;gap:12px}
-.ticket-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;box-shadow:var(--shadow);cursor:pointer;transition:all .15s}
+.ticket-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;box-shadow:var(--shadow);cursor:pointer;transition:all .15s}
 .ticket-card:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(37,99,235,.1);transform:translateY(-1px)}
 .ticket-card.unread{border-left:3px solid var(--red)}
-.tc-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
-.tc-id{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent);background:var(--accent-l);border:1px solid rgba(37,99,235,.18);border-radius:6px;padding:3px 9px;white-space:nowrap}
-.tc-title{font-size:14px;font-weight:600;flex:1}
+.tc-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.tc-id{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent);background:var(--accent-l);border:1px solid rgba(37,99,235,.18);border-radius:6px;padding:3px 8px;white-space:nowrap}
+.tc-title{font-size:13px;font-weight:600;flex:1}
 .tc-date{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
-.tc-meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
-.tc-meta-item{display:flex;flex-direction:column;gap:2px}
+.tc-days{font-family:var(--mono);font-size:10px;color:var(--purple);background:var(--purple-l);border:1px solid rgba(124,58,237,.15);border-radius:20px;padding:2px 7px;white-space:nowrap}
+.tc-meta{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px}
 .tc-meta-item .tml{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
 .tc-meta-item .tmv{font-size:12px}
-.tc-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tc-desc{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .tc-footer{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .tc-progress-bar-wrap{flex:1;background:var(--panel);border-radius:20px;height:6px;overflow:hidden}
 .tc-progress-bar{height:100%;border-radius:20px;transition:width .4s ease}
-.tc-progress-label{font-size:11px;color:var(--muted);white-space:nowrap}
-/* progress colors */
-.prog-received    {background:var(--accent);width:20%}
+.prog-received{background:var(--accent);width:20%}
 .prog-investigating{background:var(--yellow);width:50%}
-.prog-needinfo    {background:var(--orange);width:65%}
-.prog-waiting     {background:var(--orange);width:65%}
-.prog-completed   {background:var(--green);width:100%}
-/* findings preview in card */
-.tc-findings{background:var(--green-l);border:1px solid rgba(5,150,105,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--green);margin-bottom:12px;line-height:1.6}
-.tc-findings .tf-label{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
-.tc-followup{background:var(--orange-l);border:1px solid rgba(234,88,12,.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--orange);margin-bottom:12px;line-height:1.6}
-.tc-followup .tf-label{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
-.tc-new-reply-banner{background:var(--red-l);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--red);font-weight:500;margin-bottom:12px}
+.prog-needinfo{background:var(--orange);width:65%}
+.prog-waiting{background:var(--orange);width:65%}
+.prog-completed{background:var(--green);width:100%}
+.tc-findings{background:var(--green-l);border:1px solid rgba(5,150,105,.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--green);margin-bottom:10px;line-height:1.6}
+.tc-findings .tf-label,.tc-followup .tf-label{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px}
+.tc-followup{background:var(--orange-l);border:1px solid rgba(234,88,12,.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--orange);margin-bottom:10px;line-height:1.6}
+.tc-new-reply-banner{background:var(--red-l);border:1px solid rgba(220,38,38,.2);border-radius:8px;padding:7px 12px;font-size:12px;color:var(--red);font-weight:500;margin-bottom:10px}
 .empty-tracker{text-align:center;padding:60px 20px;color:var(--muted)}
-.empty-tracker .et-icon{font-size:40px;display:block;margin-bottom:14px}
+.empty-tracker .et-icon{font-size:38px;display:block;margin-bottom:12px}
 
-/* ══════════════════════════════════════════════════════
-   FORM SCREEN
-   ══════════════════════════════════════════════════════ */
+/* ══ FORM ══ */
 #formScreen{background:var(--bg)}
-.form-wrap{max-width:720px;width:100%;margin:0 auto;padding:32px 20px 80px}
+.form-wrap{max-width:720px;width:100%;margin:0 auto;padding:28px 20px 80px}
 .form-eyebrow{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;font-weight:500;color:var(--accent);background:var(--accent-l);border:1px solid rgba(37,99,235,.15);border-radius:20px;padding:3px 10px;margin-bottom:10px;letter-spacing:.08em;text-transform:uppercase}
-.form-header h1{font-size:22px;font-weight:600}
-.form-header p{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.7;margin-bottom:24px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:14px;box-shadow:var(--shadow)}
-.card-title{font-size:11px;font-weight:600;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.form-header h1{font-size:20px;font-weight:600}
+.form-header p{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.7;margin-bottom:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:600;font-family:var(--mono);color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:10px}
 .card-title::after{content:'';flex:1;height:1px;background:var(--border)}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .form-row.one{grid-template-columns:1fr}
@@ -169,54 +196,63 @@ button,select,input,textarea{font-family:var(--sans)}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
 .field textarea{resize:vertical;min-height:100px;line-height:1.7}
 .field .hint{font-size:11px;color:var(--subtle)}
-/* division pre-fill banner */
-.div-prefill{display:flex;align-items:center;gap:10px;background:var(--green-l);border:1px solid rgba(5,150,105,.2);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--green)}
-.div-prefill strong{font-weight:600}
+.div-prefill{display:flex;align-items:center;gap:8px;background:var(--green-l);border:1px solid rgba(5,150,105,.2);border-radius:var(--radius);padding:9px 13px;margin-bottom:12px;font-size:12px;color:var(--green)}
+/* Email multi-select */
+.email-multiselect{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.email-multiselect:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.email-option{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;transition:background .1s}
+.email-option:hover{background:var(--accent-l)}
+.email-option input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px;flex-shrink:0}
+.email-option label{font-size:12px;cursor:pointer;flex:1}
+.email-add-row{display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--border);background:var(--surface)}
+.email-add-row input{flex:1;background:var(--panel);border:1.5px solid var(--border);border-radius:6px;font-size:12px;padding:7px 10px;color:var(--text)}
+.email-add-row input:focus{outline:none;border-color:var(--accent)}
+.email-add-btn{padding:7px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.email-add-btn:hover{background:#1d4ed8}
+.selected-emails-preview{font-size:11px;color:var(--muted);margin-top:5px}
 /* upload */
-.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius);background:var(--panel);padding:24px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius);background:var(--panel);padding:22px 18px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
 .upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-l)}
 .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.upload-icon{font-size:26px;margin-bottom:8px}
-.upload-zone p{font-size:13px;color:var(--muted)}
+.upload-icon{font-size:24px;margin-bottom:7px}
+.upload-zone p{font-size:12px;color:var(--muted)}
 .upload-zone p strong{color:var(--accent)}
-.upload-zone small{font-size:11px;color:var(--subtle);display:block;margin-top:4px}
-.file-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
-.file-chip{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 12px}
-.file-chip .fic{font-size:17px;flex-shrink:0}
+.upload-zone small{font-size:11px;color:var(--subtle);display:block;margin-top:3px}
+.file-list{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.file-chip{display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 11px}
+.file-chip .fic{font-size:16px;flex-shrink:0}
 .file-chip .fnm{font-size:12px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .file-chip .fsz{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
-.file-chip .frm{background:none;border:none;color:var(--subtle);font-size:16px;cursor:pointer;padding:0 2px;line-height:1}
+.file-chip .frm{background:none;border:none;color:var(--subtle);font-size:15px;cursor:pointer;padding:0 2px;line-height:1}
 .file-chip .frm:hover{color:var(--red)}
-.submit-btn{width:100%;margin-top:18px;padding:13px;font-size:13px;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:all .15s;box-shadow:0 2px 8px rgba(37,99,235,.3)}
+.submit-btn{width:100%;margin-top:16px;padding:13px;font-size:13px;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:all .15s;box-shadow:0 2px 8px rgba(37,99,235,.3)}
 .submit-btn:hover{background:#1d4ed8;transform:translateY(-1px)}
 .submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 .form-success{display:none;flex-direction:column;align-items:center;text-align:center;padding:60px 24px;gap:12px}
 .form-success.show{display:flex}
-.success-ring{width:68px;height:68px;border-radius:50%;background:var(--green-l);border:2px solid #6ee7b7;display:flex;align-items:center;justify-content:center;font-size:30px}
-.form-success h2{font-size:20px;font-weight:600}
+.success-ring{width:64px;height:64px;border-radius:50%;background:var(--green-l);border:2px solid #6ee7b7;display:flex;align-items:center;justify-content:center;font-size:28px}
+.form-success h2{font-size:19px;font-weight:600}
 .form-success p{font-size:13px;color:var(--muted);max-width:400px;line-height:1.7}
 .id-pill{font-family:var(--mono);font-size:14px;background:var(--accent-l);color:var(--accent);border:1px solid rgba(37,99,235,.2);border-radius:20px;padding:8px 20px}
-.outline-btn{background:none;border:1.5px solid var(--border);color:var(--muted);font-size:12px;padding:8px 18px;border-radius:6px;cursor:pointer;margin-top:4px;transition:all .15s}
+.outline-btn{background:none;border:1.5px solid var(--border);color:var(--muted);font-size:12px;padding:8px 16px;border-radius:6px;cursor:pointer;margin-top:4px;transition:all .15s}
 .outline-btn:hover{border-color:var(--accent);color:var(--accent)}
 
-/* ══════════════════════════════════════════════════════
-   IC DASHBOARD SCREEN
-   ══════════════════════════════════════════════════════ */
+/* ══ DASHBOARD ══ */
 .dash-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border)}
 .search-box{display:flex;align-items:center;gap:8px;background:var(--panel);border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;flex:1;min-width:160px;transition:border-color .15s}
 .search-box:focus-within{border-color:var(--accent);background:#fff}
 .search-box input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:100%}
 .filter-sel{background:var(--panel);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:8px 10px;cursor:pointer;-webkit-appearance:none}
-.refresh-btn{background:none;border:1.5px solid var(--border);color:var(--muted);font-size:12px;padding:8px 14px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
+.refresh-btn{background:none;border:1.5px solid var(--border);color:var(--muted);font-size:12px;padding:8px 13px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-l)}
 .refresh-btn.spinning svg{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.stats-strip{display:flex;gap:12px;padding:14px 20px;flex-wrap:wrap}
+.stats-strip{display:flex;gap:12px;padding:12px 20px;flex-wrap:wrap}
 .stat-card{flex:1;min-width:100px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow)}
 .stat-card .sv{font-family:var(--mono);font-size:22px;font-weight:500}
 .stat-card .sl{font-size:11px;color:var(--muted);margin-top:2px}
-.sc-blue .sv{color:var(--accent)} .sc-yellow .sv{color:var(--yellow)} .sc-orange .sv{color:var(--orange)} .sc-green .sv{color:var(--green)}
-.table-wrap{flex:1;overflow:auto;padding:0 20px 32px}
+.sc-blue .sv{color:var(--accent)}.sc-yellow .sv{color:var(--yellow)}.sc-orange .sv{color:var(--orange)}.sc-green .sv{color:var(--green)}
+.table-wrap{flex:1;overflow:auto;padding:0 20px 28px}
 .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
 .tbl th{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap;background:var(--panel);border-bottom:1px solid var(--border)}
 .tbl td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
@@ -225,128 +261,146 @@ button,select,input,textarea{font-family:var(--sans)}
 .tbl tbody tr:hover td{background:#f5f7ff}
 .mono{font-family:var(--mono)}
 .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
-.empty-state .ei{font-size:38px;display:block;margin-bottom:12px}
+.empty-state .ei{font-size:36px;display:block;margin-bottom:12px}
+
+/* ══ MANAGER BANNER CREATOR ══ */
+.banner-creator{background:var(--yellow-l);border:1px solid rgba(217,119,6,.2);border-radius:12px;padding:18px;margin:16px 20px;display:none}
+.banner-creator.show{display:block}
+.banner-creator-title{font-size:11px;font-family:var(--mono);font-weight:600;color:var(--yellow);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.banner-creator-title::after{content:'';flex:1;height:1px;background:rgba(217,119,6,.2)}
+.bc-row{display:flex;gap:10px;flex-wrap:wrap}
+.bc-text{flex:1;min-width:200px;background:#fff;border:1.5px solid rgba(217,119,6,.3);border-radius:var(--radius);font-size:13px;padding:9px 12px;color:var(--text)}
+.bc-text:focus{outline:none;border-color:var(--yellow)}
+.bc-type{background:#fff;border:1.5px solid rgba(217,119,6,.3);border-radius:var(--radius);font-size:12px;padding:9px 10px;color:var(--text);cursor:pointer;-webkit-appearance:none}
+.bc-post-btn{padding:9px 18px;background:var(--yellow);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.bc-post-btn:hover{background:#b45309}
+.bc-clear-btn{padding:9px 14px;background:none;border:1.5px solid rgba(217,119,6,.3);color:var(--yellow);border-radius:var(--radius);font-size:12px;cursor:pointer}
+.bc-clear-btn:hover{background:rgba(217,119,6,.1)}
 
 /* BADGES */
 .badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:500;padding:3px 9px;border-radius:20px;white-space:nowrap;letter-spacing:.04em}
 .badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
-.b-received{color:#2563eb;background:#eff4ff} .b-investigating{color:#d97706;background:#fffbeb}
-.b-followup{color:#ea580c;background:#fff7ed} .b-waiting{color:#ea580c;background:#fff7ed}
-.b-completed{color:#059669;background:#ecfdf5} .b-other{color:#6b7494;background:#f0f2f7}
+.b-received{color:#2563eb;background:#eff4ff}.b-investigating{color:#d97706;background:#fffbeb}
+.b-followup{color:#ea580c;background:#fff7ed}.b-waiting{color:#ea580c;background:#fff7ed}
+.b-completed{color:#059669;background:#ecfdf5}.b-other{color:#6b7494;background:#f0f2f7}
 
-/* ══════════════════════════════════════════════════════
-   MODAL
-   ══════════════════════════════════════════════════════ */
-.overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(15,20,40,.4);backdrop-filter:blur(6px);justify-content:center;align-items:flex-start;overflow-y:auto;padding:28px 16px}
+/* ══ MODAL ══ */
+.overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(15,20,40,.4);backdrop-filter:blur(6px);justify-content:center;align-items:flex-start;overflow-y:auto;padding:24px 16px}
 .overlay.open{display:flex}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:740px;box-shadow:var(--shadow-lg);flex-shrink:0;animation:slideUp .2s ease}
 @keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-.modal-head{display:flex;align-items:flex-start;gap:12px;padding:18px 24px;border-bottom:1px solid var(--border)}
-.modal-head .mid{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent);background:var(--accent-l);border:1px solid rgba(37,99,235,.18);border-radius:6px;padding:3px 10px;white-space:nowrap}
-.modal-head h3{font-size:15px;font-weight:600;flex:1;line-height:1.4}
+.modal-head{display:flex;align-items:flex-start;gap:12px;padding:16px 22px;border-bottom:1px solid var(--border)}
+.modal-head .mid{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--accent);background:var(--accent-l);border:1px solid rgba(37,99,235,.18);border-radius:6px;padding:3px 9px;white-space:nowrap}
+.modal-head h3{font-size:14px;font-weight:600;flex:1;line-height:1.4}
 .modal-head .x{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:2px 6px;border-radius:6px}
 .modal-head .x:hover{background:var(--panel);color:var(--text)}
-.modal-body{padding:22px;display:flex;flex-direction:column;gap:18px}
+.modal-body{padding:20px;display:flex;flex-direction:column;gap:16px}
 .meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 @media(max-width:480px){.meta-grid{grid-template-columns:1fr 1fr}}
 .meta-item .ml{font-size:10px;font-family:var(--mono);color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}
 .meta-item .mv{font-size:13px}
 .blk-label{font-size:10px;font-family:var(--mono);font-weight:500;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .blk-label::after{content:'';flex:1;height:1px;background:var(--border)}
-.blk-val{font-size:13px;line-height:1.7;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:11px 14px}
+.blk-val{font-size:13px;line-height:1.7;background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:10px 13px}
 .blk-val.empty{color:var(--muted);font-style:italic}
-/* IC Team panel */
-.quick-panel{background:var(--purple-l);border:1.5px solid rgba(124,58,237,.2);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.quick-panel{background:var(--purple-l);border:1.5px solid rgba(124,58,237,.2);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .quick-panel-title{font-size:11px;font-family:var(--mono);font-weight:600;color:var(--purple);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
 .quick-panel-title::after{content:'';flex:1;height:1px;background:rgba(124,58,237,.2)}
 .qf{display:flex;flex-direction:column;gap:5px}
 .qf label{font-size:11px;font-weight:500;color:var(--purple);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
-.qf select,.qf textarea{background:#fff;border:1.5px solid rgba(124,58,237,.25);border-radius:var(--radius);color:var(--text);font-size:13px;padding:9px 12px}
+.qf select,.qf textarea{background:#fff;border:1.5px solid rgba(124,58,237,.25);border-radius:var(--radius);color:var(--text);font-size:13px;padding:8px 12px}
 .qf select:focus,.qf textarea:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,58,237,.1)}
-.qf textarea{resize:vertical;min-height:68px;line-height:1.6}
+.qf textarea{resize:vertical;min-height:64px;line-height:1.6}
 .qf .hint{font-size:11px;color:var(--purple);opacity:.7}
-.quick-save-btn{padding:9px 20px;background:var(--purple);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;align-self:flex-end}
+.quick-save-btn{padding:9px 18px;background:var(--purple);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;align-self:flex-end}
 .quick-save-btn:hover{background:#6d28d9}
 .quick-save-btn:disabled{opacity:.5;cursor:not-allowed}
-/* Manager panel */
-.manager-panel{background:var(--accent-l);border:1.5px solid rgba(37,99,235,.2);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.manager-panel{background:var(--accent-l);border:1.5px solid rgba(37,99,235,.2);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .manager-panel-title{font-size:11px;font-family:var(--mono);font-weight:600;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
 .manager-panel-title::after{content:'';flex:1;height:1px;background:rgba(37,99,235,.2)}
 .mf{display:flex;flex-direction:column;gap:5px}
 .mf label{font-size:11px;font-weight:500;color:var(--accent);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
-.mf select,.mf textarea{background:#fff;border:1.5px solid rgba(37,99,235,.2);border-radius:var(--radius);color:var(--text);font-size:13px;padding:9px 12px}
+.mf select,.mf textarea{background:#fff;border:1.5px solid rgba(37,99,235,.2);border-radius:var(--radius);color:var(--text);font-size:13px;padding:8px 12px}
 .mf select:focus,.mf textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-.mf textarea{resize:vertical;min-height:68px;line-height:1.6}
+.mf textarea{resize:vertical;min-height:64px;line-height:1.6}
 .mf .note{font-size:11px;color:var(--accent);opacity:.7;font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400}
 /* Thread */
-.thread{display:flex;flex-direction:column;gap:12px;max-height:380px;overflow-y:auto;padding-right:4px}
-.thread-msg{display:flex;gap:10px;animation:fadeIn .2s ease}
+.thread{display:flex;flex-direction:column;gap:12px;max-height:360px;overflow-y:auto;padding-right:4px}
+.thread-msg{display:flex;gap:9px;animation:fadeIn .2s ease}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .thread-msg.outbound{flex-direction:row-reverse}
-.msg-avatar{width:32px;height:32px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:var(--mono)}
+.msg-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;font-family:var(--mono)}
 .outbound .msg-avatar{background:var(--accent)}
 .inbound  .msg-avatar{background:var(--green)}
 .msg-bubble{max-width:80%;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:10px 13px}
 .outbound .msg-bubble{background:var(--accent-l);border-color:rgba(37,99,235,.18);border-radius:12px 2px 12px 12px}
 .inbound  .msg-bubble{border-radius:2px 12px 12px 12px}
-.msg-sender{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.msg-sender{font-size:11px;font-weight:600;color:var(--muted);margin-bottom:3px}
 .outbound .msg-sender{color:var(--accent);text-align:right}
 .inbound  .msg-sender{color:var(--green)}
 .msg-body{font-size:13px;line-height:1.65;white-space:pre-wrap}
 .msg-time{font-family:var(--mono);font-size:10px;color:var(--subtle);margin-top:5px}
 .outbound .msg-time{text-align:right}
-.msg-atts{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
-.att-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:11px;color:var(--text);cursor:pointer;transition:all .15s}
+.msg-atts{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.att-chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 9px;font-size:11px;color:var(--text);cursor:pointer;transition:all .15s}
 .att-chip:hover{border-color:var(--accent);color:var(--accent)}
-.msg-imgs{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
-.msg-imgs img{max-width:170px;max-height:130px;object-fit:cover;border-radius:8px;border:1px solid var(--border);cursor:pointer}
+.msg-imgs{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.msg-imgs img{max-width:160px;max-height:120px;object-fit:cover;border-radius:7px;border:1px solid var(--border);cursor:pointer}
 .msg-imgs img:hover{opacity:.85}
 .thread-empty{font-size:13px;color:var(--muted);font-style:italic;padding:6px 0}
-/* Reply composer */
-.reply-composer{border-top:1px solid var(--border);padding:14px 22px;background:var(--panel);border-radius:0 0 16px 16px;display:flex;flex-direction:column;gap:9px}
+.reply-composer{border-top:1px solid var(--border);padding:14px 20px;background:var(--panel);border-radius:0 0 16px 16px;display:flex;flex-direction:column;gap:9px}
 .reply-label{font-size:11px;font-family:var(--mono);font-weight:500;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
 .reply-label::after{content:'';flex:1;height:1px;background:var(--border)}
-.reply-area{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-size:13px;color:var(--text);resize:vertical;min-height:68px;line-height:1.6}
+.reply-area{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-size:13px;color:var(--text);resize:vertical;min-height:64px;line-height:1.6}
 .reply-area:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-.reply-files{display:flex;flex-wrap:wrap;gap:6px}
-.rfchip{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px}
-.rfchip button{background:none;border:none;color:var(--subtle);cursor:pointer;font-size:14px;line-height:1;padding:0}
+.reply-files{display:flex;flex-wrap:wrap;gap:5px}
+.rfchip{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 9px;font-size:11px}
+.rfchip button{background:none;border:none;color:var(--subtle);cursor:pointer;font-size:13px;line-height:1;padding:0}
 .rfchip button:hover{color:var(--red)}
-.reply-actions{display:flex;align-items:center;gap:10px}
-.attach-btn{background:none;border:1.5px solid var(--border);color:var(--muted);font-size:12px;padding:7px 13px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;position:relative;overflow:hidden}
+.reply-actions{display:flex;align-items:center;gap:9px}
+.attach-btn{background:none;border:1.5px solid var(--border);color:var(--muted);font-size:12px;padding:7px 12px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;position:relative;overflow:hidden}
 .attach-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
 .attach-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-l)}
 .send-btn{margin-left:auto;padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
 .send-btn:hover{background:#1d4ed8}
 .send-btn:disabled{opacity:.5;cursor:not-allowed}
-.modal-footer{display:flex;gap:10px;padding:14px 22px;border-top:1px solid var(--border)}
+.modal-footer{display:flex;gap:10px;padding:12px 20px;border-top:1px solid var(--border)}
 .btn-primary{flex:1;padding:10px;font-size:12px;font-weight:600;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;transition:all .15s}
 .btn-primary:hover{background:#1d4ed8}
 .btn-primary:disabled{opacity:.5;cursor:not-allowed}
 .btn-ghost{padding:10px 16px;font-size:12px;background:none;border:1.5px solid var(--border);color:var(--muted);border-radius:var(--radius);cursor:pointer;transition:all .15s}
 .btn-ghost:hover{border-color:var(--border2);color:var(--text)}
-/* Lightbox + Toast + Loading */
+/* Add to directory prompt */
+.dir-prompt{background:var(--accent-l);border:1px solid rgba(37,99,235,.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px}
+.dir-prompt button{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none}
+.dir-yes{background:var(--accent);color:#fff}
+.dir-yes:hover{background:#1d4ed8}
+.dir-no{background:none;border:1px solid rgba(37,99,235,.3)!important;color:var(--accent)}
+/* Lightbox Toast Loading */
 .lightbox{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.88);justify-content:center;align-items:center}
 .lightbox.open{display:flex}
 .lightbox img{max-width:90vw;max-height:90vh;border-radius:8px}
-.lb-close{position:fixed;top:20px;right:24px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:28px;cursor:pointer;border-radius:8px;padding:4px 10px;line-height:1}
-.toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--text);color:#fff;border-radius:var(--radius);padding:11px 18px;font-size:12px;transform:translateY(16px);opacity:0;transition:all .2s;pointer-events:none;box-shadow:var(--shadow-lg)}
+.lb-close{position:fixed;top:20px;right:24px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:26px;cursor:pointer;border-radius:8px;padding:4px 10px;line-height:1}
+.toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--text);color:#fff;border-radius:var(--radius);padding:10px 17px;font-size:12px;transform:translateY(16px);opacity:0;transition:all .2s;pointer-events:none;box-shadow:var(--shadow-lg)}
 .toast.show{transform:translateY(0);opacity:1}
-.toast.success{background:var(--green)} .toast.error{background:var(--red)}
-.loading-overlay{position:fixed;inset:0;z-index:300;background:rgba(240,242,247,.75);backdrop-filter:blur(4px);display:none;justify-content:center;align-items:center;flex-direction:column;gap:16px}
+.toast.success{background:var(--green)}.toast.error{background:var(--red)}
+.loading-overlay{position:fixed;inset:0;z-index:300;background:rgba(240,242,247,.75);backdrop-filter:blur(4px);display:none;justify-content:center;align-items:center;flex-direction:column;gap:14px}
 .loading-overlay.show{display:flex}
-.spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 .loading-overlay p{font-size:12px;color:var(--muted)}
-::-webkit-scrollbar{width:6px;height:6px} ::-webkit-scrollbar-track{background:var(--bg)} ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 </style>
 </head>
 <body>
 <div id="app">
 
+<!-- SYSTEM BANNER -->
+<div class="sys-banner" id="sysBanner"></div>
+
 <!-- TOPBAR -->
-<header class="topbar">
+<header class="topbar" style="position:sticky;top:0;z-index:100">
   <div class="brand">
-    <div class="brand-mark">IC</div>
+    <div class="brand-mark">C&amp;F</div>
     <span class="brand-text">IC Inquiry</span>
     <span class="brand-sub">Chapman Warehouse</span>
     <span class="role-chip" id="roleChip" style="display:none"></span>
@@ -355,56 +409,57 @@ button,select,input,textarea{font-family:var(--sans)}
     <button class="nav-btn" onclick="showScreen('tracker')" id="navTracker" style="display:none">My Tickets</button>
     <button class="nav-btn" onclick="showScreen('form')"    id="navForm"    style="display:none">New Inquiry</button>
     <button class="nav-btn" onclick="showScreen('dash')"    id="navDash"    style="display:none">Dashboard</button>
-    <button class="nav-btn lock" onclick="logout()">← Back / Lock</button>
+    <button class="nav-btn lock" onclick="logout()">← Lock</button>
   </nav>
 </header>
 
-<!-- ════════════ LOGIN SELECTOR ════════════ -->
+<!-- GLOBAL STATS BAR -->
+<div class="global-stats" id="globalStats">
+  <div class="gs-inner">
+    <div class="gs-title">Inquiry Statistics</div>
+    <div class="gs-grid" id="gsGrid"></div>
+  </div>
+</div>
+
+<!-- ═══════════ LOGIN ═══════════ -->
 <div class="screen active" id="loginScreen">
   <div class="login-wrap">
     <div class="login-header">
-      <div class="login-icon">📦</div>
+      <div class="li">📦</div>
       <h1>IC Inquiry System</h1>
       <p>Select your division or team to get started</p>
     </div>
-
-    <div class="login-sections">
-      <div>
-        <div class="login-section-title">Divisions</div>
-        <div class="div-grid">
-          <button class="div-btn" onclick="goPin('GT')"><span class="db-code">GT</span><span class="db-name">TAG Home Goods</span></button>
-          <button class="div-btn" onclick="goPin('NH')"><span class="db-code">NH</span><span class="db-name">NAPA Home</span></button>
-          <button class="div-btn" onclick="goPin('FS')"><span class="db-code">FS</span><span class="db-name">Forside</span></button>
-          <button class="div-btn" onclick="goPin('EE')"><span class="db-code">EE</span><span class="db-name">Ever Ellis</span></button>
-          <button class="div-btn" onclick="goPin('BC')"><span class="db-code">BC</span><span class="db-name">Beachcombers</span></button>
-          <button class="div-btn" onclick="goPin('VP')"><span class="db-code">VP</span><span class="db-name">VIP</span></button>
-          <button class="div-btn" onclick="goPin('TP')"><span class="db-code">TP</span><span class="db-name">Transpac</span></button>
-          <button class="div-btn" onclick="goPin('CI')"><span class="db-code">CI</span><span class="db-name">Chapman Internal</span></button>
-        </div>
-      </div>
-
-      <div style="margin-top:8px">
-        <div class="login-section-title">IC Team</div>
-        <div class="ic-btns">
-          <button class="ic-login-btn" onclick="goPin('icteam')">
-            <span class="ib-icon">🔬</span>
-            <div class="ib-text"><div class="ib-title">IC Team</div><div class="ib-sub">Investigate &amp; update tickets</div></div>
-          </button>
-          <button class="ic-login-btn manager" onclick="goPin('manager')">
-            <span class="ib-icon">⚙️</span>
-            <div class="ib-text"><div class="ib-title">IC Manager</div><div class="ib-sub">Full control &amp; oversight</div></div>
-          </button>
-        </div>
-      </div>
+    <div class="login-section-title">Divisions</div>
+    <div class="div-grid">
+      <button class="div-btn" onclick="goPin('GT')"><span class="db-code">GT</span><span class="db-name">TAG Home Goods</span></button>
+      <button class="div-btn" onclick="goPin('NH')"><span class="db-code">NH</span><span class="db-name">NAPA Home</span></button>
+      <button class="div-btn" onclick="goPin('FS')"><span class="db-code">FS</span><span class="db-name">Forside</span></button>
+      <button class="div-btn" onclick="goPin('EE')"><span class="db-code">EE</span><span class="db-name">Ever Ellis</span></button>
+      <button class="div-btn" onclick="goPin('BC')"><span class="db-code">BC</span><span class="db-name">Beachcombers</span></button>
+      <button class="div-btn" onclick="goPin('VP')"><span class="db-code">VP</span><span class="db-name">VIP</span></button>
+      <button class="div-btn" onclick="goPin('TP')"><span class="db-code">TP</span><span class="db-name">Transpac</span></button>
+      <button class="div-btn" onclick="goPin('CI')"><span class="db-code">CI</span><span class="db-name">Chapman Internal</span></button>
+    </div>
+    <div class="login-section-title" style="margin-top:8px">IC Team</div>
+    <div class="ic-btns">
+      <button class="ic-login-btn" onclick="goPin('icteam')">
+        <span class="ib-icon">🔬</span>
+        <div><div class="ib-title">IC Team</div><div class="ib-sub">Investigate &amp; update tickets</div></div>
+      </button>
+      <button class="ic-login-btn manager" onclick="goPin('manager')">
+        <span class="ib-icon">⚙️</span>
+        <div><div class="ib-title">IC Manager</div><div class="ib-sub">Full control &amp; oversight</div></div>
+      </button>
     </div>
   </div>
 </div>
 
-<!-- ════════════ PIN SCREEN ════════════ -->
+<!-- ═══════════ PIN ═══════════ -->
 <div class="screen" id="pinScreen">
   <div class="pin-card">
-    <div class="pin-div-badge" id="pinBadge">GT</div>
+    <div class="pin-div-badge" id="pinBadge">—</div>
     <p id="pinSub">Enter your PIN to continue</p>
+    <div class="pin-hint">Type on keyboard or tap below</div>
     <div class="pin-dots" id="pinDots">
       <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
       <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
@@ -417,50 +472,46 @@ button,select,input,textarea{font-family:var(--sans)}
     </div>
     <div class="pin-error" id="pinErr"></div>
     <button class="pin-back-btn" onclick="showScreen('login')">← Back to selection</button>
+    <button class="forgot-pin-btn" onclick="openForgotPin()">Forgot PIN?</button>
   </div>
 </div>
 
-<!-- ════════════ DIVISION TRACKER ════════════ -->
+<!-- ═══════════ TRACKER ═══════════ -->
 <div class="screen" id="trackerScreen">
   <div class="tracker-wrap">
     <div class="tracker-header">
       <div class="tracker-eyebrow" id="trackerEyebrow">📦 Division Tracker</div>
       <h1 id="trackerTitle">Your Inquiry Tracker</h1>
-      <p id="trackerSub">Track the status of all your submitted inquiries in real time</p>
+      <p id="trackerSub">Track all your submitted inquiries in real time</p>
     </div>
     <div class="tracker-actions">
       <button class="new-inquiry-btn" onclick="showScreen('form')">+ New Inquiry</button>
       <button class="tracker-refresh-btn" id="trackerRefreshBtn" onclick="loadTrackerTix()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         Refresh
       </button>
     </div>
     <div class="status-bar">
       <div class="status-pill sp-open"><div class="sp-num" id="spOpen">—</div><div class="sp-lbl">Open</div></div>
-      <div class="status-pill sp-wait"><div class="sp-num" id="spWait">—</div><div class="sp-lbl">Needs Your Response</div></div>
+      <div class="status-pill sp-wait"><div class="sp-num" id="spWait">—</div><div class="sp-lbl">Needs Response</div></div>
       <div class="status-pill sp-done"><div class="sp-num" id="spDone">—</div><div class="sp-lbl">Completed</div></div>
     </div>
-    <div class="ticket-cards" id="trackerCards">
-      <div class="empty-tracker"><span class="et-icon">📋</span><p>No inquiries found for your division.</p></div>
-    </div>
+    <div class="ticket-cards" id="trackerCards"></div>
   </div>
 </div>
 
-<!-- ════════════ INTAKE FORM ════════════ -->
+<!-- ═══════════ FORM ═══════════ -->
 <div class="screen" id="formScreen">
   <div class="form-wrap" id="formWrap">
     <div class="form-header">
-      <div class="form-eyebrow" id="formEyebrow">📦 New Inquiry</div>
-      <h1 id="formTitle">Submit an Inquiry</h1>
+      <div class="form-eyebrow">📦 New Inquiry</div>
+      <h1>Submit an Inquiry</h1>
       <p>Describe your inventory issue below. You'll receive a confirmation email and can follow the status in your tracker.</p>
     </div>
-
     <div class="card">
       <div class="card-title">Contact Information</div>
-      <div id="divPrefill" class="div-prefill" style="display:none">
-        ✅ Submitting as <strong id="divPrefillLabel">—</strong>
-      </div>
-      <div class="form-row">
+      <div id="divPrefill" class="div-prefill" style="display:none">✅ Submitting as <strong id="divPrefillLabel">—</strong></div>
+      <div class="form-row" id="divSelectRow">
         <div class="field">
           <label>Division <em>*</em></label>
           <select id="fDiv" onchange="onDivChange()">
@@ -475,31 +526,30 @@ button,select,input,textarea{font-family:var(--sans)}
             <option value="CI">CI — Chapman Internal</option>
           </select>
         </div>
-        <div class="field">
-          <label>Your Email <em>*</em></label>
-          <select id="fEmailPick"><option value="">Select Division First…</option></select>
-        </div>
-      </div>
-      <div class="form-row one">
-        <div class="field">
-          <label>Or Enter Email Directly</label>
-          <input type="email" id="fEmailManual" placeholder="your@email.com">
-          <div class="hint">Leave blank if selected above</div>
+        <div class="field" id="emailFieldWrap">
+          <label>Select Email(s) <em>*</em></label>
+          <div class="email-multiselect" id="emailMultiselect"></div>
+          <div class="selected-emails-preview" id="selectedEmailsPreview">No emails selected</div>
+          <div id="dirPrompt" class="dir-prompt" style="display:none">
+            <span id="dirPromptMsg"></span>
+            <button class="dir-yes" onclick="addNewEmailToDir()">Yes, add to directory</button>
+            <button class="dir-no" onclick="dismissDirPrompt()">No thanks</button>
+          </div>
         </div>
       </div>
     </div>
-
     <div class="card">
       <div class="card-title">Issue Details</div>
       <div class="form-row one"><div class="field">
         <label>Product Code(s) <em>*</em></label>
-        <input type="text" id="fProducts" placeholder="e.g. ABC-1234, XYZ-5678">
-        <div class="hint">Separate multiple codes with commas</div>
+        <input type="text" id="fProducts" placeholder="e.g. BCH44210 NH00023321">
+        <div class="hint">Separate multiple codes with spaces or commas — no dashes</div>
       </div></div>
       <div class="form-row">
         <div class="field">
           <label>Order Number <span style="font-weight:400;color:var(--subtle);font-size:11px">(if applicable)</span></label>
-          <input type="text" id="fOrderNum" placeholder="e.g. ORD-20250330-001">
+          <input type="text" id="fOrderNum" placeholder="e.g. NH00023321">
+          <div class="hint">Use your division format — no dashes</div>
         </div>
         <div class="field">
           <label>QTY to Pick for Order</label>
@@ -525,22 +575,19 @@ button,select,input,textarea{font-family:var(--sans)}
         <textarea id="fDesc" placeholder="What happened, when, what you expected vs found, affected orders or bin locations…"></textarea>
       </div></div>
     </div>
-
     <div class="card">
       <div class="card-title">Attachments <span style="font-weight:400;color:var(--subtle);font-family:var(--sans);font-size:10px;letter-spacing:0;text-transform:none">— PDF, Excel, images · no Google login needed</span></div>
       <div class="upload-zone" id="uploadZone">
         <input type="file" id="fileInput" multiple accept=".pdf,.xlsx,.xls,.csv,.png,.jpg,.jpeg,.gif,.webp" onchange="onFilePick(event)">
         <div class="upload-icon">📎</div>
         <p><strong>Click to attach files</strong> or drag &amp; drop</p>
-        <small>PDF, Excel, CSV, PNG, JPG · Max 10 MB per file · Up to 5 files</small>
+        <small>PDF, Excel, CSV, PNG, JPG · Max 10 MB · Up to 5 files</small>
       </div>
       <div class="file-list" id="fileList"></div>
-      <div style="font-size:11px;color:var(--orange);margin-top:6px;display:none" id="fileLimitWarn">⚠ Maximum 5 files reached</div>
+      <div style="font-size:11px;color:var(--orange);margin-top:5px;display:none" id="fileLimitWarn">⚠ Maximum 5 files reached</div>
     </div>
-
     <button class="submit-btn" id="submitBtn" onclick="submitForm()">Submit Inquiry →</button>
   </div>
-
   <div class="form-success" id="formSuccess">
     <div class="success-ring">✅</div>
     <h2>Inquiry Submitted!</h2>
@@ -552,8 +599,23 @@ button,select,input,textarea{font-family:var(--sans)}
   </div>
 </div>
 
-<!-- ════════════ IC DASHBOARD ════════════ -->
+<!-- ═══════════ IC DASHBOARD ═══════════ -->
 <div class="screen" id="dashScreen">
+  <!-- Manager banner creator -->
+  <div class="banner-creator" id="bannerCreator">
+    <div class="banner-creator-title">📢 Post System Banner</div>
+    <div class="bc-row">
+      <input class="bc-text" id="bannerText" placeholder="e.g. IC responses will be temporarily slowed due to an internal project…">
+      <select class="bc-type" id="bannerType">
+        <option value="info">⚠ Notice</option>
+        <option value="warn">🔴 Urgent</option>
+        <option value="maint">🔧 Maintenance</option>
+      </select>
+      <button class="bc-post-btn" onclick="postBanner()">Post</button>
+      <button class="bc-clear-btn" onclick="clearBanner()">Clear</button>
+    </div>
+  </div>
+
   <div class="dash-toolbar">
     <div class="search-box">
       <span style="color:var(--muted)">🔍</span>
@@ -568,7 +630,7 @@ button,select,input,textarea{font-family:var(--sans)}
       <option>GT</option><option>NH</option><option>FS</option><option>EE</option><option>BC</option><option>VP</option><option>TP</option><option>CI</option>
     </select>
     <button class="refresh-btn" id="refreshBtn" onclick="loadTix()">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Refresh
     </button>
   </div>
@@ -583,7 +645,7 @@ button,select,input,textarea{font-family:var(--sans)}
 
 </div><!-- #app -->
 
-<!-- ════════════ TICKET MODAL ════════════ -->
+<!-- ═══════════ TICKET MODAL ═══════════ -->
 <div class="overlay" id="modalOv" onclick="closeMoBg(event)">
 <div class="modal">
   <div class="modal-head">
@@ -594,34 +656,18 @@ button,select,input,textarea{font-family:var(--sans)}
   <div class="modal-body">
     <div class="meta-grid" id="mMeta"></div>
     <div><div class="blk-label">Original Request</div><div class="blk-val" id="mDesc">—</div></div>
-    <!-- IC Team panel -->
     <div class="quick-panel" id="icTeamPanel" style="display:none">
       <div class="quick-panel-title">IC Team — Update</div>
-      <div class="qf"><label>Progress</label>
-        <select id="qProgress"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Completed</option></select>
-      </div>
-      <div class="qf"><label>Investigation Findings</label>
-        <textarea id="qFindings" placeholder="Share findings with the requester…"></textarea>
-        <div class="hint">⚠ Will be emailed to the division on save</div>
-      </div>
-      <div class="qf"><label>Follow-Up Questions</label>
-        <textarea id="qFollowup" placeholder="Questions to send to the requester…"></textarea>
-        <div class="hint">⚠ Will trigger a follow-up email to the division</div>
-      </div>
-      <button class="quick-save-btn" id="qSaveBtn" onclick="saveICTeam()">Save &amp; Send Update →</button>
+      <div class="qf"><label>Progress</label><select id="qProgress"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Completed</option></select></div>
+      <div class="qf"><label>Investigation Findings</label><textarea id="qFindings" placeholder="Share findings with requester…"></textarea><div class="hint">⚠ Emailed to division on save</div></div>
+      <div class="qf"><label>Follow-Up Questions</label><textarea id="qFollowup" placeholder="Questions for the requester…"></textarea><div class="hint">⚠ Triggers follow-up email to division</div></div>
+      <button class="quick-save-btn" id="qSaveBtn" onclick="saveICTeam()">Save &amp; Send →</button>
     </div>
-    <!-- Manager panel -->
     <div class="manager-panel" id="managerPanel" style="display:none">
       <div class="manager-panel-title">IC Manager — Full Control</div>
-      <div class="mf"><label>Progress</label>
-        <select id="mProg"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Completed</option></select>
-      </div>
-      <div class="mf"><label>Investigation Findings <span class="note">(emailed to requester)</span></label>
-        <textarea id="mFind" placeholder="Findings to share…"></textarea>
-      </div>
-      <div class="mf"><label>Follow-Up Questions <span class="note">(emailed to requester)</span></label>
-        <textarea id="mFupQ" placeholder="Questions to send…"></textarea>
-      </div>
+      <div class="mf"><label>Progress</label><select id="mProg"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Completed</option></select></div>
+      <div class="mf"><label>Investigation Findings <span class="note">(emailed to requester)</span></label><textarea id="mFind" placeholder="Findings to share…"></textarea></div>
+      <div class="mf"><label>Follow-Up Questions <span class="note">(emailed to requester)</span></label><textarea id="mFupQ" placeholder="Questions to send…"></textarea></div>
     </div>
     <div><div class="blk-label">Conversation Thread</div><div class="thread" id="mThread"></div></div>
   </div>
@@ -641,47 +687,44 @@ button,select,input,textarea{font-family:var(--sans)}
 </div>
 </div>
 
+<!-- FORGOT PIN MODAL -->
+<div class="forgot-modal" id="forgotModal">
+  <div class="forgot-card">
+    <h3>🔑 Forgot PIN?</h3>
+    <p>Enter your email address and we'll send your PIN to you if it matches our records.</p>
+    <div class="forgot-field">
+      <label>Your Email Address</label>
+      <input type="email" id="forgotEmail" placeholder="your@email.com">
+    </div>
+    <div class="forgot-actions">
+      <button class="forgot-cancel" onclick="closeForgotPin()">Cancel</button>
+      <button class="forgot-submit" onclick="submitForgotPin()">Send PIN</button>
+    </div>
+    <div class="forgot-result" id="forgotResult"></div>
+  </div>
+</div>
+
 <div class="lightbox" id="lightbox" onclick="closeLB()"><button class="lb-close">×</button><img id="lbImg" src="" alt=""></div>
 <div class="toast" id="toast"></div>
 <div class="loading-overlay" id="loadOv"><div class="spinner"></div><p id="loadMsg">Loading…</p></div>
 
 <script>
-/* ══════════════════════════════════════════════════════
-   CONFIG — already wired up
-   ══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   CONFIG
+   ═══════════════════════════════════════════════════════ */
 const CFG = {
   GAS_URL:     'https://script.google.com/macros/s/AKfycbwNZOeZn2QPkhaABdBQo65IFsj9CSsOPpmybmJEoF0sxG0C6EPhPRlLqEyTbRpSk3I/exec',
-  DEMO_MODE:   false,   // ← set false after code.gs is deployed
-
-  // PINs
+  DEMO_MODE:   true,
   PIN_ICTEAM:  '7150',
   PIN_MANAGER: '1988',
-
-  // Division PINs — each division gets their own 4-digit PIN
-  DIV_PINS: {
-    GT: '4411',
-    NH: '4422',
-    FS: '4433',
-    EE: '4444',
-    BC: '4455',
-    VP: '4466',
-    TP: '4477',
-    CI: '4488',
-  },
-
-  MAX_FILES: 5,
-  MAX_MB:    10,
+  DIV_PINS: { GT:'4411',NH:'4422',FS:'4433',EE:'4444',BC:'4455',VP:'4466',TP:'4477',CI:'4488' },
+  MAX_FILES: 5, MAX_MB: 10,
 };
 
-/* Division display names */
-const DIV_NAMES = {
-  GT:'TAG Home Goods', NH:'NAPA Home', FS:'Forside',
-  EE:'Ever Ellis', BC:'Beachcombers', VP:'VIP',
-  TP:'Transpac', CI:'Chapman Internal',
-};
+const DIV_NAMES = { GT:'TAG Home Goods',NH:'NAPA Home',FS:'Forside',EE:'Ever Ellis',BC:'Beachcombers',VP:'VIP',TP:'Transpac',CI:'Chapman Internal' };
 
-/* Division email lists */
-const DIV_EMAILS = {
+/* Division email directories — stored in localStorage so additions persist */
+const DEFAULT_EMAILS = {
   GT:['m.wilkins@tagltd.com','s.necheles@tagltd.com','mkhang@cnfei.com','r.germain@tagltd.com','J.Kushla@tagltd.com'],
   NH:['mlroberts@napahomeandgarden.com','lbailey@napahomeandgarden.com','jcarroll@napahomeandgarden.com','mehrenberger@napahomeandgarden.com','nmeans@napahomeandgarden.com','mmcmillan@napahomeandgarden.com','bbryant@napahomeandgarden.com','bcoronado@napahomeandgarden.com','dreeves@napahomeandgarden.com'],
   FS:['mkhang@cnfei.com','rwigginton@cnfei.com','darango@cnfei.com','nchow@cnfei.com'],
@@ -689,228 +732,365 @@ const DIV_EMAILS = {
   BC:['mkhang@cnfei.com','darango@cnfei.com','nchow@cnfei.com','rwigginton@cnfei.com','cshorts@cnfei.com','mtimm@cnfei.com'],
   VP:['mmartin@shoptii.com'],
   TP:['mkhang@cnfei.com','darango@cnfei.com'],
-  CI:['dalexander@cnfei.com','mmincey@cnfei.com','hmeredithboyd@cnfei.com','cprater@cnfei.com','astanley@cnfei.com','ngonzalez@cnfei.com','awilson@cnfei.com','rmendoza@cnfei.com','mdoerr@cnfei.com','ksanders@cnfei.com','colleenf@cnfei.com','twalker@cnfei.com','ribas@cnfei.com'],
+  CI:['dalexander@cnfei.com','mmincey@cnfei.com','hmeredithboyd@cnfei.com','cprater@cnfei.com','astanley@cnfei.com','ngonzalez@cnfei.com','awilson@cnfei.com','rmendoza@cnfei.com','mdoerr@cnfei.com','ksanders@cnfei.com','colleenf@cnfei.com','twalker@cnfei.com','ribas@cnfei.com','droyal@cnfei.com'],
 };
 
-/* ── STATE ─────────────────────────────────────────── */
+/* Forgot PIN lookup — maps email → PIN */
+const PIN_EMAIL_MAP = {
+  'rmendoza@cnfei.com': CFG.PIN_MANAGER,
+  'droyal@cnfei.com':   CFG.PIN_ICTEAM,
+  'mkhang@cnfei.com':   CFG.PIN_ICTEAM,
+  // Add division email → PIN mappings here as needed
+  // 'm.wilkins@tagltd.com': CFG.DIV_PINS.GT,
+};
+
+function getDivEmails(div) {
+  try {
+    const saved = localStorage.getItem('divEmails_'+div);
+    return saved ? JSON.parse(saved) : (DEFAULT_EMAILS[div]||[]);
+  } catch(e){ return DEFAULT_EMAILS[div]||[]; }
+}
+function saveDivEmails(div, arr) {
+  try { localStorage.setItem('divEmails_'+div, JSON.stringify(arr)); } catch(e){}
+}
+
+/* ── STATE ────────────────────────────────────────────── */
 let role='', currentDiv='', pinTarget='';
 let pinBuf='', allTix=[], activeTx=null;
 let formFiles=[], replyFiles=[];
+let pendingNewEmail='', pendingNewEmailDiv='';
+let globalStatsData = {};
 
-/* ══════════════════════════════════════════════════════
-   LOGIN + PIN
-   ══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   PIN
+   ═══════════════════════════════════════════════════════ */
 function goPin(target){
   pinTarget=target; pinBuf=''; ud(); pe('');
-  const isDiv = !!CFG.DIV_PINS[target];
-  const badge = document.getElementById('pinBadge');
-
-  if(isDiv){
-    badge.textContent = target + ' — ' + DIV_NAMES[target];
-    badge.style.background = 'var(--green-l)';
-    badge.style.color = 'var(--green)';
-    badge.style.border = '1.5px solid rgba(5,150,105,.2)';
-    document.getElementById('pinSub').textContent = 'Enter your division PIN to continue';
-  } else if(target==='icteam'){
-    badge.textContent = '🔬 IC Team';
-    badge.style.background = 'var(--purple-l)';
-    badge.style.color = 'var(--purple)';
-    badge.style.border = '1.5px solid rgba(124,58,237,.2)';
-    document.getElementById('pinSub').textContent = 'Enter your IC Team PIN';
-  } else {
-    badge.textContent = '⚙️ IC Manager';
-    badge.style.background = 'var(--accent-l)';
-    badge.style.color = 'var(--accent)';
-    badge.style.border = '1.5px solid rgba(37,99,235,.2)';
-    document.getElementById('pinSub').textContent = 'Enter your Manager PIN';
-  }
+  const isDiv=!!CFG.DIV_PINS[target];
+  const b=document.getElementById('pinBadge');
+  if(isDiv){ b.textContent=target+' — '+DIV_NAMES[target]; b.style.cssText='background:var(--green-l);color:var(--green);border:1.5px solid rgba(5,150,105,.2)'; document.getElementById('pinSub').textContent='Enter your division PIN'; }
+  else if(target==='icteam'){ b.textContent='🔬 IC Team'; b.style.cssText='background:var(--purple-l);color:var(--purple);border:1.5px solid rgba(124,58,237,.2)'; document.getElementById('pinSub').textContent='Enter your IC Team PIN'; }
+  else { b.textContent='⚙️ IC Manager'; b.style.cssText='background:var(--accent-l);color:var(--accent);border:1.5px solid rgba(37,99,235,.2)'; document.getElementById('pinSub').textContent='Enter your Manager PIN'; }
   showScreen('pin');
 }
 
-function pk(k){ if(pinBuf.length>=4)return; pinBuf+=k; ud(); if(pinBuf.length===4)setTimeout(chkPin,120); }
+function pk(k){
+  if(pinBuf.length>=4) return;
+  pinBuf+=k; ud();
+  // Flash key press visual
+  const keys=document.querySelectorAll('.pin-key');
+  keys.forEach(key=>{ if(key.textContent.trim()===k){ key.classList.add('active-press'); setTimeout(()=>key.classList.remove('active-press'),150); }});
+  if(pinBuf.length===4) setTimeout(chkPin,120);
+}
 function pBk(){ pinBuf=pinBuf.slice(0,-1); ud(); }
 function pCl(){ pinBuf=''; ud(); pe(''); }
 function ud(){ for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.toggle('filled',i<pinBuf.length);d.classList.remove('error');} }
 function pe(m){ document.getElementById('pinErr').textContent=m; }
 function pinShake(m){ pe(m); for(let i=0;i<4;i++)document.getElementById('d'+i).classList.add('error'); setTimeout(()=>{pinBuf='';ud();pe('');},900); }
 
+// Physical keyboard support
+document.addEventListener('keydown',function(e){
+  if(!document.getElementById('pinScreen').classList.contains('active')) return;
+  // Don't intercept if forgot-pin modal is open
+  if(document.getElementById('forgotModal').classList.contains('open')) return;
+  if(e.key>='0'&&e.key<='9') pk(e.key);
+  else if(e.key==='Backspace') pBk();
+  else if(e.key==='Escape') pCl();
+  else if(e.key==='Enter'&&pinBuf.length===4) chkPin();
+});
+
 function chkPin(){
-  const isDiv    = !!CFG.DIV_PINS[pinTarget];
-  const expected = isDiv ? CFG.DIV_PINS[pinTarget]
-                 : pinTarget==='icteam' ? CFG.PIN_ICTEAM
-                 : CFG.PIN_MANAGER;
-
-  if(pinBuf !== expected){ pinShake('Incorrect PIN'); return; }
-
-  // Success — set role & unlock
+  const isDiv=!!CFG.DIV_PINS[pinTarget];
+  const exp=isDiv?CFG.DIV_PINS[pinTarget]:pinTarget==='icteam'?CFG.PIN_ICTEAM:CFG.PIN_MANAGER;
+  if(pinBuf!==exp){ pinShake('Incorrect PIN'); return; }
   if(isDiv){
     role='division'; currentDiv=pinTarget;
     setChip(pinTarget+' — '+DIV_NAMES[pinTarget],'division');
-    setupDivNav();
+    document.getElementById('navTracker').style.display='';
+    document.getElementById('navForm').style.display='';
+    document.getElementById('navDash').style.display='none';
+    loadBanner();
     loadTrackerTix().then(()=>showScreen('tracker'));
   } else if(pinTarget==='icteam'){
     role='icteam'; currentDiv='';
     setChip('IC Team','icteam');
-    setupICNav();
+    document.getElementById('navTracker').style.display='none';
+    document.getElementById('navForm').style.display='none';
+    document.getElementById('navDash').style.display='';
+    loadBanner();
     loadTix().then(()=>showScreen('dash'));
   } else {
     role='manager'; currentDiv='';
     setChip('IC Manager','manager');
-    setupICNav();
+    document.getElementById('navTracker').style.display='none';
+    document.getElementById('navForm').style.display='none';
+    document.getElementById('navDash').style.display='';
+    document.getElementById('bannerCreator').classList.add('show');
+    loadBanner();
     loadTix().then(()=>showScreen('dash'));
   }
+  loadGlobalStats();
 }
 
-function setChip(label, cls){
+function setChip(label,cls){
   const c=document.getElementById('roleChip');
   c.textContent=label; c.className='role-chip '+cls; c.style.display='';
   document.getElementById('topNav').style.display='flex';
-}
-function setupDivNav(){
-  document.getElementById('navTracker').style.display='';
-  document.getElementById('navForm').style.display='';
-  document.getElementById('navDash').style.display='none';
-}
-function setupICNav(){
-  document.getElementById('navTracker').style.display='none';
-  document.getElementById('navForm').style.display='none';
-  document.getElementById('navDash').style.display='';
 }
 
 function logout(){
   role=''; currentDiv=''; pinBuf=''; allTix=[];
   document.getElementById('topNav').style.display='none';
   document.getElementById('roleChip').style.display='none';
-  showScreen('login');
+  document.getElementById('bannerCreator').classList.remove('show');
+  document.getElementById('globalStats').classList.remove('show');
+  showScreen('login'); ud(); pe('');
 }
 
-/* ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════
+   FORGOT PIN
+   ═══════════════════════════════════════════════════════ */
+function openForgotPin(){
+  document.getElementById('forgotEmail').value='';
+  document.getElementById('forgotResult').style.display='none';
+  document.getElementById('forgotModal').classList.add('open');
+}
+function closeForgotPin(){ document.getElementById('forgotModal').classList.remove('open'); }
+function submitForgotPin(){
+  const email=document.getElementById('forgotEmail').value.trim().toLowerCase();
+  const result=document.getElementById('forgotResult');
+  if(!email){ toast('Please enter your email address','error'); return; }
+  // Check if email matches any known PIN mapping
+  const matchedPin = Object.entries(PIN_EMAIL_MAP).find(([e])=>e.toLowerCase()===email);
+  if(matchedPin){
+    // In real mode, GAS would send an email. In demo, show a success message.
+    result.textContent='✅ If that email is in our system, your PIN has been sent. Check your inbox.';
+    result.style.cssText='display:block;color:var(--green);font-size:13px;margin-top:12px;';
+    if(CFG.DEMO_MODE){
+      // Demo: also show the pin in a toast for testing
+      toast('Demo mode — PIN would be emailed to '+email,'success');
+    }
+  } else {
+    result.textContent='✅ If that email is in our system, your PIN has been sent. Check your inbox.';
+    result.style.cssText='display:block;color:var(--green);font-size:13px;margin-top:12px;';
+  }
+  // In live mode, call GAS to send PIN email
+  if(!CFG.DEMO_MODE){ gasPost({action:'sendForgotPin',email}); }
+}
+
+/* ═══════════════════════════════════════════════════════
    SCREEN ROUTING
-   ══════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════ */
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id+'Screen').classList.add('active');
-  ['navTracker','navForm','navDash'].forEach(n=>{
-    const el=document.getElementById(n); if(el) el.classList.remove('active');
-  });
+  ['navTracker','navForm','navDash'].forEach(n=>{const el=document.getElementById(n);if(el)el.classList.remove('active');});
   const map={tracker:'navTracker',form:'navForm',dash:'navDash'};
-  if(map[id] && document.getElementById(map[id])) document.getElementById(map[id]).classList.add('active');
+  if(map[id]&&document.getElementById(map[id])) document.getElementById(map[id]).classList.add('active');
   if(id==='form') setupForm();
 }
 
-/* ══════════════════════════════════════════════════════
-   DIVISION TRACKER
-   ══════════════════════════════════════════════════════ */
-async function loadTrackerTix(){
-  const btn=document.getElementById('trackerRefreshBtn');
-  if(btn) btn.classList.add('spinning');
-  showLoad('Loading your tickets…');
-
-  // Update header for this division
-  document.getElementById('trackerEyebrow').textContent = '📦 '+DIV_NAMES[currentDiv];
-  document.getElementById('trackerTitle').textContent   = DIV_NAMES[currentDiv]+' — Inquiry Tracker';
-
+/* ═══════════════════════════════════════════════════════
+   SYSTEM BANNER
+   ═══════════════════════════════════════════════════════ */
+function loadBanner(){
   try {
-    if(CFG.DEMO_MODE){
-      await delay(600);
-      allTix = DEMO_TIX.filter(t=>t.division===currentDiv);
-    } else {
-      const r = await gasGet({action:'getTickets', division:currentDiv});
-      allTix = (r.tickets||[]).filter(t=>t.division===currentDiv);
-    }
-    renderTrackerCards(allTix);
-    updTrackerStats(allTix);
-  } catch(e){ toast('Could not load tickets: '+e.message,'error'); }
-  hideLoad();
-  if(btn) btn.classList.remove('spinning');
+    const b=JSON.parse(localStorage.getItem('sysBanner')||'null');
+    if(b&&b.text){ showBanner(b.text,b.type); } else { hideBanner(); }
+  } catch(e){ hideBanner(); }
+}
+function showBanner(text,type){
+  const el=document.getElementById('sysBanner');
+  const icons={info:'⚠️',warn:'🔴',maint:'🔧'};
+  el.textContent=(icons[type]||'⚠️')+' '+text;
+  el.className='sys-banner show '+type;
+}
+function hideBanner(){
+  const el=document.getElementById('sysBanner');
+  el.className='sys-banner'; el.textContent='';
+}
+function postBanner(){
+  const text=document.getElementById('bannerText').value.trim();
+  const type=document.getElementById('bannerType').value;
+  if(!text){ toast('Enter banner text first','error'); return; }
+  try { localStorage.setItem('sysBanner',JSON.stringify({text,type})); } catch(e){}
+  showBanner(text,type);
+  toast('Banner posted — all screens will see it ✓','success');
+}
+function clearBanner(){
+  try { localStorage.removeItem('sysBanner'); } catch(e){}
+  hideBanner();
+  document.getElementById('bannerText').value='';
+  toast('Banner cleared','success');
 }
 
-function updTrackerStats(tix){
-  document.getElementById('spOpen').textContent = tix.filter(t=>t.progress!=='Completed').length;
-  document.getElementById('spWait').textContent = tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
-  document.getElementById('spDone').textContent = tix.filter(t=>t.progress==='Completed').length;
+/* ═══════════════════════════════════════════════════════
+   GLOBAL STATS
+   ═══════════════════════════════════════════════════════ */
+function loadGlobalStats(){
+  const tix=CFG.DEMO_MODE?DEMO_TIX:allTix;
+  const stats={};
+  Object.keys(DIV_NAMES).forEach(d=>{ stats[d]={inv:0,qual:0,total:0}; });
+  stats._overall={inv:0,qual:0,total:0};
+  tix.forEach(t=>{
+    const d=t.division;
+    if(!stats[d]) stats[d]={inv:0,qual:0,total:0};
+    stats[d].total++;
+    stats._overall.total++;
+    if(t.inventoryIssue&&t.inventoryIssue!=='None'&&t.inventoryIssue!==''){stats[d].inv++;stats._overall.inv++;}
+    if(t.qualityIssue&&t.qualityIssue!=='None'&&t.qualityIssue!==''){stats[d].qual++;stats._overall.qual++;}
+  });
+  globalStatsData=stats;
+  renderGlobalStats();
 }
-
-function renderTrackerCards(tix){
-  const el=document.getElementById('trackerCards');
-  if(!tix.length){
-    el.innerHTML=`<div class="empty-tracker"><span class="et-icon">📋</span><p>No inquiries found. Submit one using the button above.</p></div>`;
-    return;
+function renderGlobalStats(){
+  const gs=document.getElementById('globalStats');
+  const grid=document.getElementById('gsGrid');
+  const s=globalStatsData;
+  if(!s||!s._overall){ gs.classList.remove('show'); return; }
+  gs.classList.add('show');
+  let pills=`
+    <div class="gs-pill total"><span class="gsp-num">${s._overall.total}</span><span class="gsp-lbl">Total Tickets</span></div>
+    <div class="gs-pill inv"><span class="gsp-num">${s._overall.inv}</span><span class="gsp-lbl">Inventory Issues</span></div>
+    <div class="gs-pill qual"><span class="gsp-num">${s._overall.qual}</span><span class="gsp-lbl">Quality Issues</span></div>
+  `;
+  // Add per-division pills if IC role or show current division only
+  if(role==='icteam'||role==='manager'){
+    Object.keys(DIV_NAMES).forEach(d=>{
+      if(s[d]&&s[d].total>0) pills+=`<div class="gs-pill"><span class="gsp-num" style="color:var(--muted)">${s[d].total}</span><span class="gsp-lbl">${d}</span></div>`;
+    });
+  } else if(role==='division'&&currentDiv){
+    const d=s[currentDiv]||{inv:0,qual:0,total:0};
+    pills+=`<div class="gs-pill inv"><span class="gsp-num">${d.inv}</span><span class="gsp-lbl">${currentDiv} Inventory</span></div>`;
+    pills+=`<div class="gs-pill qual"><span class="gsp-num">${d.qual}</span><span class="gsp-lbl">${currentDiv} Quality</span></div>`;
   }
-
-  const progMap={'Received':'prog-received','Investigating':'prog-investigating','Need More Info':'prog-needinfo','Waiting on Info':'prog-waiting','Completed':'prog-completed'};
-  const hasUnread = t=>(t.conversationLog||[]).some(m=>m.direction==='inbound'&&!m.read);
-  // For division view: "inbound" from IC perspective = outbound update they need to read
-  const hasNewUpdate = t=>(t.conversationLog||[]).some(m=>m.direction==='outbound'&&!m.divRead);
-
-  el.innerHTML = tix.map(t=>`
-    <div class="ticket-card${hasNewUpdate(t)?' unread':''}" onclick="openTicket('${t.inquiryId}')">
-      ${hasNewUpdate(t)?`<div class="tc-new-reply-banner">🔔 IC has sent an update — click to view</div>`:''}
-      <div class="tc-head">
-        <div class="tc-id">${t.inquiryId}</div>
-        <div class="tc-title">${esc(t.productCodes)}</div>
-        <div class="tc-date">${fmtDateShort(t.timestamp)}</div>
-      </div>
-      <div class="tc-meta">
-        <div class="tc-meta-item"><div class="tml">Status</div><div class="tmv">${badge(t.progress)}</div></div>
-        <div class="tc-meta-item"><div class="tml">Category</div><div class="tmv">${esc(t.category||'—')}</div></div>
-        <div class="tc-meta-item"><div class="tml">Messages</div><div class="tmv mono">${(t.conversationLog||[]).length}</div></div>
-      </div>
-      <div class="tc-desc">${esc(t.description)}</div>
-      ${t.findings?`<div class="tc-findings"><div class="tf-label">IC Findings</div>${esc(t.findings)}</div>`:''}
-      ${t.followUpQuestions?`<div class="tc-followup"><div class="tf-label">IC has questions for you</div>${esc(t.followUpQuestions)}</div>`:''}
-      <div class="tc-footer">
-        <div class="tc-progress-bar-wrap"><div class="tc-progress-bar ${progMap[t.progress]||'prog-received'}"></div></div>
-        <div class="tc-progress-label">${t.progress}</div>
-      </div>
-    </div>
-  `).join('');
+  grid.innerHTML=pills;
 }
 
-/* ══════════════════════════════════════════════════════
-   INTAKE FORM
-   ══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   EMAIL MULTI-SELECT
+   ═══════════════════════════════════════════════════════ */
+function onDivChange(){
+  const div=document.getElementById('fDiv').value;
+  buildEmailMultiselect(div);
+}
+
+function buildEmailMultiselect(div){
+  const container=document.getElementById('emailMultiselect');
+  const preview=document.getElementById('selectedEmailsPreview');
+  container.innerHTML='';
+  document.getElementById('dirPrompt').style.display='none';
+  if(!div){ container.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--muted)">Select a division first</div>'; preview.textContent='No emails selected'; return; }
+  const emails=getDivEmails(div);
+  emails.forEach((email,i)=>{
+    const row=document.createElement('div');
+    row.className='email-option';
+    row.innerHTML=`<input type="checkbox" id="eck${i}" value="${email}"><label for="eck${i}">${email}</label>`;
+    row.querySelector('input').addEventListener('change',updateEmailPreview);
+    container.appendChild(row);
+  });
+  // Add custom email row
+  const addRow=document.createElement('div');
+  addRow.className='email-add-row';
+  addRow.innerHTML=`<input type="email" id="customEmailInput" placeholder="Add another email address…"><button class="email-add-btn" onclick="addCustomEmail()">+ Add</button>`;
+  container.appendChild(addRow);
+  updateEmailPreview();
+}
+
+function addCustomEmail(){
+  const input=document.getElementById('customEmailInput');
+  const email=input.value.trim();
+  if(!email||!email.includes('@')){ toast('Enter a valid email address','error'); return; }
+  const div=document.getElementById('fDiv').value;
+  if(!div) return;
+  const existing=getDivEmails(div);
+  if(existing.includes(email)){ toast('That email is already in the list','error'); return; }
+  // Add to the visible list with checkbox checked
+  const container=document.getElementById('emailMultiselect');
+  const addRow=container.querySelector('.email-add-row');
+  const i=container.querySelectorAll('.email-option').length;
+  const row=document.createElement('div');
+  row.className='email-option';
+  row.innerHTML=`<input type="checkbox" id="eck${i}" value="${email}" checked><label for="eck${i}">${email}</label>`;
+  row.querySelector('input').addEventListener('change',updateEmailPreview);
+  container.insertBefore(row,addRow);
+  input.value='';
+  updateEmailPreview();
+  // Ask if they want to save to directory
+  pendingNewEmail=email;
+  pendingNewEmailDiv=div;
+  document.getElementById('dirPromptMsg').textContent=`Add "${email}" to the ${DIV_NAMES[div]} directory for future use?`;
+  document.getElementById('dirPrompt').style.display='flex';
+}
+
+function addNewEmailToDir(){
+  if(!pendingNewEmail||!pendingNewEmailDiv) return;
+  const emails=getDivEmails(pendingNewEmailDiv);
+  if(!emails.includes(pendingNewEmail)){
+    emails.push(pendingNewEmail);
+    saveDivEmails(pendingNewEmailDiv,emails);
+    toast(pendingNewEmail+' added to '+DIV_NAMES[pendingNewEmailDiv]+' directory ✓','success');
+  }
+  dismissDirPrompt();
+}
+
+function dismissDirPrompt(){
+  document.getElementById('dirPrompt').style.display='none';
+  pendingNewEmail=''; pendingNewEmailDiv='';
+}
+
+function updateEmailPreview(){
+  const checked=[...document.querySelectorAll('#emailMultiselect input[type=checkbox]:checked')].map(c=>c.value);
+  const preview=document.getElementById('selectedEmailsPreview');
+  preview.textContent=checked.length?checked.join(', '):'No emails selected';
+}
+
+function getSelectedEmails(){
+  return [...document.querySelectorAll('#emailMultiselect input[type=checkbox]:checked')].map(c=>c.value);
+}
+
+/* ═══════════════════════════════════════════════════════
+   FORM SETUP + SUBMIT
+   ═══════════════════════════════════════════════════════ */
 function setupForm(){
-  // Pre-fill division if logged in as a division
-  if(role==='division' && currentDiv){
-    document.getElementById('fDiv').value = currentDiv;
-    onDivChange();
+  if(role==='division'&&currentDiv){
+    document.getElementById('fDiv').value=currentDiv;
     document.getElementById('divPrefill').style.display='flex';
-    document.getElementById('divPrefillLabel').textContent = currentDiv+' — '+DIV_NAMES[currentDiv];
+    document.getElementById('divPrefillLabel').textContent=currentDiv+' — '+DIV_NAMES[currentDiv];
+    document.getElementById('divSelectRow').style.display='none';
+    buildEmailMultiselect(currentDiv);
+    document.getElementById('emailFieldWrap').style.display='flex';
+    // Rebuild the row to show just email selector when div is pre-filled
+    document.getElementById('divSelectRow').style.display='grid';
     document.getElementById('fDiv').parentElement.style.display='none';
   } else {
     document.getElementById('divPrefill').style.display='none';
     document.getElementById('fDiv').parentElement.style.display='';
+    document.getElementById('divSelectRow').style.display='grid';
+    buildEmailMultiselect('');
   }
 }
 
-function onDivChange(){
-  const div=document.getElementById('fDiv').value, pk=document.getElementById('fEmailPick');
-  pk.innerHTML='<option value="">Select your email…</option>';
-  if(div&&DIV_EMAILS[div]) DIV_EMAILS[div].forEach(e=>{const o=document.createElement('option');o.value=e;o.textContent=e;pk.appendChild(o);});
-  else pk.innerHTML='<option value="">Select Division First…</option>';
-}
-
-
 async function submitForm(){
   const div=document.getElementById('fDiv').value;
-  const esel=document.getElementById('fEmailPick').value;
-  const eman=document.getElementById('fEmailManual').value.trim();
   const prod=document.getElementById('fProducts').value.trim();
   const desc=document.getElementById('fDesc').value.trim();
-  const email=esel||eman;
+  const selectedEmails=getSelectedEmails();
   if(!div){toast('Please select a Division','error');return;}
-  if(!email){toast('Please select or enter your email','error');return;}
+  if(!selectedEmails.length){toast('Please select at least one email','error');return;}
   if(!prod){toast('Please enter at least one Product Code','error');return;}
   if(!desc){toast('Please describe the issue','error');return;}
 
   const payload={
-    action:'submitInquiry', division:div, contactEmail:email, productCodes:prod,
+    action:'submitInquiry', division:div,
+    contactEmail:selectedEmails.join(','),
+    productCodes:prod,
     orderNumber:document.getElementById('fOrderNum').value.trim(),
     qtyPick:document.getElementById('fQtyPick').value.trim(),
     inventoryIssue:document.getElementById('fInvIssue').value,
     qualityIssue:document.getElementById('fQualIssue').value,
-    category:document.getElementById('fCat').value, description:desc,
+    category:document.getElementById('fCat').value,
+    description:desc,
     attachments:JSON.stringify(formFiles.map(f=>({name:f.name,type:f.type,size:f.size,b64:f.b64}))),
   };
 
@@ -919,15 +1099,17 @@ async function submitForm(){
   try {
     let id;
     if(CFG.DEMO_MODE){
-      await delay(1100);
+      await delay(1000);
       id='IC-'+String(Math.floor(Math.random()*9000)+1000);
-      const newTx={inquiryId:id,division:div,contactEmail:email,productCodes:prod,
-        category:document.getElementById('fCat').value||'General',progress:'Received',
+      const newTx={inquiryId:id,division:div,contactEmail:selectedEmails.join(','),productCodes:prod,
+        orderNumber:payload.orderNumber,qtyPick:payload.qtyPick,
+        inventoryIssue:payload.inventoryIssue,qualityIssue:payload.qualityIssue,
+        category:payload.category||'General',progress:'Received',
         timestamp:new Date().toISOString(),description:desc,findings:'',followUpQuestions:'',
         conversationLog:[{direction:'outbound',body:'Your inquiry '+id+' has been received. Our IC team will investigate and follow up shortly.',timestamp:new Date().toISOString(),attachments:[],read:true,divRead:true}]
       };
-      allTix.unshift(newTx);
-      DEMO_TIX.unshift(newTx);
+      allTix.unshift(newTx); DEMO_TIX.unshift(newTx);
+      loadGlobalStats();
     } else {
       const r=await gasPost(payload); id=r.inquiryId;
     }
@@ -938,10 +1120,7 @@ async function submitForm(){
   } catch(e){hideLoad();toast('Submission failed: '+e.message,'error');document.getElementById('submitBtn').disabled=false;}
 }
 
-function goTracker(){
-  resetForm();
-  if(role==='division'){ loadTrackerTix(); showScreen('tracker'); }
-}
+function goTracker(){ resetForm(); if(role==='division'){loadTrackerTix();showScreen('tracker');} }
 
 function resetForm(){
   document.getElementById('formWrap').style.display='';
@@ -949,21 +1128,78 @@ function resetForm(){
   document.getElementById('submitBtn').disabled=false;
   formFiles=[];renderFL(formFiles,'fileList','fileLimitWarn');
   ['fInvIssue','fQualIssue','fCat'].forEach(id=>document.getElementById(id).value='');
-  ['fEmailManual','fProducts','fOrderNum','fQtyPick','fDesc'].forEach(id=>document.getElementById(id).value='');
+  ['fOrderNum','fQtyPick','fProducts','fDesc'].forEach(id=>document.getElementById(id).value='');
   if(role!=='division') document.getElementById('fDiv').value='';
-  onDivChange();
+  buildEmailMultiselect(role==='division'?currentDiv:'');
 }
 
-/* ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════
+   TRACKER
+   ═══════════════════════════════════════════════════════ */
+async function loadTrackerTix(){
+  const btn=document.getElementById('trackerRefreshBtn');
+  if(btn)btn.classList.add('spinning');
+  showLoad('Loading your tickets…');
+  document.getElementById('trackerEyebrow').textContent='📦 '+DIV_NAMES[currentDiv];
+  document.getElementById('trackerTitle').textContent=DIV_NAMES[currentDiv]+' — Inquiry Tracker';
+  try {
+    if(CFG.DEMO_MODE){ await delay(500); allTix=DEMO_TIX.filter(t=>t.division===currentDiv); }
+    else { const r=await gasGet({action:'getTickets',division:currentDiv}); allTix=(r.tickets||[]).filter(t=>t.division===currentDiv); }
+    renderTrackerCards(allTix); updTrackerStats(allTix); loadGlobalStats();
+  } catch(e){ toast('Could not load tickets','error'); }
+  hideLoad(); if(btn)btn.classList.remove('spinning');
+}
+
+function updTrackerStats(tix){
+  document.getElementById('spOpen').textContent=tix.filter(t=>t.progress!=='Completed').length;
+  document.getElementById('spWait').textContent=tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
+  document.getElementById('spDone').textContent=tix.filter(t=>t.progress==='Completed').length;
+}
+
+function daysSince(ts){ if(!ts)return 0; const d=new Date(ts); return isNaN(d)?0:Math.floor((Date.now()-d)/86400000); }
+
+function renderTrackerCards(tix){
+  const el=document.getElementById('trackerCards');
+  if(!tix.length){el.innerHTML=`<div class="empty-tracker"><span class="et-icon">📋</span><p>No inquiries found. Submit one above.</p></div>`;return;}
+  const pmap={'Received':'prog-received','Investigating':'prog-investigating','Need More Info':'prog-needinfo','Waiting on Info':'prog-waiting','Completed':'prog-completed'};
+  const hasNewUpdate=t=>(t.conversationLog||[]).some(m=>m.direction==='outbound'&&!m.divRead);
+  el.innerHTML=tix.map(t=>{
+    const days=daysSince(t.timestamp);
+    return`<div class="ticket-card${hasNewUpdate(t)?' unread':''}" onclick="openTicket('${t.inquiryId}')">
+      ${hasNewUpdate(t)?`<div class="tc-new-reply-banner">🔔 IC has sent an update — click to view</div>`:''}
+      <div class="tc-head">
+        <div class="tc-id">${t.inquiryId}</div>
+        <div class="tc-title">${esc(t.productCodes)}</div>
+        <div class="tc-days">${days===0?'Today':days===1?'1 day ago':days+' days ago'}</div>
+        <div class="tc-date">${fmtDateShort(t.timestamp)}</div>
+      </div>
+      <div class="tc-meta">
+        <div class="tc-meta-item"><div class="tml">Status</div><div class="tmv">${badge(t.progress)}</div></div>
+        <div class="tc-meta-item"><div class="tml">Category</div><div class="tmv">${esc(t.category||'—')}</div></div>
+        ${t.orderNumber?`<div class="tc-meta-item"><div class="tml">Order #</div><div class="tmv mono">${esc(t.orderNumber)}</div></div>`:''}
+        <div class="tc-meta-item"><div class="tml">Messages</div><div class="tmv mono">${(t.conversationLog||[]).length}</div></div>
+      </div>
+      <div class="tc-desc">${esc(t.description)}</div>
+      ${t.findings?`<div class="tc-findings"><div class="tf-label">IC Findings</div>${esc(t.findings)}</div>`:''}
+      ${t.followUpQuestions?`<div class="tc-followup"><div class="tf-label">IC has questions for you</div>${esc(t.followUpQuestions)}</div>`:''}
+      <div class="tc-footer">
+        <div class="tc-progress-bar-wrap"><div class="tc-progress-bar ${pmap[t.progress]||'prog-received'}"></div></div>
+        <div class="tc-progress-label">${t.progress}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════
    IC DASHBOARD
-   ══════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════ */
 async function loadTix(){
   document.getElementById('refreshBtn').classList.add('spinning');
   showLoad('Loading tickets…');
   try {
-    if(CFG.DEMO_MODE){ await delay(600); allTix=[...DEMO_TIX]; }
+    if(CFG.DEMO_MODE){ await delay(500); allTix=[...DEMO_TIX]; }
     else { const r=await gasGet({action:'getTickets'}); allTix=r.tickets||[]; }
-    renderTix(allTix); updStats(allTix);
+    renderTix(allTix); updStats(allTix); loadGlobalStats();
   } catch(e){ toast('Load failed: '+e.message,'error'); }
   hideLoad(); document.getElementById('refreshBtn').classList.remove('spinning');
 }
@@ -982,17 +1218,20 @@ function renderTix(tix){
   const a=document.getElementById('tblArea');
   if(!tix.length){a.innerHTML=`<div class="empty-state"><span class="ei">📋</span><p>No tickets found</p></div>`;return;}
   const hasUnread=t=>(t.conversationLog||[]).some(m=>m.direction==='inbound'&&!m.read);
-  a.innerHTML=`<table class="tbl"><thead><tr>
-    <th>Inquiry ID</th><th>Division</th><th>Product Code(s)</th><th>Status</th><th>Messages</th><th>Submitted</th>
-  </tr></thead><tbody>${
-    tix.map(t=>`<tr onclick="openTicket('${t.inquiryId}')">
-      <td class="mono" style="color:var(--accent);font-weight:500">${t.inquiryId}${hasUnread(t)?'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-left:7px;vertical-align:middle"></span>':''}</td>
-      <td><span class="mono">${t.division}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[t.division]||''}</span></td>
-      <td>${esc(t.productCodes)}</td>
-      <td>${badge(t.progress)}</td>
-      <td class="mono" style="color:var(--muted)">${(t.conversationLog||[]).length}</td>
-      <td class="mono" style="color:var(--muted);font-size:11px">${fmtDateShort(t.timestamp)}</td>
-    </tr>`).join('')
+  a.innerHTML=`<table class="tbl"><thead><tr><th>Inquiry ID</th><th>Division</th><th>Product Code(s)</th><th>Status</th><th>Days Open</th><th>Messages</th><th>Submitted</th></tr></thead><tbody>${
+    tix.map(t=>{
+      const days=daysSince(t.timestamp);
+      const daysColor=t.progress==='Completed'?'var(--muted)':days>=7?'var(--red)':days>=3?'var(--orange)':'var(--muted)';
+      return`<tr onclick="openTicket('${t.inquiryId}')">
+        <td class="mono" style="color:var(--accent);font-weight:500">${t.inquiryId}${hasUnread(t)?'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:6px;vertical-align:middle"></span>':''}</td>
+        <td><span class="mono">${t.division}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[t.division]||''}</span></td>
+        <td>${esc(t.productCodes)}</td>
+        <td>${badge(t.progress)}</td>
+        <td class="mono" style="color:${daysColor};font-size:12px">${days===0?'Today':days+'d'}</td>
+        <td class="mono" style="color:var(--muted)">${(t.conversationLog||[]).length}</td>
+        <td class="mono" style="color:var(--muted);font-size:11px">${fmtDateShort(t.timestamp)}</td>
+      </tr>`;
+    }).join('')
   }</tbody></table>`;
 }
 
@@ -1009,51 +1248,50 @@ function badge(s){
   return`<span class="badge ${m[s]||'b-other'}">${s||'Unknown'}</span>`;
 }
 
-/* ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════
    TICKET MODAL
-   ══════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════ */
 function openTicket(id){
-  const src = (role==='division') ? allTix : allTix;
-  const t=src.find(x=>x.inquiryId===id); if(!t)return;
+  const t=allTix.find(x=>x.inquiryId===id); if(!t)return;
   activeTx=t; replyFiles=[];
+  if(!activeTx.conversationLog) activeTx.conversationLog=[];
 
+  const days=daysSince(t.timestamp);
   document.getElementById('mId').textContent=t.inquiryId;
   document.getElementById('mTitle').textContent=(DIV_NAMES[t.division]||t.division)+' — '+(t.category||'General Inquiry');
   document.getElementById('mMeta').innerHTML=`
     <div class="meta-item"><div class="ml">Division</div><div class="mv">${DIV_NAMES[t.division]||t.division}</div></div>
     <div class="meta-item"><div class="ml">Status</div><div class="mv">${badge(t.progress)}</div></div>
+    <div class="meta-item"><div class="ml">Days Open</div><div class="mv mono" style="color:${days>=7?'var(--red)':days>=3?'var(--orange)':'var(--muted)'}">${days===0?'Submitted today':days===1?'1 day':days+' days'}</div></div>
     <div class="meta-item"><div class="ml">Submitted</div><div class="mv mono" style="font-size:11px">${fmtDate(t.timestamp)}</div></div>
     <div class="meta-item"><div class="ml">Contact</div><div class="mv" style="font-size:11px">${esc(t.contactEmail)}</div></div>
     <div class="meta-item"><div class="ml">Product Code(s)</div><div class="mv mono">${esc(t.productCodes)}</div></div>
     <div class="meta-item"><div class="ml">Category</div><div class="mv">${esc(t.category||'—')}</div></div>
     ${t.orderNumber?`<div class="meta-item"><div class="ml">Order Number</div><div class="mv mono">${esc(t.orderNumber)}</div></div>`:''}
     ${t.qtyPick?`<div class="meta-item"><div class="ml">QTY to Pick</div><div class="mv mono">${esc(t.qtyPick)}</div></div>`:''}
-    `;
+  `;
   document.getElementById('mDesc').textContent=t.description||'—';
 
   const isIC=role==='icteam', isMgr=role==='manager';
-  document.getElementById('icTeamPanel').style.display  = isIC ?'':'none';
-  document.getElementById('managerPanel').style.display = isMgr?'':'none';
-  document.getElementById('mFooter').style.display      = isMgr?'':'none';
-
+  document.getElementById('icTeamPanel').style.display=isIC?'':'none';
+  document.getElementById('managerPanel').style.display=isMgr?'':'none';
+  document.getElementById('mFooter').style.display=isMgr?'':'none';
   if(isIC){ document.getElementById('qProgress').value=t.progress||'Received'; document.getElementById('qFindings').value=t.findings||''; document.getElementById('qFollowup').value=t.followUpQuestions||''; }
   if(isMgr){ document.getElementById('mProg').value=t.progress||'Received'; document.getElementById('mFind').value=t.findings||''; document.getElementById('mFupQ').value=t.followUpQuestions||''; }
 
-  renderThread(t.conversationLog||[]);
+  // Render THIS ticket's thread only
+  renderThread(activeTx.conversationLog);
   document.getElementById('replyText').value='';
   renderFL(replyFiles,'replyFileList',null);
-
-  // Mark outbound messages as divRead when division opens
-  if(role==='division') (t.conversationLog||[]).forEach(m=>{if(m.direction==='outbound')m.divRead=true;});
-  else (t.conversationLog||[]).forEach(m=>{if(m.direction==='inbound')m.read=true;});
-
+  if(role==='division') activeTx.conversationLog.forEach(m=>{if(m.direction==='outbound')m.divRead=true;});
+  else activeTx.conversationLog.forEach(m=>{if(m.direction==='inbound')m.read=true;});
   document.getElementById('modalOv').classList.add('open');
   setTimeout(()=>{const th=document.getElementById('mThread');th.scrollTop=th.scrollHeight;},100);
 }
 
 function renderThread(log){
   const el=document.getElementById('mThread');
-  if(!log.length){el.innerHTML='<div class="thread-empty">No messages yet.</div>';return;}
+  if(!log||!log.length){el.innerHTML='<div class="thread-empty">No messages yet.</div>';return;}
   el.innerHTML=log.map(m=>{
     const out=m.direction==='outbound';
     const av=out?'IC':(activeTx?activeTx.division.substring(0,2):'DIV');
@@ -1073,9 +1311,9 @@ function renderThread(log){
   }).join('');
 }
 
-/* ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════
    SAVE ACTIONS
-   ══════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════ */
 async function saveICTeam(){
   if(!activeTx)return;
   const progress=document.getElementById('qProgress').value;
@@ -1083,10 +1321,9 @@ async function saveICTeam(){
   const followup=document.getElementById('qFollowup').value.trim();
   document.getElementById('qSaveBtn').disabled=true; showLoad('Saving & sending…');
   try {
-    if(CFG.DEMO_MODE){ await delay(800); _applyUpdate(progress,findings,followup,'IC Team'); }
+    if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress,findings,followup,'IC Team'); }
     else { await gasPost({action:'updateTicket',inquiryId:activeTx.inquiryId,progress,findings,followUpQuestions:followup,updatedBy:'icteam'}); _applyUpdate(progress,findings,followup,'IC Team'); }
-    hideLoad(); renderTix(allTix); updStats(allTix);
-    toast('Updated — email sent to division ✓','success');
+    hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
   } catch(e){hideLoad();toast('Save failed: '+e.message,'error');}
   document.getElementById('qSaveBtn').disabled=false;
 }
@@ -1098,10 +1335,9 @@ async function saveManager(){
   const followup=document.getElementById('mFupQ').value.trim();
   document.getElementById('mSaveBtn').disabled=true; showLoad('Saving & sending…');
   try {
-    if(CFG.DEMO_MODE){ await delay(800); _applyUpdate(progress,findings,followup,'IC Manager'); }
+    if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress,findings,followup,'IC Manager'); }
     else { await gasPost({action:'updateTicket',inquiryId:activeTx.inquiryId,progress,findings,followUpQuestions:followup,updatedBy:'manager'}); _applyUpdate(progress,findings,followup,'IC Manager'); }
-    hideLoad(); renderTix(allTix); updStats(allTix);
-    toast('Updated — email sent to division ✓','success');
+    hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
   } catch(e){hideLoad();toast('Save failed: '+e.message,'error');}
   document.getElementById('mSaveBtn').disabled=false;
 }
@@ -1109,21 +1345,28 @@ async function saveManager(){
 function _applyUpdate(progress,findings,followup,by){
   const idx=allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
   if(idx>=0){allTix[idx].progress=progress;allTix[idx].findings=findings;allTix[idx].followUpQuestions=followup;}
-  activeTx.progress=progress;activeTx.findings=findings;activeTx.followUpQuestions=followup;
-  const parts=[findings&&`Findings:\n${findings}`,followup&&`Follow-Up Questions:\n${followup}`,`Status → ${progress}`].filter(Boolean);
-  activeTx.conversationLog.push({direction:'outbound',body:parts.join('\n\n'),timestamp:new Date().toISOString(),attachments:[],read:true,divRead:false,sentBy:by});
-  renderThread(activeTx.conversationLog);
-  setTimeout(()=>{const th=document.getElementById('mThread');th.scrollTop=th.scrollHeight;},80);
+  activeTx.progress=progress; activeTx.findings=findings; activeTx.followUpQuestions=followup;
+  // Only add to thread if there's actual content — don't add empty status-only messages
+  const parts=[findings&&`Findings:\n${findings}`,followup&&`Follow-Up Questions:\n${followup}`].filter(Boolean);
+  if(parts.length){
+    activeTx.conversationLog.push({direction:'outbound',body:parts.join('\n\n'),timestamp:new Date().toISOString(),attachments:[],read:true,divRead:false,sentBy:by});
+    renderThread(activeTx.conversationLog);
+    setTimeout(()=>{const th=document.getElementById('mThread');th.scrollTop=th.scrollHeight;},80);
+  }
+  // Refresh meta badge
+  const days=daysSince(activeTx.timestamp);
+  document.getElementById('mMeta').querySelector('.mv:nth-child(2)');
   document.getElementById('mMeta').innerHTML=`
     <div class="meta-item"><div class="ml">Division</div><div class="mv">${DIV_NAMES[activeTx.division]||activeTx.division}</div></div>
     <div class="meta-item"><div class="ml">Status</div><div class="mv">${badge(progress)}</div></div>
+    <div class="meta-item"><div class="ml">Days Open</div><div class="mv mono" style="color:${days>=7?'var(--red)':days>=3?'var(--orange)':'var(--muted)'}">${days===0?'Today':days+'d'}</div></div>
     <div class="meta-item"><div class="ml">Submitted</div><div class="mv mono" style="font-size:11px">${fmtDate(activeTx.timestamp)}</div></div>
     <div class="meta-item"><div class="ml">Contact</div><div class="mv" style="font-size:11px">${esc(activeTx.contactEmail)}</div></div>
     <div class="meta-item"><div class="ml">Product Code(s)</div><div class="mv mono">${esc(activeTx.productCodes)}</div></div>
     <div class="meta-item"><div class="ml">Category</div><div class="mv">${esc(activeTx.category||'—')}</div></div>
     ${activeTx.orderNumber?`<div class="meta-item"><div class="ml">Order Number</div><div class="mv mono">${esc(activeTx.orderNumber)}</div></div>`:''}
     ${activeTx.qtyPick?`<div class="meta-item"><div class="ml">QTY to Pick</div><div class="mv mono">${esc(activeTx.qtyPick)}</div></div>`:''}
-    `;
+  `;
 }
 
 async function sendReply(){
@@ -1134,8 +1377,9 @@ async function sendReply(){
   const msg={direction:isIC?'outbound':'inbound',body,timestamp:new Date().toISOString(),attachments:replyFiles.map(f=>({name:f.name,type:f.type,size:f.size,b64:f.b64,du:f.du})),read:isIC,divRead:!isIC};
   document.getElementById('sendBtn').disabled=true; showLoad('Sending…');
   try {
-    if(CFG.DEMO_MODE){ await delay(500); if(!activeTx.conversationLog)activeTx.conversationLog=[]; activeTx.conversationLog.push(msg); }
-    else { await gasPost({action:'addReply',inquiryId:activeTx.inquiryId,direction:msg.direction,body:msg.body,attachments:JSON.stringify(msg.attachments.map(a=>({name:a.name,type:a.type,size:a.size,b64:a.b64})))}); if(!activeTx.conversationLog)activeTx.conversationLog=[]; activeTx.conversationLog.push(msg); }
+    if(!CFG.DEMO_MODE) await gasPost({action:'addReply',inquiryId:activeTx.inquiryId,direction:msg.direction,body:msg.body,attachments:JSON.stringify(msg.attachments.map(a=>({name:a.name,type:a.type,size:a.size,b64:a.b64})))});
+    await delay(CFG.DEMO_MODE?400:0);
+    activeTx.conversationLog.push(msg);
     renderThread(activeTx.conversationLog);
     document.getElementById('replyText').value=''; replyFiles=[]; renderFL(replyFiles,'replyFileList',null);
     setTimeout(()=>{const th=document.getElementById('mThread');th.scrollTop=th.scrollHeight;},80);
@@ -1147,14 +1391,14 @@ async function sendReply(){
 function closeMo(){document.getElementById('modalOv').classList.remove('open');activeTx=null;}
 function closeMoBg(e){if(e.target===document.getElementById('modalOv'))closeMo();}
 
-/* ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════
    FILES
-   ══════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════ */
 function fileIcon(t){if(!t)return'📎';if(t.includes('pdf'))return'📄';if(t.match(/sheet|excel|csv/))return'📊';if(t.startsWith('image'))return'🖼️';return'📎';}
 function fmtSize(b){if(!b||b<1024)return(b||0)+'B';if(b<1048576)return(b/1024).toFixed(1)+'KB';return(b/1048576).toFixed(1)+'MB';}
 function toB64(f){return new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result.split(',')[1]);rd.readAsDataURL(f);});}
 function toDU(f){return new Promise(r=>{const rd=new FileReader();rd.onload=()=>r(rd.result);rd.readAsDataURL(f);});}
-async function addFiles(arr,list,listId,warnId){for(const f of list){if(arr.length>=CFG.MAX_FILES){toast('Max '+CFG.MAX_FILES+' files','error');break;}if(f.size>CFG.MAX_MB*1024*1024){toast(f.name+' too large','error');continue;}const[b64,du]=await Promise.all([toB64(f),toDU(f)]);arr.push({name:f.name,size:f.size,type:f.type,b64,du});}renderFL(arr,listId,warnId);}
+async function addFiles(arr,list,lid,wid){for(const f of list){if(arr.length>=CFG.MAX_FILES){toast('Max '+CFG.MAX_FILES+' files','error');break;}if(f.size>CFG.MAX_MB*1024*1024){toast(f.name+' too large','error');continue;}const[b64,du]=await Promise.all([toB64(f),toDU(f)]);arr.push({name:f.name,size:f.size,type:f.type,b64,du});}renderFL(arr,lid,wid);}
 function renderFL(arr,lid,wid){const el=document.getElementById(lid),isR=lid==='replyFileList';if(isR){el.innerHTML=arr.map((f,i)=>`<div class="rfchip"><span>${fileIcon(f.type)}</span><span style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span><button onclick="remFile(${i},'${lid}')">×</button></div>`).join('');}else{el.innerHTML=arr.map((f,i)=>`<div class="file-chip"><span class="fic">${fileIcon(f.type)}</span><span class="fnm">${esc(f.name)}</span><span class="fsz">${fmtSize(f.size)}</span><button class="frm" onclick="remFile(${i},'${lid}')">×</button></div>`).join('');if(wid)document.getElementById(wid).style.display=arr.length>=CFG.MAX_FILES?'':'none';}}
 window.remFile=function(i,lid){if(lid==='fileList'){formFiles.splice(i,1);renderFL(formFiles,'fileList','fileLimitWarn');}else{replyFiles.splice(i,1);renderFL(replyFiles,'replyFileList',null);}};
 function onFilePick(e){addFiles(formFiles,e.target.files,'fileList','fileLimitWarn');e.target.value='';}
@@ -1164,9 +1408,9 @@ uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag');}
 uz.addEventListener('dragleave',()=>uz.classList.remove('drag'));
 uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag');addFiles(formFiles,e.dataTransfer.files,'fileList','fileLimitWarn');});
 
-/* ══════════════════════════════════════════════════════
-   MISC
-   ══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   MISC UTILS
+   ═══════════════════════════════════════════════════════ */
 function openLB(src){document.getElementById('lbImg').src=src;document.getElementById('lightbox').classList.add('open');}
 function closeLB(){document.getElementById('lightbox').classList.remove('open');}
 function dlAtt(name,b64,type){if(!b64){toast('No file data','error');return;}try{const bytes=atob(b64),arr=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);const blob=new Blob([arr],{type:type||'application/octet-stream'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);}catch(e){toast('Download failed','error');}}
@@ -1181,35 +1425,37 @@ function toast(msg,type=''){const el=document.getElementById('toast');el.textCon
 function showLoad(m){document.getElementById('loadMsg').textContent=m;document.getElementById('loadOv').classList.add('show');}
 function hideLoad(){document.getElementById('loadOv').classList.remove('show');}
 
-/* ══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════
    DEMO DATA
-   ══════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════ */
 const DEMO_TIX=[
-  {inquiryId:'IC-1042',division:'BC',contactEmail:'bc-team@cnfei.com',productCodes:'BCH-4421, BCH-4422',category:'Pick Demand',progress:'Investigating',timestamp:'2025-03-28T09:14:00',orderNumber:'ORD-20250328-114',qtyPick:'48',description:'System shows 48 units available but bin is physically empty. Pick demand was flagged for this SKU yesterday.',findings:'Reviewing cycle count records from last Tuesday.',followUpQuestions:'',
+  {inquiryId:'IC-1042',division:'BC',contactEmail:'bc-team@cnfei.com',productCodes:'BCH44210 BCH44220',orderNumber:'BC00098821',qtyPick:'48',category:'Pick Demand',inventoryIssue:'Quantity Discrepancy',qualityIssue:'',progress:'Investigating',timestamp:new Date(Date.now()-3*86400000).toISOString(),description:'System shows 48 units available but bin is physically empty. Pick demand was flagged for this SKU yesterday.',findings:'Reviewing cycle count records.',followUpQuestions:'',
   conversationLog:[
-    {direction:'outbound',body:'Your inquiry IC-1042 has been received. Our IC team is now investigating.',timestamp:'2025-03-28T09:20:00',attachments:[],read:true,divRead:true},
-    {direction:'inbound',body:'Thanks! Bin was B-14-C. There might be two bins with similar labels nearby.',timestamp:'2025-03-28T10:45:00',attachments:[],read:true,divRead:true},
-    {direction:'outbound',body:'Good to know. We flagged both B-14-C and B-14-D and will reconcile both.',timestamp:'2025-03-28T11:10:00',attachments:[],read:true,divRead:false},
+    {direction:'outbound',body:'Your inquiry IC-1042 has been received. Our IC team is now investigating.',timestamp:new Date(Date.now()-3*86400000+600000).toISOString(),attachments:[],read:true,divRead:true},
+    {direction:'inbound',body:'Thanks! Bin was B-14-C. There might be two bins with similar labels nearby.',timestamp:new Date(Date.now()-3*86400000+3600000).toISOString(),attachments:[],read:true,divRead:true},
+    {direction:'outbound',body:'We flagged both B-14-C and B-14-D and will reconcile both.',timestamp:new Date(Date.now()-2*86400000).toISOString(),attachments:[],read:true,divRead:false},
   ]},
-  {inquiryId:'IC-1039',division:'NH',contactEmail:'nh-team@cnfei.com',productCodes:'NPH-8801',category:'Receiving',progress:'Need More Info',timestamp:'2025-03-27T14:32:00',description:'Received PO shows 200 units but physical count on dock is 185.',findings:'',followUpQuestions:'Can you provide the PO number and dock receipt timestamp?',
+  {inquiryId:'IC-1039',division:'NH',contactEmail:'nh-team@cnfei.com',productCodes:'NPH88010',orderNumber:'NH00023321',qtyPick:'',category:'Receiving',inventoryIssue:'Quantity Discrepancy',qualityIssue:'',progress:'Need More Info',timestamp:new Date(Date.now()-5*86400000).toISOString(),description:'Received PO shows 200 units but physical count on dock is 185.',findings:'',followUpQuestions:'Can you provide the PO number and dock receipt timestamp?',
   conversationLog:[
-    {direction:'outbound',body:'IC-1039 received.\n\nFollow-Up Questions:\nCan you provide the PO number and dock receipt timestamp?',timestamp:'2025-03-27T14:40:00',attachments:[],read:true,divRead:false},
+    {direction:'outbound',body:'IC-1039 received.\n\nFollow-Up Questions:\nCan you provide the PO number and dock receipt timestamp?',timestamp:new Date(Date.now()-5*86400000+600000).toISOString(),attachments:[],read:true,divRead:false},
   ]},
-  {inquiryId:'IC-1035',division:'GT',contactEmail:'m.wilkins@tagltd.com',productCodes:'GTG-2210',category:'Cycle Count',progress:'Completed',timestamp:'2025-03-26T08:00:00',description:'Count variance of -12 units on last cycle count.',findings:'Two mis-scanned units from the 3/24 replenishment run. Physical count matches system. No adjustment needed.',followUpQuestions:'',
+  {inquiryId:'IC-1035',division:'GT',contactEmail:'m.wilkins@tagltd.com',productCodes:'GTG22100',orderNumber:'',qtyPick:'',category:'Cycle Count',inventoryIssue:'Quantity Discrepancy',qualityIssue:'',progress:'Completed',timestamp:new Date(Date.now()-8*86400000).toISOString(),description:'Count variance of -12 units on last cycle count.',findings:'Two mis-scanned units from the 3/24 replenishment run. Physical count matches system. No adjustment needed.',followUpQuestions:'',
   conversationLog:[
-    {direction:'outbound',body:'IC-1035 received and assigned.',timestamp:'2025-03-26T08:10:00',attachments:[],read:true,divRead:true},
-    {direction:'outbound',body:'Investigation complete.\n\nFindings: Two mis-scanned units from 3/24 replenishment. Physical count matches system.\n\nStatus → Completed',timestamp:'2025-03-27T16:00:00',attachments:[],read:true,divRead:true},
+    {direction:'outbound',body:'IC-1035 received and assigned.',timestamp:new Date(Date.now()-8*86400000+600000).toISOString(),attachments:[],read:true,divRead:true},
+    {direction:'outbound',body:'Investigation complete.\n\nFindings: Two mis-scanned units from replenishment. Physical count matches system. No adjustment needed.',timestamp:new Date(Date.now()-6*86400000).toISOString(),attachments:[],read:true,divRead:true},
   ]},
-  {inquiryId:'IC-1031',division:'EE',contactEmail:'ee-team@cnfei.com',productCodes:'EEV-9901, EEV-9902',category:'Bin Move',progress:'Received',timestamp:'2025-03-28T11:55:00',description:'Three SKUs bin-moved yesterday but Apprise still shows old location.',findings:'',followUpQuestions:'',conversationLog:[
-    {direction:'outbound',body:'IC-1031 received. Our team will begin investigating shortly.',timestamp:'2025-03-28T12:00:00',attachments:[],read:true,divRead:false},
-  ]},
-  {inquiryId:'IC-1028',division:'FS',contactEmail:'fs-team@cnfei.com',productCodes:'FSR-1144',category:'Returns',progress:'Waiting on Info',timestamp:'2025-03-25T13:00:00',description:'Customer return came in damaged.',findings:'',followUpQuestions:'Please attach photos of the damage and confirm which carrier returned the item.',
+  {inquiryId:'IC-1031',division:'EE',contactEmail:'ee-team@cnfei.com',productCodes:'EEV99010 EEV99020',orderNumber:'',qtyPick:'',category:'Bin Move',inventoryIssue:'Location Error',qualityIssue:'',progress:'Received',timestamp:new Date(Date.now()-1*86400000).toISOString(),description:'Three SKUs bin-moved yesterday but Apprise still shows old location.',findings:'',followUpQuestions:'',
+  conversationLog:[{direction:'outbound',body:'IC-1031 received. Our team will begin investigating shortly.',timestamp:new Date(Date.now()-1*86400000+600000).toISOString(),attachments:[],read:true,divRead:false}]},
+  {inquiryId:'IC-1028',division:'FS',contactEmail:'fs-team@cnfei.com',productCodes:'FSR11440',orderNumber:'',qtyPick:'',category:'Returns',inventoryIssue:'',qualityIssue:'Damaged on Arrival',progress:'Waiting on Info',timestamp:new Date(Date.now()-7*86400000).toISOString(),description:'Customer return came in damaged.',findings:'',followUpQuestions:'Please attach photos of the damage and confirm which carrier returned the item.',
   conversationLog:[
-    {direction:'outbound',body:'IC-1028 received.\n\nFollow-Up Questions:\nPlease attach photos and confirm which carrier returned the item.',timestamp:'2025-03-25T13:15:00',attachments:[],read:true,divRead:true},
-    {direction:'inbound',body:'Return via UPS — 1Z999AA10123456784.',timestamp:'2025-03-26T09:30:00',attachments:[],read:true,divRead:true},
-    {direction:'outbound',body:'Photos received. Corner damage visible. Escalating to confirm carrier claim vs write-off.',timestamp:'2025-03-26T11:00:00',attachments:[],read:true,divRead:false},
+    {direction:'outbound',body:'IC-1028 received.\n\nFollow-Up Questions:\nPlease attach photos and confirm which carrier.',timestamp:new Date(Date.now()-7*86400000+600000).toISOString(),attachments:[],read:true,divRead:true},
+    {direction:'inbound',body:'Return via UPS — 1Z999AA10123456784.',timestamp:new Date(Date.now()-6*86400000).toISOString(),attachments:[],read:true,divRead:true},
+    {direction:'outbound',body:'Photos received. Corner damage visible. Escalating to confirm carrier claim.',timestamp:new Date(Date.now()-5*86400000).toISOString(),attachments:[],read:true,divRead:false},
   ]},
 ];
+
+// Load banner on page start (for anyone who navigated directly)
+loadBanner();
 </script>
 </body>
 </html>
