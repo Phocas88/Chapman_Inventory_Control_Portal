@@ -676,7 +676,7 @@ button,select,input,textarea{font-family:var(--sans)}
       <option value="">All Divisions</option>
       <option>GT</option><option>NH</option><option>FS</option><option>EE</option><option>BC</option><option>VP</option><option>TP</option><option>CI</option>
     </select>
-    <button class="refresh-btn" id="refreshBtn" onclick="loadTix()">
+    <button class="refresh-btn" id="refreshBtn">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Refresh
     </button>
@@ -1002,6 +1002,7 @@ function setChip(label,cls){
 
 function logout(){
   role=''; currentDiv=''; pinBuf=''; allTix=[];
+  sessionClear();
   document.getElementById('topNav').style.display='none';
   document.getElementById('roleChip').style.display='none';
   document.getElementById('bannerCreator').classList.remove('show');
@@ -1302,13 +1303,27 @@ function resetForm(){
    ═══════════════════════════════════════════════════════ */
 async function loadTrackerTix(){
   const btn=document.getElementById('trackerRefreshBtn');
+  const isForce=btn&&btn.classList.contains('spinning'); // manual refresh = bypass cache
   if(btn)btn.classList.add('spinning');
   showLoad('Loading your tickets…');
   document.getElementById('trackerEyebrow').textContent='📦 '+DIV_NAMES[currentDiv];
   document.getElementById('trackerTitle').textContent=DIV_NAMES[currentDiv]+' — Inquiry Tracker';
   try {
-    if(CFG.DEMO_MODE){ await delay(500); allTix=DEMO_TIX.filter(t=>t.division===currentDiv); }
-    else { const r=await gasGet({action:'getTickets',division:currentDiv}); allTix=(r.tickets||[]).filter(t=>t.division===currentDiv); }
+    if(CFG.DEMO_MODE){
+      await delay(400);
+      allTix=DEMO_TIX.filter(t=>t.division===currentDiv);
+    } else {
+      const cacheKey='tix_'+currentDiv;
+      const cached=sessionGet(cacheKey);
+      if(cached&&!isForce){
+        allTix=cached;
+      } else {
+        // List mode — no conv logs, just ticket fields + message count
+        const r=await gasGet({action:'getTickets',division:currentDiv,mode:'list'});
+        allTix=(r.tickets||[]);
+        sessionSet(cacheKey,allTix);
+      }
+    }
     renderTrackerCards(allTix); updTrackerStats(allTix); loadGlobalStats();
   } catch(e){ toast('Could not load tickets','error'); }
   hideLoad(); if(btn)btn.classList.remove('spinning');
@@ -1326,6 +1341,8 @@ function renderTrackerCards(tix){
   const el=document.getElementById('trackerCards');
   if(!tix.length){el.innerHTML=`<div class="empty-tracker"><span class="et-icon">📋</span><p>No inquiries found. Submit one above.</p></div>`;return;}
   const pmap={'Received':'prog-received','Investigating':'prog-investigating','Need More Info':'prog-needinfo','Waiting on Info':'prog-waiting','Completed':'prog-completed'};
+  // In list mode conv logs are empty arrays — use messageCount from server instead
+  const msgCount=t=>(t.conversationLog&&t.conversationLog.length)?t.conversationLog.length:(t.messageCount||0);
   const hasNewUpdate=t=>(t.conversationLog||[]).some(m=>m.direction==='outbound'&&!m.divRead);
   el.innerHTML=tix.map(t=>{
     const days=daysSince(t.timestamp);
@@ -1341,7 +1358,7 @@ function renderTrackerCards(tix){
         <div class="tc-meta-item"><div class="tml">Status</div><div class="tmv">${badge(t.progress)}</div></div>
         <div class="tc-meta-item"><div class="tml">Category</div><div class="tmv">${esc(t.category||'—')}</div></div>
         ${t.orderNumber?`<div class="tc-meta-item"><div class="tml">Order #</div><div class="tmv mono">${esc(t.orderNumber)}</div></div>`:''}
-        <div class="tc-meta-item"><div class="tml">Messages</div><div class="tmv mono">${(t.conversationLog||[]).length}</div></div>
+        <div class="tc-meta-item"><div class="tml">Messages</div><div class="tmv mono">${msgCount(t)}</div></div>
       </div>
       <div class="tc-desc">${esc(t.description)}</div>
       ${t.findings?`<div class="tc-findings"><div class="tf-label">IC Findings</div>${esc(t.findings)}</div>`:''}
@@ -1357,16 +1374,31 @@ function renderTrackerCards(tix){
 /* ═══════════════════════════════════════════════════════
    IC DASHBOARD
    ═══════════════════════════════════════════════════════ */
-async function loadTix(){
+async function loadTix(forceRefresh){
   document.getElementById('refreshBtn').classList.add('spinning');
   showLoad('Loading tickets…');
   try {
-    if(CFG.DEMO_MODE){ await delay(500); allTix=[...DEMO_TIX]; }
-    else { const r=await gasGet({action:'getTickets'}); allTix=r.tickets||[]; }
+    if(CFG.DEMO_MODE){
+      await delay(400); allTix=[...DEMO_TIX];
+    } else {
+      const cacheKey='tix_ic';
+      const cached=sessionGet(cacheKey);
+      if(cached&&!forceRefresh){
+        allTix=cached;
+      } else {
+        // List mode — fast, no conv logs embedded
+        const r=await gasGet({action:'getTickets',mode:'list'});
+        allTix=r.tickets||[];
+        sessionSet(cacheKey,allTix);
+      }
+    }
     renderTix(allTix); updStats(allTix); loadGlobalStats();
   } catch(e){ toast('Load failed: '+e.message,'error'); }
   hideLoad(); document.getElementById('refreshBtn').classList.remove('spinning');
 }
+
+// Refresh button forces bypass of cache
+document.getElementById('refreshBtn').addEventListener('click',()=>loadTix(true));
 
 function filterTix(){
   const q=document.getElementById('searchIn').value.toLowerCase();
@@ -1415,8 +1447,19 @@ function badge(s){
 /* ═══════════════════════════════════════════════════════
    TICKET MODAL
    ═══════════════════════════════════════════════════════ */
-function openTicket(id){
-  const t=allTix.find(x=>x.inquiryId===id); if(!t)return;
+async function openTicket(id){
+  let t=allTix.find(x=>x.inquiryId===id); if(!t)return;
+
+  // In live mode, fetch full ticket with conv logs on demand if not loaded yet
+  if(!CFG.DEMO_MODE && (!t.conversationLog || t.conversationLog.length===0)){
+    showLoad('Loading conversation…');
+    try {
+      const r=await gasGet({action:'getTicket',inquiryId:id});
+      if(r.ticket){ Object.assign(t,r.ticket); }
+    } catch(e){} // use cached data on failure
+    hideLoad();
+  }
+
   activeTx=t; replyFiles=[];
   if(!activeTx.conversationLog) activeTx.conversationLog=[];
 
@@ -1755,6 +1798,29 @@ uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag');ad
 function openLB(src){document.getElementById('lbImg').src=src;document.getElementById('lightbox').classList.add('open');}
 function closeLB(){document.getElementById('lightbox').classList.remove('open');}
 function dlAtt(name,b64,type){if(!b64){toast('No file data','error');return;}try{const bytes=atob(b64),arr=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);const blob=new Blob([arr],{type:type||'application/octet-stream'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);}catch(e){toast('Download failed','error');}}
+/* ═══════════════════════════════════════════════════════
+   SESSION CACHE — reduces GAS calls on repeat loads
+   Cache expires after 5 minutes
+   ═══════════════════════════════════════════════════════ */
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+function sessionSet(key, data){
+  try { sessionStorage.setItem(key, JSON.stringify({data, ts: Date.now()})); } catch(e){}
+}
+function sessionGet(key){
+  try {
+    const raw = sessionStorage.getItem(key);
+    if(!raw) return null;
+    const {data, ts} = JSON.parse(raw);
+    if(Date.now() - ts > CACHE_TTL) { sessionStorage.removeItem(key); return null; }
+    return data;
+  } catch(e){ return null; }
+}
+function sessionClear(){
+  try {
+    Object.keys(sessionStorage).filter(k=>k.startsWith('tix_')).forEach(k=>sessionStorage.removeItem(k));
+  } catch(e){}
+}
+
 async function gasGet(p){const r=await fetch(CFG.GAS_URL+'?'+new URLSearchParams(p));if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
 async function gasPost(d){await fetch(CFG.GAS_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(d),mode:'no-cors'});return{ok:true};}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
