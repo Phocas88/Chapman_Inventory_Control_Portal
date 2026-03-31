@@ -558,6 +558,8 @@ button,select,input,textarea{font-family:var(--sans)}
     <div class="card">
       <div class="card-title">Contact Information</div>
       <div id="divPrefill" class="div-prefill" style="display:none">✅ Submitting as <strong id="divPrefillLabel">—</strong></div>
+
+      <!-- Row 1: Division selector + Internal CC list side by side -->
       <div class="form-row" id="divSelectRow">
         <div class="field">
           <label>Division <em>*</em></label>
@@ -573,9 +575,20 @@ button,select,input,textarea{font-family:var(--sans)}
             <option value="CI">CI — Chapman Internal</option>
           </select>
         </div>
-        <div class="field" id="emailFieldWrap">
-          <label>Select Email(s) <em>*</em></label>
-          <div class="email-multiselect" id="emailMultiselect"></div>
+        <div class="field">
+          <label>Also Notify (Internal) <span style="font-weight:400;color:var(--subtle);font-size:11px">— optional</span></label>
+          <div class="email-multiselect" id="internalCCselect" style="max-height:160px;overflow-y:auto">
+            <div style="padding:10px 12px;font-size:12px;color:var(--muted)">Select a division first</div>
+          </div>
+          <div class="hint">Check anyone on the Chapman team who should also receive updates</div>
+        </div>
+      </div>
+
+      <!-- Row 2: Division email list full width -->
+      <div class="form-row one" id="emailFieldWrap">
+        <div class="field">
+          <label>Select Your Email(s) <em>*</em></label>
+          <div class="email-multiselect" id="emailMultiselect" style="max-height:200px;overflow-y:auto"></div>
           <div class="selected-emails-preview" id="selectedEmailsPreview">No emails selected</div>
           <div id="dirPrompt" class="dir-prompt" style="display:none">
             <span id="dirPromptMsg"></span>
@@ -606,12 +619,26 @@ button,select,input,textarea{font-family:var(--sans)}
       <div class="form-row">
         <div class="field">
           <label>Inventory Issue Type</label>
-          <select id="fInvIssue"><option value="">None</option><option>Quantity Discrepancy</option><option>Missing Item</option><option>Overstock</option><option>Location Error</option><option>Not Found in System</option><option>Other</option></select>
+          <select id="fInvIssue" onchange="onIssueChange()"><option value="">None</option><option>Quantity Discrepancy</option><option>Missing Item</option><option>Overstock</option><option>Location Error</option><option>Not Found in System</option><option>Other</option></select>
         </div>
         <div class="field">
           <label>Quality Issue Type</label>
-          <select id="fQualIssue"><option value="">None</option><option>Damaged on Arrival</option><option>Wrong Item</option><option>Packaging Defect</option><option>Expired / Outdated</option><option>Other</option></select>
+          <select id="fQualIssue" onchange="onIssueChange()"><option value="">None</option><option>Damaged on Arrival</option><option>Wrong Item</option><option>Packaging Defect</option><option>Expired / Outdated</option><option>Other</option></select>
         </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Shipping Issue Type</label>
+          <select id="fShipIssue" onchange="onIssueChange()"><option value="">None</option><option>Wrong Quantity Shipped</option><option>Missing from Shipment</option><option>Shipped to Wrong Location</option><option>Carrier Damage</option><option>Late Shipment</option><option>Other</option></select>
+        </div>
+        <div class="field">
+          <label>Receiving Issue Type</label>
+          <select id="fRecvIssue" onchange="onIssueChange()"><option value="">None</option><option>Inventory on Dock — Not Received</option><option>PO Count Discrepancy</option><option>Wrong Item Received</option><option>Receiving Delay</option><option>No PO on File</option><option>Other</option></select>
+        </div>
+      </div>
+      <!-- Dock alert banner — shown when Shipping or Receiving issue selected -->
+      <div id="dockAlertBanner" style="display:none;background:var(--orange-l);border:1px solid rgba(234,88,12,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--orange);margin-bottom:4px">
+        📦 <strong>Christian Prater (Inbound Dock Manager)</strong> will automatically be CC'd on this inquiry.
       </div>
       <div class="form-row one"><div class="field">
         <label>Category</label>
@@ -1135,31 +1162,73 @@ function renderGlobalStats(){
 /* ═══════════════════════════════════════════════════════
    EMAIL MULTI-SELECT
    ═══════════════════════════════════════════════════════ */
+const DOCK_EMAIL = 'cprater@cnfei.com'; // Christian Prater — auto-CC for Shipping/Receiving issues
+
+// Chapman internal team for the "Also Notify" column
+const INTERNAL_TEAM = [
+  'rmendoza@cnfei.com','droyal@cnfei.com','mkhang@cnfei.com',
+  'darango@cnfei.com','nchow@cnfei.com','rwigginton@cnfei.com',
+  'cprater@cnfei.com','ngonzalez@cnfei.com','cshorts@cnfei.com',
+  'mtimm@cnfei.com','astanley@cnfei.com','dalexander@cnfei.com',
+];
+
 function onDivChange(){
   const div=document.getElementById('fDiv').value;
   buildEmailMultiselect(div);
+  buildInternalCCselect();
 }
 
+function onIssueChange(){
+  const ship=document.getElementById('fShipIssue')?.value||'';
+  const recv=document.getElementById('fRecvIssue')?.value||'';
+  const hasDock=(ship&&ship!=='')||(recv&&recv!=='');
+  document.getElementById('dockAlertBanner').style.display=hasDock?'':'none';
+}
+
+// Division email list — fully reset & all checked on every call
 function buildEmailMultiselect(div){
   const container=document.getElementById('emailMultiselect');
   const preview=document.getElementById('selectedEmailsPreview');
   container.innerHTML='';
   document.getElementById('dirPrompt').style.display='none';
-  if(!div){ container.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--muted)">Select a division first</div>'; preview.textContent='No emails selected'; return; }
+  if(!div){
+    container.innerHTML='<div style="padding:10px 12px;font-size:12px;color:var(--muted)">Select a division first</div>';
+    preview.textContent='No emails selected';
+    return;
+  }
   const emails=getDivEmails(div);
   emails.forEach((email,i)=>{
-    const row=document.createElement('div');
-    row.className='email-option';
-    row.innerHTML=`<input type="checkbox" id="eck${i}" value="${email}" checked><label for="eck${i}">${email}</label>`;
-    row.querySelector('input').addEventListener('change',updateEmailPreview);
-    container.appendChild(row);
+    container.appendChild(makeCheckRow('eck'+i, email, true, updateEmailPreview));
   });
-  // Add custom email row
+  // Custom add row
   const addRow=document.createElement('div');
   addRow.className='email-add-row';
-  addRow.innerHTML=`<input type="email" id="customEmailInput" placeholder="Add another email address…"><button class="email-add-btn" onclick="addCustomEmail()">+ Add</button>`;
+  addRow.innerHTML=`<input type="email" id="customEmailInput" placeholder="Add another email…"><button class="email-add-btn" onclick="addCustomEmail()">+ Add</button>`;
   container.appendChild(addRow);
   updateEmailPreview();
+}
+
+// Internal Chapman team CC list — none checked by default
+function buildInternalCCselect(){
+  const container=document.getElementById('internalCCselect');
+  container.innerHTML='';
+  INTERNAL_TEAM.forEach((email,i)=>{
+    container.appendChild(makeCheckRow('icc'+i, email, false, null));
+  });
+}
+
+// Helper — creates a styled checkbox row element
+function makeCheckRow(id, email, checked, onChange){
+  const row=document.createElement('div');
+  row.className='email-option';
+  const cb=document.createElement('input');
+  cb.type='checkbox'; cb.id=id; cb.value=email;
+  cb.checked=checked; // ← this is what actually checks the box
+  if(onChange) cb.addEventListener('change', onChange);
+  const lbl=document.createElement('label');
+  lbl.htmlFor=id; lbl.textContent=email;
+  row.appendChild(cb); row.appendChild(lbl);
+  return row;
 }
 
 function addCustomEmail(){
@@ -1170,20 +1239,14 @@ function addCustomEmail(){
   if(!div) return;
   const existing=getDivEmails(div);
   if(existing.includes(email)){ toast('That email is already in the list','error'); return; }
-  // Add to the visible list with checkbox checked
   const container=document.getElementById('emailMultiselect');
   const addRow=container.querySelector('.email-add-row');
   const i=container.querySelectorAll('.email-option').length;
-  const row=document.createElement('div');
-  row.className='email-option';
-  row.innerHTML=`<input type="checkbox" id="eck${i}" value="${email}" checked><label for="eck${i}">${email}</label>`;
-  row.querySelector('input').addEventListener('change',updateEmailPreview);
-  container.insertBefore(row,addRow);
+  const row=makeCheckRow('eck'+i, email, true, updateEmailPreview);
+  container.insertBefore(row, addRow);
   input.value='';
   updateEmailPreview();
-  // Ask if they want to save to directory
-  pendingNewEmail=email;
-  pendingNewEmailDiv=div;
+  pendingNewEmail=email; pendingNewEmailDiv=div;
   document.getElementById('dirPromptMsg').textContent=`Add "${email}" to the ${DIV_NAMES[div]} directory for future use?`;
   document.getElementById('dirPrompt').style.display='flex';
 }
@@ -1206,33 +1269,44 @@ function dismissDirPrompt(){
 
 function updateEmailPreview(){
   const checked=[...document.querySelectorAll('#emailMultiselect input[type=checkbox]:checked')].map(c=>c.value);
-  const preview=document.getElementById('selectedEmailsPreview');
-  preview.textContent=checked.length?checked.join(', '):'No emails selected';
+  document.getElementById('selectedEmailsPreview').textContent=checked.length?checked.join(', '):'No emails selected';
 }
 
 function getSelectedEmails(){
-  return [...document.querySelectorAll('#emailMultiselect input[type=checkbox]:checked')].map(c=>c.value);
+  const divEmails=[...document.querySelectorAll('#emailMultiselect input[type=checkbox]:checked')].map(c=>c.value);
+  const ccEmails=[...document.querySelectorAll('#internalCCselect input[type=checkbox]:checked')].map(c=>c.value);
+  const ship=document.getElementById('fShipIssue')?.value||'';
+  const recv=document.getElementById('fRecvIssue')?.value||'';
+  const hasDock=(ship&&ship!=='')||(recv&&recv!=='');
+  const all=new Set([...divEmails,...ccEmails]);
+  if(hasDock) all.add(DOCK_EMAIL);
+  return [...all];
 }
+
 
 /* ═══════════════════════════════════════════════════════
    FORM SETUP + SUBMIT
    ═══════════════════════════════════════════════════════ */
 function setupForm(){
+  // Reset issue dropdowns and dock banner
+  ['fShipIssue','fRecvIssue'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  const db=document.getElementById('dockAlertBanner');
+  if(db) db.style.display='none';
+
   if(role==='division'&&currentDiv){
     document.getElementById('fDiv').value=currentDiv;
     document.getElementById('divPrefill').style.display='flex';
     document.getElementById('divPrefillLabel').textContent=currentDiv+' — '+DIV_NAMES[currentDiv];
-    document.getElementById('divSelectRow').style.display='none';
-    buildEmailMultiselect(currentDiv);
-    document.getElementById('emailFieldWrap').style.display='flex';
-    // Rebuild the row to show just email selector when div is pre-filled
     document.getElementById('divSelectRow').style.display='grid';
     document.getElementById('fDiv').parentElement.style.display='none';
+    buildEmailMultiselect(currentDiv);
+    buildInternalCCselect();
   } else {
     document.getElementById('divPrefill').style.display='none';
     document.getElementById('fDiv').parentElement.style.display='';
     document.getElementById('divSelectRow').style.display='grid';
     buildEmailMultiselect('');
+    buildInternalCCselect();
   }
 }
 
@@ -1254,6 +1328,8 @@ async function submitForm(){
     qtyPick:document.getElementById('fQtyPick').value.trim(),
     inventoryIssue:document.getElementById('fInvIssue').value,
     qualityIssue:document.getElementById('fQualIssue').value,
+    shippingIssue:document.getElementById('fShipIssue').value,
+    receivingIssue:document.getElementById('fRecvIssue').value,
     category:document.getElementById('fCat').value,
     description:desc,
     attachments:JSON.stringify(formFiles.map(f=>({name:f.name,type:f.type,size:f.size,b64:f.b64}))),
@@ -1291,11 +1367,20 @@ function resetForm(){
   document.getElementById('formWrap').style.display='';
   document.getElementById('formSuccess').classList.remove('show');
   document.getElementById('submitBtn').disabled=false;
-  formFiles=[];renderFL(formFiles,'fileList','fileLimitWarn');
-  ['fInvIssue','fQualIssue','fCat'].forEach(id=>document.getElementById(id).value='');
+  formFiles=[]; renderFL(formFiles,'fileList','fileLimitWarn');
+  // Clear all dropdowns including new Shipping/Receiving
+  ['fInvIssue','fQualIssue','fShipIssue','fRecvIssue','fCat'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
   ['fOrderNum','fQtyPick','fProducts','fDesc'].forEach(id=>document.getElementById(id).value='');
+  // Hide dock banner
+  const db=document.getElementById('dockAlertBanner'); if(db) db.style.display='none';
+  // Reset division if not pre-filled role
   if(role!=='division') document.getElementById('fDiv').value='';
-  buildEmailMultiselect(role==='division'?currentDiv:'');
+  // Always fully rebuild both email lists — this clears all selections
+  const div=role==='division'?currentDiv:document.getElementById('fDiv').value;
+  buildEmailMultiselect(div);
+  buildInternalCCselect();
 }
 
 /* ═══════════════════════════════════════════════════════
