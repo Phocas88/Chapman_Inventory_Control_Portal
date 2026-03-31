@@ -991,6 +991,7 @@ function chkPin(){
   if(pinBuf!==exp){ pinShake('Incorrect PIN'); return; }
   if(isDiv){
     role='division'; currentDiv=pinTarget;
+    allTix=[]; // clear any previous role's tickets
     setChip(pinTarget+' — '+DIV_NAMES[pinTarget],'division');
     document.getElementById('navTracker').style.display='';
     document.getElementById('navForm').style.display='';
@@ -1000,6 +1001,7 @@ function chkPin(){
     loadTrackerTix().then(()=>showScreen('tracker'));
   } else if(pinTarget==='icteam'){
     role='icteam'; currentDiv='';
+    allTix=[]; // clear any previous role's tickets
     setChip('IC Team','icteam');
     document.getElementById('navTracker').style.display='none';
     document.getElementById('navForm').style.display='none';
@@ -1009,6 +1011,7 @@ function chkPin(){
     loadTix().then(()=>showScreen('dash'));
   } else {
     role='manager'; currentDiv='';
+    allTix=[]; // clear any previous role's tickets
     setChip('IC Manager','manager');
     document.getElementById('navTracker').style.display='none';
     document.getElementById('navForm').style.display='none';
@@ -1120,7 +1123,16 @@ function clearBanner(){
    GLOBAL STATS
    ═══════════════════════════════════════════════════════ */
 function loadGlobalStats(){
-  const tix=CFG.DEMO_MODE?DEMO_TIX:allTix;
+  // allTix is already division-filtered for division users — use it directly
+  // For demo mode, filter DEMO_TIX the same way allTix would be
+  let tix;
+  if(CFG.DEMO_MODE){
+    tix = role==='division'
+      ? DEMO_TIX.filter(t=>t.division===currentDiv)
+      : DEMO_TIX;
+  } else {
+    tix = allTix; // already correctly filtered per role
+  }
   const stats={};
   Object.keys(DIV_NAMES).forEach(d=>{ stats[d]={inv:0,qual:0,total:0}; });
   stats._overall={inv:0,qual:0,total:0};
@@ -1388,7 +1400,7 @@ function resetForm(){
    ═══════════════════════════════════════════════════════ */
 async function loadTrackerTix(){
   const btn=document.getElementById('trackerRefreshBtn');
-  const isForce=btn&&btn.classList.contains('spinning'); // manual refresh = bypass cache
+  const isForce=btn&&btn.classList.contains('spinning');
   if(btn)btn.classList.add('spinning');
   showLoad('Loading your tickets…');
   document.getElementById('trackerEyebrow').textContent='📦 '+DIV_NAMES[currentDiv];
@@ -1396,16 +1408,17 @@ async function loadTrackerTix(){
   try {
     if(CFG.DEMO_MODE){
       await delay(400);
-      allTix=DEMO_TIX.filter(t=>t.division===currentDiv);
+      // Always filter strictly to this division — never expose other divisions
+      allTix = DEMO_TIX.filter(t=>t.division===currentDiv);
     } else {
       const cacheKey='tix_'+currentDiv;
       const cached=sessionGet(cacheKey);
       if(cached&&!isForce){
         allTix=cached;
       } else {
-        // List mode — no conv logs, just ticket fields + message count
         const r=await gasGet({action:'getTickets',division:currentDiv,mode:'list'});
-        allTix=(r.tickets||[]);
+        // Double-filter on client too — belt and suspenders
+        allTix=(r.tickets||[]).filter(t=>t.division===currentDiv);
         sessionSet(cacheKey,allTix);
       }
     }
@@ -1534,6 +1547,12 @@ function badge(s){
    ═══════════════════════════════════════════════════════ */
 async function openTicket(id){
   let t=allTix.find(x=>x.inquiryId===id); if(!t)return;
+
+  // Division users must only see their own division's tickets
+  if(role==='division' && t.division !== currentDiv){
+    toast('Access denied — this ticket belongs to another division','error');
+    return;
+  }
 
   // In live mode, fetch full ticket with conv logs on demand if not loaded yet
   if(!CFG.DEMO_MODE && (!t.conversationLog || t.conversationLog.length===0)){
@@ -1759,8 +1778,15 @@ function buildMetaHTML(t, days){
    STATS TABLE SCREEN
    ═══════════════════════════════════════════════════════ */
 function renderStatsScreen(){
-  const src = CFG.DEMO_MODE ? DEMO_TIX : allTix;
-  const tix = role==='division' ? src.filter(t=>t.division===currentDiv) : src;
+  // allTix is already division-filtered for division users
+  let tix;
+  if(CFG.DEMO_MODE){
+    tix = role==='division'
+      ? DEMO_TIX.filter(t=>t.division===currentDiv)
+      : DEMO_TIX;
+  } else {
+    tix = allTix;
+  }
 
   // Summary strip
   const strip=document.getElementById('statsSummaryStrip');
@@ -1844,8 +1870,14 @@ function renderBreakdownTable(tbodyId, values){
 }
 
 function exportStatsCSV(){
-  const src=CFG.DEMO_MODE?DEMO_TIX:allTix;
-  const tix=role==='division'?src.filter(t=>t.division===currentDiv):src;
+  let tix;
+  if(CFG.DEMO_MODE){
+    tix = role==='division'
+      ? DEMO_TIX.filter(t=>t.division===currentDiv)
+      : DEMO_TIX;
+  } else {
+    tix = allTix;
+  }
   const headers=['Inquiry ID','Division','Product Code(s)','Order Number','QTY to Pick','Category','Inventory Issue','Quality Issue','Progress','Submitted','Days Open','Contact Email'];
   const rows=tix.map(t=>[t.inquiryId,t.division,t.productCodes,t.orderNumber||'',t.qtyPick||'',t.category||'',t.inventoryIssue||'',t.qualityIssue||'',t.progress,fmtDateShort(t.timestamp),daysSince(t.timestamp),t.contactEmail]);
   const csv=[headers,...rows].map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
