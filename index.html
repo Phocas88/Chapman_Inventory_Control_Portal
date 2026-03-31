@@ -277,6 +277,52 @@ button,select,input,textarea{font-family:var(--sans)}
 .bc-clear-btn{padding:9px 14px;background:none;border:1.5px solid rgba(217,119,6,.3);color:var(--yellow);border-radius:var(--radius);font-size:12px;cursor:pointer}
 .bc-clear-btn:hover{background:rgba(217,119,6,.1)}
 
+/* ══ TICKET EDIT MODE ══ */
+.edit-mode-toggle{display:flex;align-items:center;gap:8px;margin-bottom:2px}
+.edit-toggle-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;font-size:11px;font-weight:600;border-radius:6px;border:1.5px solid var(--border);background:none;color:var(--muted);cursor:pointer;transition:all .15s;font-family:var(--mono);letter-spacing:.04em}
+.edit-toggle-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-l)}
+.edit-toggle-btn.active{border-color:var(--orange);color:var(--orange);background:var(--orange-l)}
+.edit-fields{display:none;background:var(--orange-l);border:1.5px solid rgba(234,88,12,.2);border-radius:12px;padding:16px;margin-top:4px}
+.edit-fields.show{display:block}
+.edit-fields-title{font-size:11px;font-family:var(--mono);font-weight:600;color:var(--orange);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.edit-fields-title::after{content:'';flex:1;height:1px;background:rgba(234,88,12,.2)}
+.edit-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:500px){.edit-grid{grid-template-columns:1fr}}
+.edit-grid.one{grid-template-columns:1fr}
+.ef2{display:flex;flex-direction:column;gap:5px}
+.ef2 label{font-size:11px;font-weight:500;color:var(--orange);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.ef2 input,.ef2 select,.ef2 textarea{background:#fff;border:1.5px solid rgba(234,88,12,.25);border-radius:var(--radius);color:var(--text);font-size:13px;padding:8px 11px}
+.ef2 input:focus,.ef2 select:focus,.ef2 textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(234,88,12,.1)}
+.ef2 textarea{resize:vertical;min-height:60px;line-height:1.6}
+.edit-save-row{display:flex;gap:8px;justify-content:flex-end}
+.edit-save-btn{padding:8px 18px;background:var(--orange);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer}
+.edit-save-btn:hover{background:#c2410c}
+.edit-save-btn:disabled{opacity:.5;cursor:not-allowed}
+.edit-cancel-btn{padding:8px 14px;background:none;border:1.5px solid rgba(234,88,12,.3);color:var(--orange);border-radius:var(--radius);font-size:12px;cursor:pointer}
+
+/* ══ STATS TABLE SCREEN ══ */
+#statsScreen{background:var(--bg)}
+.stats-wrap{max-width:1000px;width:100%;margin:0 auto;padding:28px 20px 60px}
+.stats-header{margin-bottom:22px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.stats-header h1{font-size:20px;font-weight:600}
+.stats-header p{font-size:13px;color:var(--muted);margin-top:3px}
+.stats-export-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:none;border:1.5px solid var(--border);color:var(--muted);border-radius:var(--radius);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.stats-export-btn:hover{border-color:var(--green);color:var(--green);background:var(--green-l)}
+.stats-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;box-shadow:var(--shadow);overflow:hidden}
+.stats-section-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);background:var(--panel)}
+.stats-section-head h3{font-size:12px;font-weight:600;font-family:var(--mono);color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.stats-tbl{width:100%;border-collapse:collapse}
+.stats-tbl th{font-family:var(--mono);font-size:10px;font-weight:500;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:10px 16px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+.stats-tbl th.num{text-align:right}
+.stats-tbl td{padding:11px 16px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.stats-tbl td.num{text-align:right;font-family:var(--mono);font-size:12px}
+.stats-tbl tr:last-child td{border-bottom:none}
+.stats-tbl .total-row td{font-weight:600;background:var(--panel);font-family:var(--mono)}
+.mini-bar{display:flex;align-items:center;gap:8px}
+.mini-bar-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;min-width:60px}
+.mini-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.mini-bar-label{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+
 /* BADGES */
 .badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:500;padding:3px 9px;border-radius:20px;white-space:nowrap;letter-spacing:.04em}
 .badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
@@ -409,6 +455,7 @@ button,select,input,textarea{font-family:var(--sans)}
     <button class="nav-btn" onclick="showScreen('tracker')" id="navTracker" style="display:none">My Tickets</button>
     <button class="nav-btn" onclick="showScreen('form')"    id="navForm"    style="display:none">New Inquiry</button>
     <button class="nav-btn" onclick="showScreen('dash')"    id="navDash"    style="display:none">Dashboard</button>
+    <button class="nav-btn" onclick="showScreen('stats')"   id="navStats"   style="display:none">📊 Stats</button>
     <button class="nav-btn lock" onclick="logout()">← Lock</button>
   </nav>
 </header>
@@ -645,6 +692,67 @@ button,select,input,textarea{font-family:var(--sans)}
 
 </div><!-- #app -->
 
+<!-- ═══════════ STATS SCREEN ═══════════ -->
+<div class="screen" id="statsScreen">
+  <div class="stats-wrap">
+    <div class="stats-header">
+      <div>
+        <h1>📊 Inquiry Statistics</h1>
+        <p>Ticket counts by division, issue type, and status — updated in real time</p>
+      </div>
+      <button class="stats-export-btn" onclick="exportStatsCSV()">⬇ Export CSV</button>
+    </div>
+
+    <!-- Overall summary cards -->
+    <div class="stats-strip" id="statsSummaryStrip" style="padding:0;margin-bottom:20px"></div>
+
+    <!-- By Division table -->
+    <div class="stats-section">
+      <div class="stats-section-head"><h3>Tickets by Division</h3></div>
+      <table class="stats-tbl" id="divStatsTable">
+        <thead><tr>
+          <th>Division</th>
+          <th class="num">Total</th>
+          <th class="num">Open</th>
+          <th class="num">Investigating</th>
+          <th class="num">Needs Info</th>
+          <th class="num">Completed</th>
+          <th class="num">Inventory Issues</th>
+          <th class="num">Quality Issues</th>
+          <th style="min-width:140px">Volume</th>
+        </tr></thead>
+        <tbody id="divStatsTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- By Issue Type table -->
+    <div class="stats-section">
+      <div class="stats-section-head"><h3>Inventory Issue Breakdown</h3></div>
+      <table class="stats-tbl" id="invIssueTable">
+        <thead><tr><th>Issue Type</th><th class="num">Count</th><th style="min-width:160px">Share</th></tr></thead>
+        <tbody id="invIssueTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="stats-section">
+      <div class="stats-section-head"><h3>Quality Issue Breakdown</h3></div>
+      <table class="stats-tbl" id="qualIssueTable">
+        <thead><tr><th>Issue Type</th><th class="num">Count</th><th style="min-width:160px">Share</th></tr></thead>
+        <tbody id="qualIssueTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- By Category -->
+    <div class="stats-section">
+      <div class="stats-section-head"><h3>Tickets by Category</h3></div>
+      <table class="stats-tbl">
+        <thead><tr><th>Category</th><th class="num">Count</th><th style="min-width:160px">Share</th></tr></thead>
+        <tbody id="catStatsTbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════ TICKET MODAL ═══════════ -->
 <div class="overlay" id="modalOv" onclick="closeMoBg(event)">
 <div class="modal">
@@ -655,6 +763,57 @@ button,select,input,textarea{font-family:var(--sans)}
   </div>
   <div class="modal-body">
     <div class="meta-grid" id="mMeta"></div>
+
+    <!-- Edit mode toggle — IC Team and Manager only -->
+    <div class="edit-mode-toggle" id="editModeRow" style="display:none">
+      <button class="edit-toggle-btn" id="editToggleBtn" onclick="toggleEditMode()">✏️ Edit Ticket Info</button>
+    </div>
+
+    <!-- Edit fields panel -->
+    <div class="edit-fields" id="editFields">
+      <div class="edit-fields-title">Edit Ticket Information</div>
+      <div class="edit-grid">
+        <div class="ef2"><label>Division</label>
+          <select id="eFDiv">
+            <option value="GT">GT — TAG Home Goods</option><option value="NH">NH — NAPA Home</option>
+            <option value="FS">FS — Forside</option><option value="EE">EE — Ever Ellis</option>
+            <option value="BC">BC — Beachcombers</option><option value="VP">VP — VIP</option>
+            <option value="TP">TP — Transpac</option><option value="CI">CI — Chapman Internal</option>
+          </select>
+        </div>
+        <div class="ef2"><label>Category</label>
+          <select id="eFCat">
+            <option value="">— Select —</option>
+            <option>Pick Demand</option><option>Receiving</option><option>Putaway</option>
+            <option>Returns</option><option>Bin Move</option><option>Cycle Count</option><option>Other</option>
+          </select>
+        </div>
+        <div class="ef2"><label>Product Code(s)</label><input type="text" id="eFProducts" placeholder="BCH44210 NH00023321"></div>
+        <div class="ef2"><label>Order Number</label><input type="text" id="eFOrderNum" placeholder="NH00023321"></div>
+        <div class="ef2"><label>QTY to Pick</label><input type="number" id="eFQtyPick" min="0" placeholder="24"></div>
+        <div class="ef2"><label>Inventory Issue Type</label>
+          <select id="eFInvIssue">
+            <option value="">None</option><option>Quantity Discrepancy</option><option>Missing Item</option>
+            <option>Overstock</option><option>Location Error</option><option>Not Found in System</option><option>Other</option>
+          </select>
+        </div>
+        <div class="ef2"><label>Quality Issue Type</label>
+          <select id="eFQualIssue">
+            <option value="">None</option><option>Damaged on Arrival</option><option>Wrong Item</option>
+            <option>Packaging Defect</option><option>Expired / Outdated</option><option>Other</option>
+          </select>
+        </div>
+        <div class="ef2"><label>Contact Email</label><input type="email" id="eFEmail" placeholder="email@domain.com"></div>
+      </div>
+      <div class="edit-grid one">
+        <div class="ef2"><label>Description</label><textarea id="eFDesc" rows="3"></textarea></div>
+      </div>
+      <div class="edit-save-row">
+        <button class="edit-cancel-btn" onclick="toggleEditMode()">Cancel</button>
+        <button class="edit-save-btn" id="editSaveBtn" onclick="saveTicketEdits()">Save Changes</button>
+      </div>
+    </div>
+
     <div><div class="blk-label">Original Request</div><div class="blk-val" id="mDesc">—</div></div>
     <div class="quick-panel" id="icTeamPanel" style="display:none">
       <div class="quick-panel-title">IC Team — Update</div>
@@ -809,6 +968,7 @@ function chkPin(){
     document.getElementById('navTracker').style.display='';
     document.getElementById('navForm').style.display='';
     document.getElementById('navDash').style.display='none';
+    document.getElementById('navStats').style.display='';
     loadBanner();
     loadTrackerTix().then(()=>showScreen('tracker'));
   } else if(pinTarget==='icteam'){
@@ -817,6 +977,7 @@ function chkPin(){
     document.getElementById('navTracker').style.display='none';
     document.getElementById('navForm').style.display='none';
     document.getElementById('navDash').style.display='';
+    document.getElementById('navStats').style.display='';
     loadBanner();
     loadTix().then(()=>showScreen('dash'));
   } else {
@@ -825,6 +986,7 @@ function chkPin(){
     document.getElementById('navTracker').style.display='none';
     document.getElementById('navForm').style.display='none';
     document.getElementById('navDash').style.display='';
+    document.getElementById('navStats').style.display='';
     document.getElementById('bannerCreator').classList.add('show');
     loadBanner();
     loadTix().then(()=>showScreen('dash'));
@@ -844,6 +1006,7 @@ function logout(){
   document.getElementById('roleChip').style.display='none';
   document.getElementById('bannerCreator').classList.remove('show');
   document.getElementById('globalStats').classList.remove('show');
+  document.getElementById('navStats').style.display='none';
   showScreen('login'); ud(); pe('');
 }
 
@@ -884,10 +1047,11 @@ function submitForgotPin(){
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id+'Screen').classList.add('active');
-  ['navTracker','navForm','navDash'].forEach(n=>{const el=document.getElementById(n);if(el)el.classList.remove('active');});
-  const map={tracker:'navTracker',form:'navForm',dash:'navDash'};
+  ['navTracker','navForm','navDash','navStats'].forEach(n=>{const el=document.getElementById(n);if(el)el.classList.remove('active');});
+  const map={tracker:'navTracker',form:'navForm',dash:'navDash',stats:'navStats'};
   if(map[id]&&document.getElementById(map[id])) document.getElementById(map[id]).classList.add('active');
   if(id==='form') setupForm();
+  if(id==='stats') renderStatsScreen();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1259,23 +1423,19 @@ function openTicket(id){
   const days=daysSince(t.timestamp);
   document.getElementById('mId').textContent=t.inquiryId;
   document.getElementById('mTitle').textContent=(DIV_NAMES[t.division]||t.division)+' — '+(t.category||'General Inquiry');
-  document.getElementById('mMeta').innerHTML=`
-    <div class="meta-item"><div class="ml">Division</div><div class="mv">${DIV_NAMES[t.division]||t.division}</div></div>
-    <div class="meta-item"><div class="ml">Status</div><div class="mv">${badge(t.progress)}</div></div>
-    <div class="meta-item"><div class="ml">Days Open</div><div class="mv mono" style="color:${days>=7?'var(--red)':days>=3?'var(--orange)':'var(--muted)'}">${days===0?'Submitted today':days===1?'1 day':days+' days'}</div></div>
-    <div class="meta-item"><div class="ml">Submitted</div><div class="mv mono" style="font-size:11px">${fmtDate(t.timestamp)}</div></div>
-    <div class="meta-item"><div class="ml">Contact</div><div class="mv" style="font-size:11px">${esc(t.contactEmail)}</div></div>
-    <div class="meta-item"><div class="ml">Product Code(s)</div><div class="mv mono">${esc(t.productCodes)}</div></div>
-    <div class="meta-item"><div class="ml">Category</div><div class="mv">${esc(t.category||'—')}</div></div>
-    ${t.orderNumber?`<div class="meta-item"><div class="ml">Order Number</div><div class="mv mono">${esc(t.orderNumber)}</div></div>`:''}
-    ${t.qtyPick?`<div class="meta-item"><div class="ml">QTY to Pick</div><div class="mv mono">${esc(t.qtyPick)}</div></div>`:''}
-  `;
+  document.getElementById('mMeta').innerHTML=buildMetaHTML(t,days);
   document.getElementById('mDesc').textContent=t.description||'—';
 
   const isIC=role==='icteam', isMgr=role==='manager';
   document.getElementById('icTeamPanel').style.display=isIC?'':'none';
   document.getElementById('managerPanel').style.display=isMgr?'':'none';
   document.getElementById('mFooter').style.display=isMgr?'':'none';
+  // Show edit mode toggle for IC team and manager
+  document.getElementById('editModeRow').style.display=(isIC||isMgr)?'':'none';
+  // Always close edit fields when opening a ticket
+  document.getElementById('editFields').classList.remove('show');
+  document.getElementById('editToggleBtn').classList.remove('active');
+  document.getElementById('editToggleBtn').textContent='✏️ Edit Ticket Info';
   if(isIC){ document.getElementById('qProgress').value=t.progress||'Received'; document.getElementById('qFindings').value=t.findings||''; document.getElementById('qFollowup').value=t.followUpQuestions||''; }
   if(isMgr){ document.getElementById('mProg').value=t.progress||'Received'; document.getElementById('mFind').value=t.findings||''; document.getElementById('mFupQ').value=t.followUpQuestions||''; }
 
@@ -1346,27 +1506,16 @@ function _applyUpdate(progress,findings,followup,by){
   const idx=allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
   if(idx>=0){allTix[idx].progress=progress;allTix[idx].findings=findings;allTix[idx].followUpQuestions=followup;}
   activeTx.progress=progress; activeTx.findings=findings; activeTx.followUpQuestions=followup;
-  // Only add to thread if there's actual content — don't add empty status-only messages
+  // Only add to thread if there's actual content to share — skip status-only changes
   const parts=[findings&&`Findings:\n${findings}`,followup&&`Follow-Up Questions:\n${followup}`].filter(Boolean);
   if(parts.length){
     activeTx.conversationLog.push({direction:'outbound',body:parts.join('\n\n'),timestamp:new Date().toISOString(),attachments:[],read:true,divRead:false,sentBy:by});
     renderThread(activeTx.conversationLog);
     setTimeout(()=>{const th=document.getElementById('mThread');th.scrollTop=th.scrollHeight;},80);
   }
-  // Refresh meta badge
+  // Refresh meta using shared helper
   const days=daysSince(activeTx.timestamp);
-  document.getElementById('mMeta').querySelector('.mv:nth-child(2)');
-  document.getElementById('mMeta').innerHTML=`
-    <div class="meta-item"><div class="ml">Division</div><div class="mv">${DIV_NAMES[activeTx.division]||activeTx.division}</div></div>
-    <div class="meta-item"><div class="ml">Status</div><div class="mv">${badge(progress)}</div></div>
-    <div class="meta-item"><div class="ml">Days Open</div><div class="mv mono" style="color:${days>=7?'var(--red)':days>=3?'var(--orange)':'var(--muted)'}">${days===0?'Today':days+'d'}</div></div>
-    <div class="meta-item"><div class="ml">Submitted</div><div class="mv mono" style="font-size:11px">${fmtDate(activeTx.timestamp)}</div></div>
-    <div class="meta-item"><div class="ml">Contact</div><div class="mv" style="font-size:11px">${esc(activeTx.contactEmail)}</div></div>
-    <div class="meta-item"><div class="ml">Product Code(s)</div><div class="mv mono">${esc(activeTx.productCodes)}</div></div>
-    <div class="meta-item"><div class="ml">Category</div><div class="mv">${esc(activeTx.category||'—')}</div></div>
-    ${activeTx.orderNumber?`<div class="meta-item"><div class="ml">Order Number</div><div class="mv mono">${esc(activeTx.orderNumber)}</div></div>`:''}
-    ${activeTx.qtyPick?`<div class="meta-item"><div class="ml">QTY to Pick</div><div class="mv mono">${esc(activeTx.qtyPick)}</div></div>`:''}
-  `;
+  document.getElementById('mMeta').innerHTML=buildMetaHTML(activeTx,days);
 }
 
 async function sendReply(){
@@ -1386,6 +1535,198 @@ async function sendReply(){
     toast('Reply sent ✓','success');
   } catch(e){toast('Failed: '+e.message,'error');}
   hideLoad(); document.getElementById('sendBtn').disabled=false;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TICKET EDIT MODE
+   ═══════════════════════════════════════════════════════ */
+function toggleEditMode(){
+  const fields=document.getElementById('editFields');
+  const btn=document.getElementById('editToggleBtn');
+  const isOpen=fields.classList.contains('show');
+  if(!isOpen && activeTx){
+    // Populate fields with current ticket data
+    document.getElementById('eFDiv').value      = activeTx.division||'';
+    document.getElementById('eFCat').value      = activeTx.category||'';
+    document.getElementById('eFProducts').value = activeTx.productCodes||'';
+    document.getElementById('eFOrderNum').value = activeTx.orderNumber||'';
+    document.getElementById('eFQtyPick').value  = activeTx.qtyPick||'';
+    document.getElementById('eFInvIssue').value = activeTx.inventoryIssue||'';
+    document.getElementById('eFQualIssue').value= activeTx.qualityIssue||'';
+    document.getElementById('eFEmail').value    = activeTx.contactEmail||'';
+    document.getElementById('eFDesc').value     = activeTx.description||'';
+    fields.classList.add('show');
+    btn.classList.add('active');
+    btn.textContent='✕ Cancel Edit';
+  } else {
+    fields.classList.remove('show');
+    btn.classList.remove('active');
+    btn.textContent='✏️ Edit Ticket Info';
+  }
+}
+
+async function saveTicketEdits(){
+  if(!activeTx) return;
+  const updates = {
+    division:      document.getElementById('eFDiv').value,
+    category:      document.getElementById('eFCat').value,
+    productCodes:  document.getElementById('eFProducts').value.trim(),
+    orderNumber:   document.getElementById('eFOrderNum').value.trim(),
+    qtyPick:       document.getElementById('eFQtyPick').value.trim(),
+    inventoryIssue:document.getElementById('eFInvIssue').value,
+    qualityIssue:  document.getElementById('eFQualIssue').value,
+    contactEmail:  document.getElementById('eFEmail').value.trim(),
+    description:   document.getElementById('eFDesc').value.trim(),
+  };
+  if(!updates.productCodes){ toast('Product Code is required','error'); return; }
+  if(!updates.description)  { toast('Description is required','error'); return; }
+
+  document.getElementById('editSaveBtn').disabled=true;
+  showLoad('Saving edits…');
+  try {
+    if(!CFG.DEMO_MODE){
+      await gasPost({action:'editTicket', inquiryId:activeTx.inquiryId, ...updates});
+    } else {
+      await delay(600);
+    }
+    // Apply updates locally
+    Object.assign(activeTx, updates);
+    const idx=allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
+    if(idx>=0) Object.assign(allTix[idx], updates);
+
+    // Refresh modal header and meta
+    document.getElementById('mTitle').textContent=(DIV_NAMES[updates.division]||updates.division)+' — '+(updates.category||'General Inquiry');
+    document.getElementById('mDesc').textContent=updates.description;
+    const days=daysSince(activeTx.timestamp);
+    document.getElementById('mMeta').innerHTML=buildMetaHTML(activeTx,days);
+
+    // Close edit panel
+    toggleEditMode();
+    // Re-render dashboard table if visible
+    if(document.getElementById('dashScreen').classList.contains('active')) renderTix(allTix);
+    if(document.getElementById('trackerScreen').classList.contains('active')) renderTrackerCards(allTix);
+    loadGlobalStats();
+    toast('Ticket updated ✓','success');
+  } catch(e){ toast('Save failed: '+e.message,'error'); }
+  hideLoad();
+  document.getElementById('editSaveBtn').disabled=false;
+}
+
+// Shared helper to build meta HTML (used by openTicket and _applyUpdate)
+function buildMetaHTML(t, days){
+  return`
+    <div class="meta-item"><div class="ml">Division</div><div class="mv">${DIV_NAMES[t.division]||t.division}</div></div>
+    <div class="meta-item"><div class="ml">Status</div><div class="mv">${badge(t.progress)}</div></div>
+    <div class="meta-item"><div class="ml">Days Open</div><div class="mv mono" style="color:${days>=7?'var(--red)':days>=3?'var(--orange)':'var(--muted)'}">${days===0?'Today':days===1?'1 day':days+' days'}</div></div>
+    <div class="meta-item"><div class="ml">Submitted</div><div class="mv mono" style="font-size:11px">${fmtDate(t.timestamp)}</div></div>
+    <div class="meta-item"><div class="ml">Contact</div><div class="mv" style="font-size:11px">${esc(t.contactEmail)}</div></div>
+    <div class="meta-item"><div class="ml">Product Code(s)</div><div class="mv mono">${esc(t.productCodes)}</div></div>
+    <div class="meta-item"><div class="ml">Category</div><div class="mv">${esc(t.category||'—')}</div></div>
+    ${t.orderNumber?`<div class="meta-item"><div class="ml">Order Number</div><div class="mv mono">${esc(t.orderNumber)}</div></div>`:''}
+    ${t.qtyPick?`<div class="meta-item"><div class="ml">QTY to Pick</div><div class="mv mono">${esc(t.qtyPick)}</div></div>`:''}
+  `;
+}
+
+/* ═══════════════════════════════════════════════════════
+   STATS TABLE SCREEN
+   ═══════════════════════════════════════════════════════ */
+function renderStatsScreen(){
+  const src = CFG.DEMO_MODE ? DEMO_TIX : allTix;
+  const tix = role==='division' ? src.filter(t=>t.division===currentDiv) : src;
+
+  // Summary strip
+  const strip=document.getElementById('statsSummaryStrip');
+  const open=tix.filter(t=>t.progress!=='Completed').length;
+  const inv=tix.filter(t=>t.inventoryIssue&&t.inventoryIssue!=='').length;
+  const qual=tix.filter(t=>t.qualityIssue&&t.qualityIssue!=='').length;
+  const comp=tix.filter(t=>t.progress==='Completed').length;
+  strip.innerHTML=`
+    <div class="stat-card sc-blue"><div class="sv">${tix.length}</div><div class="sl">Total Tickets</div></div>
+    <div class="stat-card sc-yellow"><div class="sv">${open}</div><div class="sl">Open</div></div>
+    <div class="stat-card sc-green"><div class="sv">${comp}</div><div class="sl">Completed</div></div>
+    <div class="stat-card sc-blue" style="--accent:#7c3aed"><div class="sv" style="color:#7c3aed">${inv}</div><div class="sl">Inventory Issues</div></div>
+    <div class="stat-card sc-orange"><div class="sv">${qual}</div><div class="sl">Quality Issues</div></div>
+  `;
+
+  // Division breakdown table
+  const divs = role==='division' ? [currentDiv] : Object.keys(DIV_NAMES);
+  const maxTotal = Math.max(1,...divs.map(d=>tix.filter(t=>t.division===d).length));
+  const divBody=document.getElementById('divStatsTbody');
+  const divRows=divs.map(d=>{
+    const dt=tix.filter(t=>t.division===d);
+    const total=dt.length;
+    const open=dt.filter(t=>t.progress!=='Completed').length;
+    const inv_c=dt.filter(t=>t.progress==='Investigating').length;
+    const info=dt.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
+    const done=dt.filter(t=>t.progress==='Completed').length;
+    const inv_i=dt.filter(t=>t.inventoryIssue&&t.inventoryIssue!=='').length;
+    const qual_i=dt.filter(t=>t.qualityIssue&&t.qualityIssue!=='').length;
+    const pct=Math.round((total/maxTotal)*100);
+    return {d,total,open,inv_c,info,done,inv_i,qual_i,pct};
+  }).sort((a,b)=>b.total-a.total);
+
+  divBody.innerHTML=divRows.map(r=>`<tr>
+    <td><span class="mono" style="color:var(--accent)">${r.d}</span> <span style="color:var(--muted);font-size:12px">${DIV_NAMES[r.d]}</span></td>
+    <td class="num" style="font-weight:600">${r.total}</td>
+    <td class="num" style="color:${r.open>0?'var(--accent)':'var(--muted)'}">${r.open}</td>
+    <td class="num" style="color:${r.inv_c>0?'var(--yellow)':'var(--muted)'}">${r.inv_c}</td>
+    <td class="num" style="color:${r.info>0?'var(--orange)':'var(--muted)'}">${r.info}</td>
+    <td class="num" style="color:${r.done>0?'var(--green)':'var(--muted)'}">${r.done}</td>
+    <td class="num">${r.inv_i}</td>
+    <td class="num">${r.qual_i}</td>
+    <td><div class="mini-bar"><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${r.pct}%;background:var(--accent)"></div></div><span class="mini-bar-label">${r.total}</span></div></td>
+  </tr>`).join('');
+
+  // Totals row
+  const totInv_i=tix.filter(t=>t.inventoryIssue&&t.inventoryIssue!=='').length;
+  const totQual_i=tix.filter(t=>t.qualityIssue&&t.qualityIssue!=='').length;
+  divBody.innerHTML+=`<tr class="total-row">
+    <td>TOTAL</td>
+    <td class="num">${tix.length}</td>
+    <td class="num">${tix.filter(t=>t.progress!=='Completed').length}</td>
+    <td class="num">${tix.filter(t=>t.progress==='Investigating').length}</td>
+    <td class="num">${tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length}</td>
+    <td class="num">${tix.filter(t=>t.progress==='Completed').length}</td>
+    <td class="num">${totInv_i}</td>
+    <td class="num">${totQual_i}</td>
+    <td></td>
+  </tr>`;
+
+  // Inventory issue breakdown
+  renderBreakdownTable('invIssueTbody', tix.map(t=>t.inventoryIssue).filter(v=>v&&v!=='None'&&v!==''));
+  // Quality issue breakdown
+  renderBreakdownTable('qualIssueTbody', tix.map(t=>t.qualityIssue).filter(v=>v&&v!=='None'&&v!==''));
+  // Category breakdown
+  renderBreakdownTable('catStatsTbody', tix.map(t=>t.category).filter(v=>v&&v!==''));
+}
+
+function renderBreakdownTable(tbodyId, values){
+  const counts={};
+  values.forEach(v=>{ counts[v]=(counts[v]||0)+1; });
+  const total=values.length||1;
+  const rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  document.getElementById(tbodyId).innerHTML=rows.length?rows.map(([label,count])=>{
+    const pct=Math.round((count/total)*100);
+    return`<tr>
+      <td>${label}</td>
+      <td class="num" style="font-weight:600">${count}</td>
+      <td><div class="mini-bar"><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${pct}%;background:var(--accent)"></div></div><span class="mini-bar-label">${pct}%</span></div></td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="3" style="color:var(--muted);font-style:italic;padding:16px">No data</td></tr>`;
+}
+
+function exportStatsCSV(){
+  const src=CFG.DEMO_MODE?DEMO_TIX:allTix;
+  const tix=role==='division'?src.filter(t=>t.division===currentDiv):src;
+  const headers=['Inquiry ID','Division','Product Code(s)','Order Number','QTY to Pick','Category','Inventory Issue','Quality Issue','Progress','Submitted','Days Open','Contact Email'];
+  const rows=tix.map(t=>[t.inquiryId,t.division,t.productCodes,t.orderNumber||'',t.qtyPick||'',t.category||'',t.inventoryIssue||'',t.qualityIssue||'',t.progress,fmtDateShort(t.timestamp),daysSince(t.timestamp),t.contactEmail]);
+  const csv=[headers,...rows].map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='ic-inquiry-stats-'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click(); URL.revokeObjectURL(a.href);
+  toast('CSV exported ✓','success');
 }
 
 function closeMo(){document.getElementById('modalOv').classList.remove('open');activeTx=null;}
