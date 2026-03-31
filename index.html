@@ -200,10 +200,25 @@ button,select,input,textarea{font-family:var(--sans)}
 /* Email multi-select */
 .email-multiselect{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .email-multiselect:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-.email-option{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;transition:background .1s}
+.email-option{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;transition:background .1s;border-bottom:1px solid var(--border)}
+.email-option:last-of-type{border-bottom:none}
 .email-option:hover{background:var(--accent-l)}
-.email-option input[type=checkbox]{accent-color:var(--accent);width:13px;height:13px;flex-shrink:0}
-.email-option label{font-size:12px;cursor:pointer;flex:1}
+.email-option input[type=checkbox]{
+  appearance:none;-webkit-appearance:none;
+  width:16px;height:16px;border-radius:4px;flex-shrink:0;
+  border:2px solid var(--border2);background:#fff;cursor:pointer;
+  transition:all .12s;position:relative;
+}
+.email-option input[type=checkbox]:checked{
+  background:var(--accent);border-color:var(--accent);
+}
+.email-option input[type=checkbox]:checked::after{
+  content:'';position:absolute;left:4px;top:1px;
+  width:5px;height:9px;border:2px solid #fff;border-top:none;border-left:none;
+  transform:rotate(45deg);
+}
+.email-option input[type=checkbox]:hover{border-color:var(--accent);}
+.email-option label{font-size:12px;cursor:pointer;flex:1;color:var(--text)}
 .email-add-row{display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--border);background:var(--surface)}
 .email-add-row input{flex:1;background:var(--panel);border:1.5px solid var(--border);border-radius:6px;font-size:12px;padding:7px 10px;color:var(--text)}
 .email-add-row input:focus{outline:none;border-color:var(--accent)}
@@ -559,8 +574,8 @@ button,select,input,textarea{font-family:var(--sans)}
       <div class="card-title">Contact Information</div>
       <div id="divPrefill" class="div-prefill" style="display:none">✅ Submitting as <strong id="divPrefillLabel">—</strong></div>
 
-      <!-- Row 1: Division selector + Internal CC list side by side -->
-      <div class="form-row" id="divSelectRow">
+      <!-- Division selector -->
+      <div id="divSelectRow">
         <div class="field">
           <label>Division <em>*</em></label>
           <select id="fDiv" onchange="onDivChange()">
@@ -575,26 +590,28 @@ button,select,input,textarea{font-family:var(--sans)}
             <option value="CI">CI — Chapman Internal</option>
           </select>
         </div>
-        <div class="field">
-          <label>Also Notify (Internal) <span style="font-weight:400;color:var(--subtle);font-size:11px">— optional</span></label>
-          <div class="email-multiselect" id="internalCCselect" style="max-height:160px;overflow-y:auto">
-            <div style="padding:10px 12px;font-size:12px;color:var(--muted)">Select a division first</div>
-          </div>
-          <div class="hint">Check anyone on the Chapman team who should also receive updates</div>
-        </div>
       </div>
 
-      <!-- Row 2: Division email list full width -->
-      <div class="form-row one" id="emailFieldWrap">
+      <!-- Select Email + Also Notify side by side -->
+      <div class="form-row" id="emailFieldWrap">
         <div class="field">
           <label>Select Your Email(s) <em>*</em></label>
-          <div class="email-multiselect" id="emailMultiselect" style="max-height:200px;overflow-y:auto"></div>
+          <div class="email-multiselect" id="emailMultiselect" style="max-height:220px;overflow-y:auto">
+            <div style="padding:10px 12px;font-size:12px;color:var(--muted)">Select a division first</div>
+          </div>
           <div class="selected-emails-preview" id="selectedEmailsPreview">No emails selected</div>
           <div id="dirPrompt" class="dir-prompt" style="display:none">
             <span id="dirPromptMsg"></span>
             <button class="dir-yes" onclick="addNewEmailToDir()">Yes, add to directory</button>
             <button class="dir-no" onclick="dismissDirPrompt()">No thanks</button>
           </div>
+        </div>
+        <div class="field">
+          <label>Also Notify (Internal) <span style="font-weight:400;color:var(--subtle);font-size:11px">— optional</span></label>
+          <div class="email-multiselect" id="internalCCselect" style="max-height:220px;overflow-y:auto">
+            <div style="padding:10px 12px;font-size:12px;color:var(--muted)">Loading…</div>
+          </div>
+          <div class="hint">Check Chapman team members who should also get updates</div>
         </div>
       </div>
     </div>
@@ -1197,7 +1214,7 @@ function onIssueChange(){
   document.getElementById('dockAlertBanner').style.display=hasDock?'':'none';
 }
 
-// Division email list — fully reset & all checked on every call
+// Division email list — fully reset, NOTHING pre-checked, user picks manually
 function buildEmailMultiselect(div){
   const container=document.getElementById('emailMultiselect');
   const preview=document.getElementById('selectedEmailsPreview');
@@ -1210,9 +1227,10 @@ function buildEmailMultiselect(div){
   }
   const emails=getDivEmails(div);
   emails.forEach((email,i)=>{
-    container.appendChild(makeCheckRow('eck'+i, email, true, updateEmailPreview));
+    // false = not checked — user must actively select
+    container.appendChild(makeCheckRow('eck'+i, email, false, updateEmailPreview));
   });
-  // Custom add row
+  // Custom add row at bottom
   const addRow=document.createElement('div');
   addRow.className='email-add-row';
   addRow.innerHTML=`<input type="email" id="customEmailInput" placeholder="Add another email…"><button class="email-add-btn" onclick="addCustomEmail()">+ Add</button>`;
@@ -1300,23 +1318,26 @@ function getSelectedEmails(){
    FORM SETUP + SUBMIT
    ═══════════════════════════════════════════════════════ */
 function setupForm(){
-  // Reset issue dropdowns and dock banner
+  // Always reset issue dropdowns and dock banner fresh
   ['fShipIssue','fRecvIssue'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const db=document.getElementById('dockAlertBanner');
   if(db) db.style.display='none';
 
   if(role==='division'&&currentDiv){
+    // Division is already known — hide the division dropdown, show pre-fill badge
     document.getElementById('fDiv').value=currentDiv;
     document.getElementById('divPrefill').style.display='flex';
     document.getElementById('divPrefillLabel').textContent=currentDiv+' — '+DIV_NAMES[currentDiv];
-    document.getElementById('divSelectRow').style.display='grid';
-    document.getElementById('fDiv').parentElement.style.display='none';
+    document.getElementById('divSelectRow').style.display='none'; // hide div dropdown entirely
+    // Always build fresh — nothing pre-selected
     buildEmailMultiselect(currentDiv);
     buildInternalCCselect();
   } else {
+    // IC team or manager submitting manually — show division picker
     document.getElementById('divPrefill').style.display='none';
-    document.getElementById('fDiv').parentElement.style.display='';
-    document.getElementById('divSelectRow').style.display='grid';
+    document.getElementById('divSelectRow').style.display='block';
+    document.getElementById('fDiv').value='';
+    // Start with empty email lists until division is picked
     buildEmailMultiselect('');
     buildInternalCCselect();
   }
@@ -1380,19 +1401,13 @@ function resetForm(){
   document.getElementById('formSuccess').classList.remove('show');
   document.getElementById('submitBtn').disabled=false;
   formFiles=[]; renderFL(formFiles,'fileList','fileLimitWarn');
-  // Clear all dropdowns including new Shipping/Receiving
+  // Clear all fields
   ['fInvIssue','fQualIssue','fShipIssue','fRecvIssue','fCat'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   ['fOrderNum','fQtyPick','fProducts','fDesc'].forEach(id=>document.getElementById(id).value='');
-  // Hide dock banner
-  const db=document.getElementById('dockAlertBanner'); if(db) db.style.display='none';
-  // Reset division if not pre-filled role
-  if(role!=='division') document.getElementById('fDiv').value='';
-  // Always fully rebuild both email lists — this clears all selections
-  const div=role==='division'?currentDiv:document.getElementById('fDiv').value;
-  buildEmailMultiselect(div);
-  buildInternalCCselect();
+  // setupForm handles division pre-fill, email lists (nothing checked), dock banner reset
+  setupForm();
 }
 
 /* ═══════════════════════════════════════════════════════
