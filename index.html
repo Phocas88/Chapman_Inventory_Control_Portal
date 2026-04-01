@@ -1084,29 +1084,37 @@ function chkPin(){
   const isDiv=!!CFG.DIV_PINS[pinTarget];
   const exp=isDiv?CFG.DIV_PINS[pinTarget]:pinTarget==='icteam'?CFG.PIN_ICTEAM:CFG.PIN_MANAGER;
   if(pinBuf!==exp){ pinShake('Incorrect PIN'); return; }
+  doLogin(pinTarget);
+}
+
+// Shared login logic — called both from PIN entry and from page-load session restore
+function doLogin(target){
+  const isDiv=!!CFG.DIV_PINS[target];
   if(isDiv){
-    role='division'; currentDiv=pinTarget;
-    allTix=[]; // clear any previous role's tickets
-    setChip(pinTarget+' — '+DIV_NAMES[pinTarget],'division');
+    role='division'; currentDiv=target;
+    allTix=[];
+    setChip(target+' — '+DIV_NAMES[target],'division');
     document.getElementById('navTracker').style.display='';
     document.getElementById('navForm').style.display='';
     document.getElementById('navDash').style.display='none';
     document.getElementById('navStats').style.display='';
     loadBanner();
+    saveSession(target);
     loadTrackerTix().then(()=>showScreen('tracker'));
-  } else if(pinTarget==='icteam'){
+  } else if(target==='icteam'){
     role='icteam'; currentDiv='';
-    allTix=[]; // clear any previous role's tickets
+    allTix=[];
     setChip('IC Team','icteam');
     document.getElementById('navTracker').style.display='none';
     document.getElementById('navForm').style.display='none';
     document.getElementById('navDash').style.display='';
     document.getElementById('navStats').style.display='';
     loadBanner();
+    saveSession(target);
     loadTix().then(()=>showScreen('dash'));
   } else {
     role='manager'; currentDiv='';
-    allTix=[]; // clear any previous role's tickets
+    allTix=[];
     setChip('IC Manager','manager');
     document.getElementById('navTracker').style.display='none';
     document.getElementById('navForm').style.display='none';
@@ -1114,9 +1122,36 @@ function chkPin(){
     document.getElementById('navStats').style.display='';
     document.getElementById('bannerCreator').classList.add('show');
     loadBanner();
+    saveSession(target);
     loadTix().then(()=>showScreen('dash'));
   }
   loadGlobalStats();
+}
+
+// ── Session persistence ──────────────────────────────
+// Keeps the user logged in across page refreshes for the browser session.
+// Uses localStorage so it survives hard refreshes (sessionStorage doesn't).
+// logout() explicitly clears it.
+function saveSession(target){
+  try { localStorage.setItem('icSession', JSON.stringify({target, ts: Date.now()})); } catch(e){}
+}
+function clearSession(){
+  try { localStorage.removeItem('icSession'); } catch(e){}
+}
+function restoreSession(){
+  try {
+    const raw = localStorage.getItem('icSession');
+    if(!raw) return false;
+    const {target, ts} = JSON.parse(raw);
+    // Session valid for 8 hours
+    if(!target || Date.now() - ts > 8 * 60 * 60 * 1000){ clearSession(); return false; }
+    // Validate target is still a known role/division
+    const valid = CFG.DIV_PINS[target] || target==='icteam' || target==='manager';
+    if(!valid){ clearSession(); return false; }
+    pinTarget = target;
+    doLogin(target);
+    return true;
+  } catch(e){ return false; }
 }
 
 function setChip(label,cls){
@@ -1128,6 +1163,7 @@ function setChip(label,cls){
 function logout(){
   role=''; currentDiv=''; pinBuf=''; allTix=[];
   sessionClear();
+  clearSession(); // clear the localStorage login persistence
   document.getElementById('topNav').style.display='none';
   document.getElementById('roleChip').style.display='none';
   document.getElementById('bannerCreator').classList.remove('show');
@@ -1534,7 +1570,7 @@ async function submitForm(){
   try {
     let id;
     if(CFG.DEMO_MODE){
-      await delay(1000);
+      await delay(400); // much shorter demo delay
       id='IC-'+String(Math.floor(Math.random()*9000)+1000);
       const newTx={inquiryId:id,division:div,contactEmail:selectedEmails.join(','),
         productCodes:prod,productEntries:entries,orderNumber,qtyPick,
@@ -1547,9 +1583,25 @@ async function submitForm(){
       allTix.unshift(newTx); DEMO_TIX.unshift(newTx);
       loadGlobalStats();
     } else {
-      const r=await gasPost(payload); id=r.inquiryId;
+      // Fire the GAS request but don't wait for it to finish — optimistic approach
+      // GAS is async and slow; we build the ticket locally and show it immediately
+      gasPost(payload).catch(e=>console.warn('Submit error:',e));
+      id = 'IC-' + Date.now(); // temp ID — will be corrected on next tracker refresh
+      const newTx={inquiryId:id,division:div,contactEmail:selectedEmails.join(','),
+        productCodes:prod,productEntries:entries,orderNumber,qtyPick,
+        inventoryIssue:payload.inventoryIssue,qualityIssue:payload.qualityIssue,
+        shippingIssue:payload.shippingIssue||'',receivingIssue:payload.receivingIssue||'',
+        category:payload.category||'General',progress:'Received',
+        timestamp:new Date().toISOString(),description:desc,findings:'',followUpQuestions:'',
+        conversationLog:[]
+      };
+      allTix.unshift(newTx);
+      // Bust the ticket cache so a Refresh pulls fresh from server (with real IC-XXXX ID)
+      sessionClear();
+      loadGlobalStats();
     }
     hideLoad();
+    // Navigate straight to tracker — new ticket is already in allTix
     document.getElementById('formWrap').style.display='none';
     document.getElementById('successId').textContent=id;
     document.getElementById('formSuccess').classList.add('show');
@@ -1558,9 +1610,13 @@ async function submitForm(){
 
 function goTracker(){
   if(role==='division'){
-    // Navigate to tracker and reload fresh — new ticket will be in DEMO_TIX/server
+    // Ticket is already in allTix (added optimistically on submit)
+    // Render immediately — user sees it right away without waiting for GAS
     showScreen('tracker');
-    loadTrackerTix();
+    renderTrackerCards(allTix);
+    updTrackerStats(allTix);
+    // Note in the tracker that a refresh will get the real IC-XXXX ID from server
+    toast('Submitted ✓ — tap Refresh to sync the ticket ID from server','success');
   }
 }
 
@@ -1740,13 +1796,14 @@ async function openTicket(id){
     return;
   }
 
-  // In live mode, fetch full ticket with conv logs on demand if not loaded yet
-  if(!CFG.DEMO_MODE && (!t.conversationLog || t.conversationLog.length===0)){
+  // In live mode, always fetch fresh conversation log when opening a ticket.
+  // This ensures IC replies and division replies are always up to date.
+  if(!CFG.DEMO_MODE){
     showLoad('Loading conversation…');
     try {
       const r=await gasGet({action:'getTicket',inquiryId:id});
       if(r.ticket){ Object.assign(t,r.ticket); }
-    } catch(e){} // use cached data on failure
+    } catch(e){} // fall back to cached data silently
     hideLoad();
   }
 
@@ -2217,8 +2274,11 @@ const DEMO_TIX=[
   ]},
 ];
 
-// Load banner on page start (for anyone who navigated directly)
+// On page load — restore session if valid, otherwise show login
 loadBanner();
+if(!restoreSession()){
+  showScreen('login');
+}
 </script>
 </body>
 </html>
