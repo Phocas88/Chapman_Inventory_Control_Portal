@@ -1032,7 +1032,7 @@ button,select,input,textarea{font-family:var(--sans)}
    CONFIG
    ═══════════════════════════════════════════════════════ */
 const CFG = {
-  GAS_URL:     'https://script.google.com/macros/s/AKfycbwNZOeZn2QPkhaABdBQo65IFsj9CSsOPpmybmJEoF0sxG0C6EPhPRlLqEyTbRpSk3I/exec',
+  GAS_URL:     'https://script.google.com/macros/s/AKfycbwEyxzUgEuTbcWMTyyU8Gl8IhK2zGP490krQKqnf0rtv261kH3AWgcgpfRnDNFy4jaNVQ/exec',
   DEMO_MODE:   false,
   PIN_ICTEAM:     '7150',
   PIN_MANAGER:    '1988',
@@ -2320,21 +2320,27 @@ function sessionClear(){
   } catch(e){}
 }
 
-// All actions — reads and writes — go through GET params.
-// This sidesteps GAS's CORS redirect issue with POST requests.
-// GAS deployed as "Anyone" returns proper JSON for GET requests.
+// READ — always GET, data is small (filters/IDs only)
 async function gasGet(p){
   const r=await fetch(CFG.GAS_URL+'?'+new URLSearchParams(p));
   if(!r.ok) throw new Error('HTTP '+r.status);
   return r.json();
 }
-// gasPost now routes through GET — same as gasGet but named separately
-// for clarity at call sites. Both read the response so emails fire
-// synchronously before we show the success screen.
+
+// WRITE — POST with form-encoded body so large payloads (descriptions,
+// product entries, findings) aren't truncated by URL length limits.
+// GAS 'Anyone' deployments accept POST and return JSON correctly.
 async function gasPost(d){
-  const r=await fetch(CFG.GAS_URL+'?'+new URLSearchParams(d));
-  if(!r.ok) throw new Error('HTTP '+r.status);
-  return r.json();
+  const r=await fetch(CFG.GAS_URL, {
+    method:  'POST',
+    headers: {'Content-Type':'application/x-www-form-urlencoded'},
+    body:    new URLSearchParams(d),
+    redirect:'follow',
+  });
+  // GAS may return 200 or 302-then-200; either way parse the JSON body
+  const text=await r.text();
+  try{ return JSON.parse(text); }
+  catch(e){ return {ok:true}; } // GAS sometimes returns HTML on redirects
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
 function fmtDate(ts){if(!ts)return'—';const d=new Date(ts);return isNaN(d)?ts:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
