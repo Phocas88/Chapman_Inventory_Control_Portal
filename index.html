@@ -540,7 +540,7 @@ button,select,input,textarea{font-family:var(--sans)}
   <div class="login-wrap">
     <div class="login-header">
       <div class="li">📦</div>
-      <h1>IC Inquiry Portal</h1>
+      <h1>IC Inquiry System</h1>
       <p>Select your division or team to get started</p>
     </div>
     <div class="login-section-title">Divisions</div>
@@ -794,7 +794,7 @@ button,select,input,textarea{font-family:var(--sans)}
   </div>
 
   <div id="dockMgrBanner" style="display:none;background:#ecfeff;border-bottom:1px solid rgba(8,145,178,.2);padding:8px 20px;font-size:12px;color:#0891b2;font-weight:500;">
-    🚛 <strong>Dock Manager View</strong> — Showing shipping &amp; receiving tickets only · cprater@cnfei.com
+    🚛 <strong>Dock Manager View</strong> — Showing shipping &amp; receiving tickets only · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a5c6d5d7c4d1c0d7e5c6cbc3c0cc8bc6cac8">[email&#160;protected]</a>
   </div>
   <div class="dash-toolbar">
     <div class="search-box">
@@ -1027,12 +1027,12 @@ button,select,input,textarea{font-family:var(--sans)}
 <div class="toast" id="toast"></div>
 <div class="loading-overlay" id="loadOv"><div class="spinner"></div><p id="loadMsg">Loading…</p></div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 /* ═══════════════════════════════════════════════════════
    CONFIG
    ═══════════════════════════════════════════════════════ */
 const CFG = {
-  GAS_URL:     'https://script.google.com/macros/s/AKfycbwEyxzUgEuTbcWMTyyU8Gl8IhK2zGP490krQKqnf0rtv261kH3AWgcgpfRnDNFy4jaNVQ/exec',
+  GAS_URL:     'https://script.google.com/macros/s/AKfycbwNZOeZn2QPkhaABdBQo65IFsj9CSsOPpmybmJEoF0sxG0C6EPhPRlLqEyTbRpSk3I/exec',
   DEMO_MODE:   false,
   PIN_ICTEAM:     '7150',
   PIN_MANAGER:    '1988',
@@ -1664,10 +1664,11 @@ async function submitForm(){
       allTix.unshift(newTx); DEMO_TIX.unshift(newTx);
       loadGlobalStats();
     } else {
-      // Fire the GAS request but don't wait for it to finish — optimistic approach
-      // GAS is async and slow; we build the ticket locally and show it immediately
-      gasPost(payload).catch(e=>console.warn('Submit error:',e));
-      id = 'IC-' + Date.now(); // temp ID — will be corrected on next tracker refresh
+      // Await GAS — this ensures the email goes out before we show success.
+      // GAS typically responds in 2-4 seconds; the loading spinner covers that.
+      showLoad('Submitting — sending confirmation email…');
+      const r = await gasPost(payload);
+      id = (r && r.inquiryId) ? r.inquiryId : 'IC-' + Date.now();
       const newTx={inquiryId:id,division:div,contactEmail:selectedEmails.join(','),
         productCodes:prod,productEntries:entries,orderNumber,qtyPick,
         inventoryIssue:payload.inventoryIssue,qualityIssue:payload.qualityIssue,
@@ -1677,8 +1678,7 @@ async function submitForm(){
         conversationLog:[]
       };
       allTix.unshift(newTx);
-      // Bust the ticket cache so a Refresh pulls fresh from server (with real IC-XXXX ID)
-      sessionClear();
+      sessionClear(); // bust cache so Refresh gets fresh server data
       loadGlobalStats();
     }
     hideLoad();
@@ -2316,8 +2316,22 @@ function sessionClear(){
   } catch(e){}
 }
 
-async function gasGet(p){const r=await fetch(CFG.GAS_URL+'?'+new URLSearchParams(p));if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}
-async function gasPost(d){await fetch(CFG.GAS_URL,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(d),mode:'no-cors'});return{ok:true};}
+// All actions — reads and writes — go through GET params.
+// This sidesteps GAS's CORS redirect issue with POST requests.
+// GAS deployed as "Anyone" returns proper JSON for GET requests.
+async function gasGet(p){
+  const r=await fetch(CFG.GAS_URL+'?'+new URLSearchParams(p));
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+// gasPost now routes through GET — same as gasGet but named separately
+// for clarity at call sites. Both read the response so emails fire
+// synchronously before we show the success screen.
+async function gasPost(d){
+  const r=await fetch(CFG.GAS_URL+'?'+new URLSearchParams(d));
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
 function fmtDate(ts){if(!ts)return'—';const d=new Date(ts);return isNaN(d)?ts:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
 function fmtDateShort(ts){if(!ts)return'—';const d=new Date(ts);return isNaN(d)?ts:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
@@ -2375,15 +2389,4 @@ const DEMO_TIX=[
    description:'Two pallets arrived 10 days ago and are still sitting on dock. Not yet received into Apprise. Blocking putaway for that bay.',findings:'Reviewing receiving log — looks like a missing PO match.',followUpQuestions:'',
    conversationLog:[
     {direction:'outbound',body:'IC-1022 received. This has been flagged as a priority — dock inventory not received into system.',timestamp:new Date(Date.now()-10*86400000+600000).toISOString(),attachments:[],read:true,divRead:true},
-    {direction:'outbound',body:'Findings:\nReviewing receiving log — looks like a missing PO match. Working with dock team.',timestamp:new Date(Date.now()-8*86400000).toISOString(),attachments:[],read:true,divRead:true},
-  ]},
-];
-
-// On page load — restore session if valid, otherwise show login
-loadBanner();
-if(!restoreSession()){
-  showScreen('login');
-}
-</script>
-</body>
-</html>
+    {direction:'outbound',body:'Findings:\nReviewing receiving log — looks like a missing PO match. Working with dock team.',timestamp:new Date(Date.now()-8*8
