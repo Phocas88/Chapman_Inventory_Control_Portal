@@ -540,7 +540,7 @@ button,select,input,textarea{font-family:var(--sans)}
   <div class="login-wrap">
     <div class="login-header">
       <div class="li">📦</div>
-      <h1>IC Inquiry System</h1>
+      <h1>IC Inquiry Portal</h1>
       <p>Select your division or team to get started</p>
     </div>
     <div class="login-section-title">Divisions</div>
@@ -1823,7 +1823,9 @@ async function loadTix(forceRefresh){
 }
 
 // Refresh button forces bypass of cache
-document.getElementById('refreshBtn').addEventListener('click',()=>loadTix(true));
+// Refresh button — attach safely; element exists in DOM but may not be visible
+const _refreshBtn = document.getElementById('refreshBtn');
+if(_refreshBtn) _refreshBtn.addEventListener('click', ()=>loadTix(true));
 
 function filterTix(){
   const q=document.getElementById('searchIn').value.toLowerCase();
@@ -2283,9 +2285,11 @@ window.remFile=function(i,lid){if(lid==='fileList'){formFiles.splice(i,1);render
 function onFilePick(e){addFiles(formFiles,e.target.files,'fileList','fileLimitWarn');e.target.value='';}
 function onReplyFilePick(e){addFiles(replyFiles,e.target.files,'replyFileList',null);e.target.value='';}
 const uz=document.getElementById('uploadZone');
-uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag');});
-uz.addEventListener('dragleave',()=>uz.classList.remove('drag'));
-uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag');addFiles(formFiles,e.dataTransfer.files,'fileList','fileLimitWarn');});
+if(uz){
+  uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag');});
+  uz.addEventListener('dragleave',()=>uz.classList.remove('drag'));
+  uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag');addFiles(formFiles,e.dataTransfer.files,'fileList','fileLimitWarn');});
+}
 
 /* ═══════════════════════════════════════════════════════
    MISC UTILS
@@ -2389,4 +2393,21 @@ const DEMO_TIX=[
    description:'Two pallets arrived 10 days ago and are still sitting on dock. Not yet received into Apprise. Blocking putaway for that bay.',findings:'Reviewing receiving log — looks like a missing PO match.',followUpQuestions:'',
    conversationLog:[
     {direction:'outbound',body:'IC-1022 received. This has been flagged as a priority — dock inventory not received into system.',timestamp:new Date(Date.now()-10*86400000+600000).toISOString(),attachments:[],read:true,divRead:true},
-    {direction:'outbound',body:'Findings:\nReviewing receiving log — looks like a missing PO match. Working with dock team.',timestamp:new Date(Date.now()-8*8
+    {direction:'outbound',body:'Findings:\nReviewing receiving log — looks like a missing PO match. Working with dock team.',timestamp:new Date(Date.now()-8*8400000).toISOString(),attachments:[],read:true,divRead:true},
+  ]},
+];
+
+// On page load — restore session if valid, otherwise show login screen.
+// Wrapped in try/catch so any startup error always falls back to the login screen.
+try {
+  loadBanner();
+  if(!restoreSession()){
+    showScreen('login');
+  }
+} catch(e){
+  console.error('Startup error:', e);
+  showScreen('login');
+}
+</script>
+</body>
+</html>
