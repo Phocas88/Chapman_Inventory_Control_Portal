@@ -43,6 +43,7 @@ button,select,input,textarea{font-family:var(--sans)}
 .role-chip.division{color:var(--green);background:var(--green-l);border:1px solid rgba(5,150,105,.2)}
 .role-chip.icteam{color:var(--purple);background:var(--purple-l);border:1px solid rgba(124,58,237,.2)}
 .role-chip.manager{color:var(--accent);background:var(--accent-l);border:1px solid rgba(37,99,235,.2)}
+.role-chip.dockmanager{color:#0891b2;background:#ecfeff;border:1px solid rgba(8,145,178,.2)}
 .topbar-nav{display:flex;gap:4px;margin-left:auto}
 .nav-btn{font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:1px solid transparent;cursor:pointer;background:none;color:var(--muted);transition:all .15s}
 .nav-btn:hover{color:var(--text);background:var(--panel)}
@@ -71,6 +72,7 @@ button,select,input,textarea{font-family:var(--sans)}
 .ic-login-btn{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s}
 .ic-login-btn:hover{border-color:var(--purple);background:var(--purple-l);transform:translateY(-1px)}
 .ic-login-btn.manager:hover{border-color:var(--accent);background:var(--accent-l)}
+.ic-login-btn.dockmanager:hover{border-color:#0891b2;background:#ecfeff}
 .ic-login-btn .ib-icon{font-size:22px}
 .ic-login-btn .ib-title{font-size:13px;font-weight:600}
 .ic-login-btn .ib-sub{font-size:11px;color:var(--muted)}
@@ -418,6 +420,17 @@ button,select,input,textarea{font-family:var(--sans)}
 .manager-panel{background:var(--accent-l);border:1.5px solid rgba(37,99,235,.2);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .manager-panel-title{font-size:11px;font-family:var(--mono);font-weight:600;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
 .manager-panel-title::after{content:'';flex:1;height:1px;background:rgba(37,99,235,.2)}
+.dock-panel{background:#ecfeff;border:1.5px solid rgba(8,145,178,.2);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.dock-panel-title{font-size:11px;font-family:var(--mono);font-weight:600;color:#0891b2;letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.dock-panel-title::after{content:'';flex:1;height:1px;background:rgba(8,145,178,.2)}
+.df{display:flex;flex-direction:column;gap:5px}
+.df label{font-size:11px;font-weight:500;color:#0891b2;font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+.df select,.df textarea{background:#fff;border:1.5px solid rgba(8,145,178,.25);border-radius:var(--radius);color:var(--text);font-size:13px;padding:8px 12px}
+.df select:focus,.df textarea:focus{outline:none;border-color:#0891b2;box-shadow:0 0 0 3px rgba(8,145,178,.1)}
+.df textarea{resize:vertical;min-height:64px;line-height:1.6}
+.dock-save-btn{padding:9px 18px;background:#0891b2;color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;align-self:flex-end}
+.dock-save-btn:hover{background:#0e7490}
+.dock-save-btn:disabled{opacity:.5;cursor:not-allowed}
 .mf{display:flex;flex-direction:column;gap:5px}
 .mf label{font-size:11px;font-weight:500;color:var(--accent);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
 .mf select,.mf textarea{background:#fff;border:1.5px solid rgba(37,99,235,.2);border-radius:var(--radius);color:var(--text);font-size:13px;padding:8px 12px}
@@ -542,7 +555,7 @@ button,select,input,textarea{font-family:var(--sans)}
       <button class="div-btn" onclick="goPin('CI')"><span class="db-code">CI</span><span class="db-name">Chapman Internal</span></button>
     </div>
     <div class="login-section-title" style="margin-top:8px">IC Team</div>
-    <div class="ic-btns">
+    <div class="ic-btns" style="grid-template-columns:1fr 1fr 1fr">
       <button class="ic-login-btn" onclick="goPin('icteam')">
         <span class="ib-icon">🔬</span>
         <div><div class="ib-title">IC Team</div><div class="ib-sub">Investigate &amp; update tickets</div></div>
@@ -550,6 +563,10 @@ button,select,input,textarea{font-family:var(--sans)}
       <button class="ic-login-btn manager" onclick="goPin('manager')">
         <span class="ib-icon">⚙️</span>
         <div><div class="ib-title">IC Manager</div><div class="ib-sub">Full control &amp; oversight</div></div>
+      </button>
+      <button class="ic-login-btn dockmanager" onclick="goPin('dockmanager')">
+        <span class="ib-icon">🚛</span>
+        <div><div class="ib-title">Dock Manager</div><div class="ib-sub">Shipping &amp; receiving tickets</div></div>
       </button>
     </div>
   </div>
@@ -776,6 +793,9 @@ button,select,input,textarea{font-family:var(--sans)}
     </div>
   </div>
 
+  <div id="dockMgrBanner" style="display:none;background:#ecfeff;border-bottom:1px solid rgba(8,145,178,.2);padding:8px 20px;font-size:12px;color:#0891b2;font-weight:500;">
+    🚛 <strong>Dock Manager View</strong> — Showing shipping &amp; receiving tickets only · cprater@cnfei.com
+  </div>
   <div class="dash-toolbar">
     <div class="search-box">
       <span style="color:var(--muted)">🔍</span>
@@ -952,6 +972,22 @@ button,select,input,textarea{font-family:var(--sans)}
       <div class="mf"><label>Investigation Findings <span class="note">(emailed to requester)</span></label><textarea id="mFind" placeholder="Findings to share…"></textarea></div>
       <div class="mf"><label>Follow-Up Questions <span class="note">(emailed to requester)</span></label><textarea id="mFupQ" placeholder="Questions to send…"></textarea></div>
     </div>
+    <div class="dock-panel" id="dockPanel" style="display:none">
+      <div class="dock-panel-title">🚛 Dock Manager — Receiving &amp; Shipping Response</div>
+      <div class="df"><label>Status Update</label>
+        <select id="dkProg">
+          <option>Received</option><option>Investigating</option>
+          <option>Need More Info</option><option>Waiting on Info</option><option>Completed</option>
+        </select>
+      </div>
+      <div class="df"><label>Dock Findings <span style="font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400;color:#0891b2;opacity:.75">(emailed to requester)</span></label>
+        <textarea id="dkFindings" placeholder="What was found on dock, receiving log notes, carrier details…"></textarea>
+      </div>
+      <div class="df"><label>Follow-Up Questions <span style="font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400;color:#0891b2;opacity:.75">(emailed to requester)</span></label>
+        <textarea id="dkFollowup" placeholder="Questions for the division or IC team…"></textarea>
+      </div>
+      <button class="dock-save-btn" id="dkSaveBtn" onclick="saveDockManager()">Save &amp; Send →</button>
+    </div>
     <div><div class="blk-label">Conversation Thread</div><div class="thread" id="mThread"></div></div>
   </div>
   <div class="reply-composer">
@@ -998,8 +1034,9 @@ button,select,input,textarea{font-family:var(--sans)}
 const CFG = {
   GAS_URL:     'https://script.google.com/macros/s/AKfycbwNZOeZn2QPkhaABdBQo65IFsj9CSsOPpmybmJEoF0sxG0C6EPhPRlLqEyTbRpSk3I/exec',
   DEMO_MODE:   false,
-  PIN_ICTEAM:  '7150',
-  PIN_MANAGER: '1988',
+  PIN_ICTEAM:     '7150',
+  PIN_MANAGER:    '1988',
+  PIN_DOCK_MGR:   '2244',   // Christian Prater — Inbound Dock Manager
   DIV_PINS: { GT:'4411',NH:'4422',FS:'4433',EE:'4444',BC:'4455',VP:'4466',TP:'4477',CI:'4488' },
   MAX_FILES: 5, MAX_MB: 10,
 };
@@ -1023,8 +1060,7 @@ const PIN_EMAIL_MAP = {
   'rmendoza@cnfei.com': CFG.PIN_MANAGER,
   'droyal@cnfei.com':   CFG.PIN_ICTEAM,
   'mkhang@cnfei.com':   CFG.PIN_ICTEAM,
-  // Add division email → PIN mappings here as needed
-  // 'm.wilkins@tagltd.com': CFG.DIV_PINS.GT,
+  'cprater@cnfei.com':  CFG.PIN_DOCK_MGR,
 };
 
 function getDivEmails(div) {
@@ -1051,9 +1087,23 @@ function goPin(target){
   pinTarget=target; pinBuf=''; ud(); pe('');
   const isDiv=!!CFG.DIV_PINS[target];
   const b=document.getElementById('pinBadge');
-  if(isDiv){ b.textContent=target+' — '+DIV_NAMES[target]; b.style.cssText='background:var(--green-l);color:var(--green);border:1.5px solid rgba(5,150,105,.2)'; document.getElementById('pinSub').textContent='Enter your division PIN'; }
-  else if(target==='icteam'){ b.textContent='🔬 IC Team'; b.style.cssText='background:var(--purple-l);color:var(--purple);border:1.5px solid rgba(124,58,237,.2)'; document.getElementById('pinSub').textContent='Enter your IC Team PIN'; }
-  else { b.textContent='⚙️ IC Manager'; b.style.cssText='background:var(--accent-l);color:var(--accent);border:1.5px solid rgba(37,99,235,.2)'; document.getElementById('pinSub').textContent='Enter your Manager PIN'; }
+  if(isDiv){
+    b.textContent=target+' — '+DIV_NAMES[target];
+    b.style.cssText='background:var(--green-l);color:var(--green);border:1.5px solid rgba(5,150,105,.2)';
+    document.getElementById('pinSub').textContent='Enter your division PIN';
+  } else if(target==='icteam'){
+    b.textContent='🔬 IC Team';
+    b.style.cssText='background:var(--purple-l);color:var(--purple);border:1.5px solid rgba(124,58,237,.2)';
+    document.getElementById('pinSub').textContent='Enter your IC Team PIN';
+  } else if(target==='dockmanager'){
+    b.textContent='🚛 Dock Manager';
+    b.style.cssText='background:#ecfeff;color:#0891b2;border:1.5px solid rgba(8,145,178,.2)';
+    document.getElementById('pinSub').textContent='Enter your Dock Manager PIN';
+  } else {
+    b.textContent='⚙️ IC Manager';
+    b.style.cssText='background:var(--accent-l);color:var(--accent);border:1.5px solid rgba(37,99,235,.2)';
+    document.getElementById('pinSub').textContent='Enter your Manager PIN';
+  }
   showScreen('pin');
 }
 
@@ -1084,7 +1134,11 @@ document.addEventListener('keydown',function(e){
 
 function chkPin(){
   const isDiv=!!CFG.DIV_PINS[pinTarget];
-  const exp=isDiv?CFG.DIV_PINS[pinTarget]:pinTarget==='icteam'?CFG.PIN_ICTEAM:CFG.PIN_MANAGER;
+  let exp;
+  if(isDiv)                         exp=CFG.DIV_PINS[pinTarget];
+  else if(pinTarget==='icteam')     exp=CFG.PIN_ICTEAM;
+  else if(pinTarget==='dockmanager')exp=CFG.PIN_DOCK_MGR;
+  else                              exp=CFG.PIN_MANAGER;
   if(pinBuf!==exp){ pinShake('Incorrect PIN'); return; }
   doLogin(pinTarget);
 }
@@ -1107,6 +1161,17 @@ function doLogin(target){
     role='icteam'; currentDiv='';
     allTix=[];
     setChip('IC Team','icteam');
+    document.getElementById('navTracker').style.display='none';
+    document.getElementById('navForm').style.display='none';
+    document.getElementById('navDash').style.display='';
+    document.getElementById('navStats').style.display='';
+    loadBanner();
+    saveSession(target);
+    loadTix().then(()=>showScreen('dash'));
+  } else if(target==='dockmanager'){
+    role='dockmanager'; currentDiv='';
+    allTix=[];
+    setChip('🚛 Dock Manager','dockmanager');
     document.getElementById('navTracker').style.display='none';
     document.getElementById('navForm').style.display='none';
     document.getElementById('navDash').style.display='';
@@ -1148,7 +1213,7 @@ function restoreSession(){
     // Session valid for 8 hours
     if(!target || Date.now() - ts > 8 * 60 * 60 * 1000){ clearSession(); return false; }
     // Validate target is still a known role/division
-    const valid = CFG.DIV_PINS[target] || target==='icteam' || target==='manager';
+    const valid = CFG.DIV_PINS[target] || target==='icteam' || target==='manager' || target==='dockmanager';
     if(!valid){ clearSession(); return false; }
     pinTarget = target;
     doLogin(target);
@@ -1723,19 +1788,23 @@ async function loadTix(forceRefresh){
   showLoad('Loading tickets…');
   try {
     if(CFG.DEMO_MODE){
-      await delay(400); allTix=[...DEMO_TIX];
+      await delay(400);
+      const all=[...DEMO_TIX];
+      allTix = role==='dockmanager' ? all.filter(t=>t.shippingIssue||t.receivingIssue) : all;
     } else {
       const cacheKey='tix_ic';
       const cached=sessionGet(cacheKey);
       if(cached&&!forceRefresh){
         allTix=cached;
       } else {
-        // Include completed so stats counts all 4 issue types accurately
         const r=await gasGet({action:'getTickets',mode:'list',includeCompleted:'true'});
-        allTix=r.tickets||[];
+        let tickets=r.tickets||[];
+        if(role==='dockmanager') tickets=tickets.filter(t=>t.shippingIssue||t.receivingIssue);
+        allTix=tickets;
         sessionSet(cacheKey,allTix);
       }
     }
+    document.getElementById('dockMgrBanner').style.display=role==='dockmanager'?'':'none';
     renderTix(allTix.filter(t=>t.progress!=='Completed')); updStats(allTix); loadGlobalStats();
   } catch(e){ toast('Load failed: '+e.message,'error'); }
   hideLoad(); document.getElementById('refreshBtn').classList.remove('spinning');
@@ -1748,11 +1817,13 @@ function filterTix(){
   const q=document.getElementById('searchIn').value.toLowerCase();
   const st=document.getElementById('stFilter').value;
   const dv=document.getElementById('dvFilter').value;
-  // If no status filter set, hide Completed by default — they clutter the work queue
   renderTix(allTix.filter(t=>{
     const mq=!q||[t.inquiryId,t.division,t.productCodes,t.description].join(' ').toLowerCase().includes(q);
     const stMatch=st ? t.progress===st : t.progress!=='Completed';
-    return mq&&stMatch&&(!dv||t.division===dv);
+    const dvMatch=!dv||t.division===dv;
+    // Dock manager only sees shipping/receiving issues
+    const dockMatch=role!=='dockmanager'||(t.shippingIssue||t.receivingIssue);
+    return mq&&stMatch&&dvMatch&&dockMatch;
   }));
 }
 
@@ -1822,11 +1893,12 @@ async function openTicket(id){
   document.getElementById('mMeta').innerHTML=buildMetaHTML(t,days);
   document.getElementById('mDesc').textContent=t.description||'—';
 
-  const isIC=role==='icteam', isMgr=role==='manager';
+  const isIC=role==='icteam', isMgr=role==='manager', isDock=role==='dockmanager';
   document.getElementById('icTeamPanel').style.display=isIC?'':'none';
   document.getElementById('managerPanel').style.display=isMgr?'':'none';
+  document.getElementById('dockPanel').style.display=isDock?'':'none';
   document.getElementById('mFooter').style.display=isMgr?'':'none';
-  // Show edit mode toggle for IC team and manager
+  // Edit mode only for IC team and manager
   document.getElementById('editModeRow').style.display=(isIC||isMgr)?'':'none';
   // Always close edit fields when opening a ticket
   document.getElementById('editFields').classList.remove('show');
@@ -1834,6 +1906,7 @@ async function openTicket(id){
   document.getElementById('editToggleBtn').textContent='✏️ Edit Ticket Info';
   if(isIC){ document.getElementById('qProgress').value=t.progress||'Received'; document.getElementById('qFindings').value=t.findings||''; document.getElementById('qFollowup').value=t.followUpQuestions||''; }
   if(isMgr){ document.getElementById('mProg').value=t.progress||'Received'; document.getElementById('mFind').value=t.findings||''; document.getElementById('mFupQ').value=t.followUpQuestions||''; }
+  if(isDock){ document.getElementById('dkProg').value=t.progress||'Received'; document.getElementById('dkFindings').value=t.findings||''; document.getElementById('dkFollowup').value=t.followUpQuestions||''; }
 
   // Render THIS ticket's thread only
   renderThread(activeTx.conversationLog);
@@ -1896,6 +1969,20 @@ async function saveManager(){
     hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
   } catch(e){hideLoad();toast('Save failed: '+e.message,'error');}
   document.getElementById('mSaveBtn').disabled=false;
+}
+
+async function saveDockManager(){
+  if(!activeTx)return;
+  const progress=document.getElementById('dkProg').value;
+  const findings=document.getElementById('dkFindings').value.trim();
+  const followup=document.getElementById('dkFollowup').value.trim();
+  document.getElementById('dkSaveBtn').disabled=true; showLoad('Saving & sending…');
+  try {
+    if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress,findings,followup,'Dock Manager'); }
+    else { await gasPost({action:'updateTicket',inquiryId:activeTx.inquiryId,progress,findings,followUpQuestions:followup,updatedBy:'dockmanager'}); _applyUpdate(progress,findings,followup,'Dock Manager'); }
+    hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
+  } catch(e){hideLoad();toast('Save failed: '+e.message,'error');}
+  document.getElementById('dkSaveBtn').disabled=false;
 }
 
 function _applyUpdate(progress,findings,followup,by){
