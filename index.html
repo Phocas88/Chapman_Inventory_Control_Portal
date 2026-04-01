@@ -339,12 +339,16 @@ button,select,input,textarea{font-family:var(--sans)}
 .mini-bar-label{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
 
 /* PRODUCT CODE LIST */
-.product-list{display:flex;flex-direction:column;gap:7px}
-.product-entry{display:flex;align-items:center;gap:8px}
-.product-entry input{flex:1;background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;padding:9px 12px;transition:border-color .15s}
+.product-list{display:flex;flex-direction:column;gap:8px}
+.product-entry{display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:8px;align-items:center}
+@media(max-width:560px){.product-entry{grid-template-columns:1fr 1fr;gap:6px}.product-entry .rem-product{grid-column:2;justify-self:end}}
+.product-entry input{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;padding:9px 12px;transition:border-color .15s;width:100%}
 .product-entry input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
-.product-entry .rem-product{background:none;border:1.5px solid var(--border);color:var(--muted);width:32px;height:36px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.product-entry .rem-product{background:none;border:1.5px solid var(--border);color:var(--muted);width:32px;height:38px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .product-entry .rem-product:hover{border-color:var(--red);color:var(--red);background:var(--red-l)}
+.product-list-header{display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:8px;margin-bottom:2px}
+.product-list-header span{font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;padding:0 2px}
+@media(max-width:560px){.product-list-header{display:none}}
 .add-product-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:none;border:1.5px dashed var(--border2);color:var(--muted);border-radius:var(--radius);font-size:12px;cursor:pointer;transition:all .15s;margin-top:4px}
 .add-product-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-l);border-style:solid}
 
@@ -653,30 +657,25 @@ button,select,input,textarea{font-family:var(--sans)}
     <div class="card">
       <div class="card-title">Issue Details</div>
 
-      <!-- Product Codes — dynamic list -->
+      <!-- Product Codes — each row has Product Code + Order Number + Quantity -->
       <div class="field">
         <label>Product Code(s) <em>*</em></label>
+        <div class="product-list-header">
+          <span>Product Code</span>
+          <span>Order Number <span style="font-weight:400;opacity:.6">(if applicable)</span></span>
+          <span>Quantity</span>
+          <span></span>
+        </div>
         <div class="product-list" id="productList">
           <div class="product-entry">
-            <input type="text" placeholder="e.g. BCH44210" class="product-input">
+            <input type="text" placeholder="e.g. BCH44210" class="product-code">
+            <input type="text" placeholder="e.g. NH00023321" class="product-order">
+            <input type="number" placeholder="Qty" class="product-qty" min="0">
             <button type="button" class="rem-product" onclick="removeProduct(this)" title="Remove">×</button>
           </div>
         </div>
         <button type="button" class="add-product-btn" onclick="addProductRow()">+ Add Another Product Code</button>
-        <div class="hint" style="margin-top:4px">No dashes — one code per row</div>
-      </div>
-
-      <!-- Order + QTY -->
-      <div class="form-row" style="margin-top:4px">
-        <div class="field">
-          <label>Order Number <span style="font-weight:400;color:var(--subtle);font-size:11px">(if applicable)</span></label>
-          <input type="text" id="fOrderNum" placeholder="e.g. NH00023321">
-          <div class="hint">Division format — no dashes</div>
-        </div>
-        <div class="field">
-          <label>QTY to Pick for Order</label>
-          <input type="number" id="fQtyPick" placeholder="e.g. 24" min="0">
-        </div>
+        <div class="hint" style="margin-top:4px">No dashes in product codes or order numbers</div>
       </div>
 
       <!-- 4 issue type selects — each with its own color -->
@@ -722,7 +721,7 @@ button,select,input,textarea{font-family:var(--sans)}
 
       <!-- Dock alert — Receiving or Shipping selected -->
       <div id="dockAlertBanner" style="display:none;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:12px;color:#991b1b;font-weight:500;margin-top:4px">
-        🚨 <strong>Christian Prater (Inbound Dock Manager)</strong> — cprater@cnfei.com — will automatically be added as a primary recipient on this inquiry.
+        🚨 <strong>Christian Prater (Inbound Dock Manager)</strong> — <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d9baa9abb8adbcab99bab7bfbcb0f7bab6b4">[email&#160;protected]</a> — will automatically be added as a primary recipient on this inquiry.
       </div>
 
       <div class="form-row one" style="margin-top:8px"><div class="field">
@@ -913,7 +912,7 @@ button,select,input,textarea{font-family:var(--sans)}
         </div>
         <div class="ef2"><label>Product Code(s)</label><input type="text" id="eFProducts" placeholder="BCH44210 NH00023321"></div>
         <div class="ef2"><label>Order Number</label><input type="text" id="eFOrderNum" placeholder="NH00023321"></div>
-        <div class="ef2"><label>QTY to Pick</label><input type="number" id="eFQtyPick" min="0" placeholder="24"></div>
+        <div class="ef2"><label>Quantity</label><input type="number" id="eFQtyPick" min="0" placeholder="24"></div>
         <div class="ef2"><label>Inventory Issue Type</label>
           <select id="eFInvIssue">
             <option value="">None</option><option>Quantity Discrepancy</option><option>Missing Item</option>
@@ -990,13 +989,13 @@ button,select,input,textarea{font-family:var(--sans)}
 <div class="toast" id="toast"></div>
 <div class="loading-overlay" id="loadOv"><div class="spinner"></div><p id="loadMsg">Loading…</p></div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 /* ═══════════════════════════════════════════════════════
    CONFIG
    ═══════════════════════════════════════════════════════ */
 const CFG = {
   GAS_URL:     'https://script.google.com/macros/s/AKfycbwNZOeZn2QPkhaABdBQo65IFsj9CSsOPpmybmJEoF0sxG0C6EPhPRlLqEyTbRpSk3I/exec',
-  DEMO_MODE:   false,
+  DEMO_MODE:   true,
   PIN_ICTEAM:  '7150',
   PIN_MANAGER: '1988',
   DIV_PINS: { GT:'4411',NH:'4422',FS:'4433',EE:'4444',BC:'4455',VP:'4466',TP:'4477',CI:'4488' },
@@ -1286,48 +1285,72 @@ const INTERNAL_TEAM = [
 ];
 
 /* ═══════════════════════════════════════════════════════
-   PRODUCT CODE LIST
+   PRODUCT CODE LIST — each row: code + order number + qty
    ═══════════════════════════════════════════════════════ */
-function addProductRow(value){
-  const list=document.getElementById('productList');
+function makeProductRow(code, order, qty){
   const entry=document.createElement('div');
   entry.className='product-entry';
-  const input=document.createElement('input');
-  input.type='text'; input.placeholder='e.g. BCH44210'; input.className='product-input';
-  if(value) input.value=value;
+
+  const codeIn=document.createElement('input');
+  codeIn.type='text'; codeIn.placeholder='e.g. BCH44210'; codeIn.className='product-code';
+  if(code) codeIn.value=code;
+
+  const orderIn=document.createElement('input');
+  orderIn.type='text'; orderIn.placeholder='e.g. NH00023321'; orderIn.className='product-order';
+  if(order) orderIn.value=order;
+
+  const qtyIn=document.createElement('input');
+  qtyIn.type='number'; qtyIn.placeholder='Qty'; qtyIn.className='product-qty'; qtyIn.min='0';
+  if(qty) qtyIn.value=qty;
+
   const btn=document.createElement('button');
   btn.type='button'; btn.className='rem-product'; btn.title='Remove'; btn.textContent='×';
   btn.onclick=function(){ removeProduct(this); };
-  entry.appendChild(input); entry.appendChild(btn);
-  list.appendChild(entry);
-  input.focus();
+
+  entry.appendChild(codeIn);
+  entry.appendChild(orderIn);
+  entry.appendChild(qtyIn);
+  entry.appendChild(btn);
+  return entry;
+}
+
+function addProductRow(){
+  const list=document.getElementById('productList');
+  const row=makeProductRow('','','');
+  list.appendChild(row);
+  row.querySelector('.product-code').focus();
 }
 
 function removeProduct(btn){
   const list=document.getElementById('productList');
   const entries=list.querySelectorAll('.product-entry');
-  if(entries.length<=1){ btn.closest('.product-entry').querySelector('input').value=''; return; }
+  if(entries.length<=1){
+    // Keep the row but clear all three fields
+    const entry=btn.closest('.product-entry');
+    entry.querySelectorAll('input').forEach(i=>i.value='');
+    return;
+  }
   btn.closest('.product-entry').remove();
 }
 
+// Returns array of {code, orderNumber, qty} objects — skips blank code rows
+function getProductEntries(){
+  return [...document.querySelectorAll('#productList .product-entry')].map(entry=>({
+    code:        entry.querySelector('.product-code')?.value.trim()||'',
+    orderNumber: entry.querySelector('.product-order')?.value.trim()||'',
+    qty:         entry.querySelector('.product-qty')?.value.trim()||'',
+  })).filter(e=>e.code);
+}
+
+// Flat comma-joined product codes string (for backwards compat display)
 function getProductCodes(){
-  return [...document.querySelectorAll('#productList .product-input')]
-    .map(i=>i.value.trim()).filter(Boolean);
+  return getProductEntries().map(e=>e.code);
 }
 
 function resetProductList(){
   const list=document.getElementById('productList');
   list.innerHTML='';
-  // Always start with one blank row
-  const entry=document.createElement('div');
-  entry.className='product-entry';
-  const input=document.createElement('input');
-  input.type='text'; input.placeholder='e.g. BCH44210'; input.className='product-input';
-  const btn=document.createElement('button');
-  btn.type='button'; btn.className='rem-product'; btn.title='Remove'; btn.textContent='×';
-  btn.onclick=function(){ removeProduct(this); };
-  entry.appendChild(input); entry.appendChild(btn);
-  list.appendChild(entry);
+  list.appendChild(makeProductRow('','',''));
 }
 
 function onDivChange(){
@@ -1477,8 +1500,8 @@ function setupForm(){
 
 async function submitForm(){
   const div=document.getElementById('fDiv').value;
-  const codes=getProductCodes();
-  const prod=codes.join(', ');
+  const entries=getProductEntries();
+  const prod=entries.map(e=>e.code).join(', ');
   const desc=document.getElementById('fDesc').value.trim();
   const selectedEmails=getSelectedEmails();
   if(!div){toast('Please select a Division','error');return;}
@@ -1486,12 +1509,17 @@ async function submitForm(){
   if(!prod){toast('Please enter at least one Product Code','error');return;}
   if(!desc){toast('Please describe the issue','error');return;}
 
+  // Serialize per-product data as JSON for GAS, plus flat strings for backwards compat
+  const orderNumber=entries.map(e=>e.orderNumber).filter(Boolean).join(', ');
+  const qtyPick=entries.map(e=>e.qty).filter(Boolean).join(', ');
+
   const payload={
     action:'submitInquiry', division:div,
     contactEmail:selectedEmails.join(','),
     productCodes:prod,
-    orderNumber:document.getElementById('fOrderNum').value.trim(),
-    qtyPick:document.getElementById('fQtyPick').value.trim(),
+    productEntries:JSON.stringify(entries), // full per-product data
+    orderNumber,
+    qtyPick,
     inventoryIssue:document.getElementById('fInvIssue').value,
     qualityIssue:document.getElementById('fQualIssue').value,
     shippingIssue:document.getElementById('fShipIssue').value,
@@ -1508,8 +1536,8 @@ async function submitForm(){
     if(CFG.DEMO_MODE){
       await delay(1000);
       id='IC-'+String(Math.floor(Math.random()*9000)+1000);
-      const newTx={inquiryId:id,division:div,contactEmail:selectedEmails.join(','),productCodes:prod,
-        orderNumber:payload.orderNumber,qtyPick:payload.qtyPick,
+      const newTx={inquiryId:id,division:div,contactEmail:selectedEmails.join(','),
+        productCodes:prod,productEntries:entries,orderNumber,qtyPick,
         inventoryIssue:payload.inventoryIssue,qualityIssue:payload.qualityIssue,
         shippingIssue:payload.shippingIssue||'',receivingIssue:payload.receivingIssue||'',
         category:payload.category||'General',progress:'Received',
@@ -1545,7 +1573,7 @@ function resetForm(){
   ['fInvIssue','fQualIssue','fShipIssue','fRecvIssue','fCat'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
-  ['fOrderNum','fQtyPick','fDesc'].forEach(id=>document.getElementById(id).value='');
+  ['fDesc'].forEach(id=>document.getElementById(id).value='');
   resetProductList();
   // setupForm handles division pre-fill, email lists (nothing checked), dock banner reset
   setupForm();
@@ -1919,16 +1947,41 @@ async function saveTicketEdits(){
 
 // Shared helper to build meta HTML (used by openTicket and _applyUpdate)
 function buildMetaHTML(t, days){
+  // Build per-product table if structured entries are available
+  const entries = Array.isArray(t.productEntries) && t.productEntries.length
+    ? t.productEntries
+    : null;
+
+  const productBlock = entries
+    ? `<div class="meta-item" style="grid-column:1/-1">
+        <div class="ml">Products</div>
+        <div class="mv">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)">
+            <thead><tr>
+              <th style="text-align:left;padding:3px 10px 3px 0;color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)">Code</th>
+              <th style="text-align:left;padding:3px 10px 3px 0;color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)">Order #</th>
+              <th style="text-align:right;padding:3px 0;color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)">Qty</th>
+            </tr></thead>
+            <tbody>${entries.map(e=>`<tr>
+              <td style="padding:4px 10px 4px 0;color:var(--accent);font-weight:600">${esc(e.code)}</td>
+              <td style="padding:4px 10px 4px 0;color:var(--muted)">${esc(e.orderNumber||'—')}</td>
+              <td style="padding:4px 0;text-align:right;color:var(--text)">${esc(e.qty||'—')}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>
+      </div>`
+    : `<div class="meta-item"><div class="ml">Product Code(s)</div><div class="mv mono">${esc(t.productCodes)}</div></div>
+       ${t.orderNumber?`<div class="meta-item"><div class="ml">Order Number</div><div class="mv mono">${esc(t.orderNumber)}</div></div>`:''}
+       ${t.qtyPick?`<div class="meta-item"><div class="ml">Quantity</div><div class="mv mono">${esc(t.qtyPick)}</div></div>`:''}`;
+
   return`
     <div class="meta-item"><div class="ml">Division</div><div class="mv">${DIV_NAMES[t.division]||t.division}</div></div>
     <div class="meta-item"><div class="ml">Status</div><div class="mv">${badge(t.progress)}</div></div>
     <div class="meta-item"><div class="ml">Days Open</div><div class="mv mono" style="color:${days>=7?'var(--red)':days>=3?'var(--orange)':'var(--muted)'}">${days===0?'Today':days===1?'1 day':days+' days'}</div></div>
     <div class="meta-item"><div class="ml">Submitted</div><div class="mv mono" style="font-size:11px">${fmtDate(t.timestamp)}</div></div>
     <div class="meta-item"><div class="ml">Contact</div><div class="mv" style="font-size:11px">${esc(t.contactEmail)}</div></div>
-    <div class="meta-item"><div class="ml">Product Code(s)</div><div class="mv mono">${esc(t.productCodes)}</div></div>
     <div class="meta-item"><div class="ml">Category</div><div class="mv">${esc(t.category||'—')}</div></div>
-    ${t.orderNumber?`<div class="meta-item"><div class="ml">Order Number</div><div class="mv mono">${esc(t.orderNumber)}</div></div>`:''}
-    ${t.qtyPick?`<div class="meta-item"><div class="ml">QTY to Pick</div><div class="mv mono">${esc(t.qtyPick)}</div></div>`:''}
+    ${productBlock}
   `;
 }
 
@@ -2041,7 +2094,7 @@ function exportStatsCSV(){
   } else {
     tix = allTix;
   }
-  const headers=['Inquiry ID','Division','Product Code(s)','Order Number','QTY to Pick','Category','Inventory Issue','Quality Issue','Progress','Submitted','Days Open','Contact Email'];
+  const headers=['Inquiry ID','Division','Product Code(s)','Order Number','Quantity','Category','Inventory Issue','Quality Issue','Progress','Submitted','Days Open','Contact Email'];
   const rows=tix.map(t=>[t.inquiryId,t.division,t.productCodes,t.orderNumber||'',t.qtyPick||'',t.category||'',t.inventoryIssue||'',t.qualityIssue||'',t.progress,fmtDateShort(t.timestamp),daysSince(t.timestamp),t.contactEmail]);
   const csv=[headers,...rows].map(r=>r.map(v=>'"'+(String(v||'').replace(/"/g,'""'))+'"').join(',')).join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
