@@ -1379,6 +1379,16 @@ function renderGlobalStats(){
    ═══════════════════════════════════════════════════════ */
 const DOCK_EMAIL = 'cprater@cnfei.com'; // Christian Prater — auto-CC for Shipping/Receiving issues
 
+// A ticket belongs in the Dock Manager view if:
+// 1. A shipping or receiving issue type was selected, OR
+// 2. cprater@cnfei.com is in the contact email list (auto-added for dock issues)
+function isDockTicket(t){
+  if(t.shippingIssue  && t.shippingIssue  !== '' && t.shippingIssue  !== 'None') return true;
+  if(t.receivingIssue && t.receivingIssue !== '' && t.receivingIssue !== 'None') return true;
+  if(t.contactEmail   && t.contactEmail.toLowerCase().includes(DOCK_EMAIL.toLowerCase())) return true;
+  return false;
+}
+
 // Chapman internal team for the "Also Notify" column
 const INTERNAL_TEAM = [
   'rmendoza@cnfei.com','droyal@cnfei.com','mkhang@cnfei.com',
@@ -1790,16 +1800,18 @@ async function loadTix(forceRefresh){
     if(CFG.DEMO_MODE){
       await delay(400);
       const all=[...DEMO_TIX];
-      allTix = role==='dockmanager' ? all.filter(t=>t.shippingIssue||t.receivingIssue) : all;
+      allTix = role==='dockmanager'
+        ? all.filter(t=>isDockTicket(t))
+        : all;
     } else {
       const cacheKey='tix_ic';
       const cached=sessionGet(cacheKey);
       if(cached&&!forceRefresh){
         allTix=cached;
       } else {
-        const r=await gasGet({action:'getTickets',mode:'list',includeCompleted:'true'});
+        const r=await gasGet({action:'getTickets',mode:'list',includeCompleted:'true',forDockManager:role==='dockmanager'?'true':'false'});
         let tickets=r.tickets||[];
-        if(role==='dockmanager') tickets=tickets.filter(t=>t.shippingIssue||t.receivingIssue);
+        if(role==='dockmanager') tickets=tickets.filter(t=>isDockTicket(t));
         allTix=tickets;
         sessionSet(cacheKey,allTix);
       }
@@ -1822,7 +1834,7 @@ function filterTix(){
     const stMatch=st ? t.progress===st : t.progress!=='Completed';
     const dvMatch=!dv||t.division===dv;
     // Dock manager only sees shipping/receiving issues
-    const dockMatch=role!=='dockmanager'||(t.shippingIssue||t.receivingIssue);
+    const dockMatch=role!=='dockmanager'||isDockTicket(t);
     return mq&&stMatch&&dvMatch&&dockMatch;
   }));
 }
