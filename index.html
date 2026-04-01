@@ -27,11 +27,11 @@ button,select,input,textarea{font-family:var(--sans)}
 #app{display:flex;flex-direction:column;min-height:100vh}
 
 /* BANNER */
-.sys-banner{display:none;padding:10px 20px;font-size:13px;font-weight:500;text-align:center;position:sticky;top:0;z-index:200}
+.sys-banner{display:none;padding:12px 20px;font-size:13px;font-weight:600;text-align:center;position:sticky;top:0;z-index:200;letter-spacing:.01em}
 .sys-banner.show{display:block}
-.sys-banner.info{background:#fef9c3;color:#854d0e;border-bottom:1px solid #fde047}
-.sys-banner.warn{background:#fee2e2;color:#991b1b;border-bottom:1px solid #fca5a5}
-.sys-banner.maint{background:#faf5ff;color:#6b21a8;border-bottom:1px solid #d8b4fe}
+.sys-banner.info{background:#dc2626;color:#fff;border-bottom:3px solid #991b1b;box-shadow:0 2px 8px rgba(220,38,38,.4)}
+.sys-banner.warn{background:#dc2626;color:#fff;border-bottom:3px solid #991b1b;box-shadow:0 2px 8px rgba(220,38,38,.4)}
+.sys-banner.maint{background:#dc2626;color:#fff;border-bottom:3px solid #991b1b;box-shadow:0 2px 8px rgba(220,38,38,.4)}
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;gap:10px;padding:0 20px;height:54px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--border)}
@@ -338,6 +338,41 @@ button,select,input,textarea{font-family:var(--sans)}
 .mini-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
 .mini-bar-label{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
 
+/* PRODUCT CODE LIST */
+.product-list{display:flex;flex-direction:column;gap:7px}
+.product-entry{display:flex;align-items:center;gap:8px}
+.product-entry input{flex:1;background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;padding:9px 12px;transition:border-color .15s}
+.product-entry input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.product-entry .rem-product{background:none;border:1.5px solid var(--border);color:var(--muted);width:32px;height:36px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+.product-entry .rem-product:hover{border-color:var(--red);color:var(--red);background:var(--red-l)}
+.add-product-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:none;border:1.5px dashed var(--border2);color:var(--muted);border-radius:var(--radius);font-size:12px;cursor:pointer;transition:all .15s;margin-top:4px}
+.add-product-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-l);border-style:solid}
+
+/* ISSUE TYPE COLORS */
+.issue-block{display:flex;flex-direction:column;gap:5px}
+.issue-block label{font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+/* Inventory — blue */
+.issue-inv select,.issue-inv-badge{border-color:rgba(37,99,235,.35)!important;background:var(--accent-l)!important}
+.issue-inv label{color:var(--accent)}
+/* Quality — orange */
+.issue-qual select,.issue-qual-badge{border-color:rgba(234,88,12,.35)!important;background:var(--orange-l)!important}
+.issue-qual label{color:var(--orange)}
+/* Shipping — purple */
+.issue-ship select,.issue-ship-badge{border-color:rgba(124,58,237,.35)!important;background:var(--purple-l)!important}
+.issue-ship label{color:var(--purple)}
+/* Receiving — teal */
+.issue-recv select,.issue-recv-badge{border-color:rgba(8,145,178,.35)!important;background:#ecfeff!important}
+.issue-recv label{color:#0891b2}
+.issue-sel{background:inherit;border:1.5px solid;border-radius:var(--radius);color:var(--text);font-size:13px;padding:9px 12px;-webkit-appearance:none;width:100%;transition:all .15s}
+.issue-sel:focus{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+/* Inline SVG icon spans */
+.ic-inv,.ic-qual,.ic-ship,.ic-recv{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;flex-shrink:0}
+.ic-inv{background:var(--accent);color:#fff}
+.ic-qual{background:var(--orange);color:#fff}
+.ic-ship{background:var(--purple);color:#fff}
+.ic-recv{background:#0891b2;color:#fff}
+.ic-inv svg,.ic-qual svg,.ic-ship svg,.ic-recv svg{width:11px;height:11px;stroke:#fff;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
 /* BADGES */
 .badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:500;padding:3px 9px;border-radius:20px;white-space:nowrap;letter-spacing:.04em}
 .badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
@@ -617,47 +652,80 @@ button,select,input,textarea{font-family:var(--sans)}
     </div>
     <div class="card">
       <div class="card-title">Issue Details</div>
-      <div class="form-row one"><div class="field">
+
+      <!-- Product Codes — dynamic list -->
+      <div class="field">
         <label>Product Code(s) <em>*</em></label>
-        <input type="text" id="fProducts" placeholder="e.g. BCH44210 NH00023321">
-        <div class="hint">Separate multiple codes with spaces or commas — no dashes</div>
-      </div></div>
-      <div class="form-row">
+        <div class="product-list" id="productList">
+          <div class="product-entry">
+            <input type="text" placeholder="e.g. BCH44210" class="product-input">
+            <button type="button" class="rem-product" onclick="removeProduct(this)" title="Remove">×</button>
+          </div>
+        </div>
+        <button type="button" class="add-product-btn" onclick="addProductRow()">+ Add Another Product Code</button>
+        <div class="hint" style="margin-top:4px">No dashes — one code per row</div>
+      </div>
+
+      <!-- Order + QTY -->
+      <div class="form-row" style="margin-top:4px">
         <div class="field">
           <label>Order Number <span style="font-weight:400;color:var(--subtle);font-size:11px">(if applicable)</span></label>
           <input type="text" id="fOrderNum" placeholder="e.g. NH00023321">
-          <div class="hint">Use your division format — no dashes</div>
+          <div class="hint">Division format — no dashes</div>
         </div>
         <div class="field">
           <label>QTY to Pick for Order</label>
           <input type="number" id="fQtyPick" placeholder="e.g. 24" min="0">
         </div>
       </div>
-      <div class="form-row">
-        <div class="field">
-          <label>Inventory Issue Type</label>
-          <select id="fInvIssue" onchange="onIssueChange()"><option value="">None</option><option>Quantity Discrepancy</option><option>Missing Item</option><option>Overstock</option><option>Location Error</option><option>Not Found in System</option><option>Other</option></select>
+
+      <!-- 4 issue type selects — each with its own color -->
+      <div class="form-row" style="margin-top:4px">
+        <div class="field issue-block issue-inv">
+          <label><span class="ic-inv"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> Inventory Issue</label>
+          <select id="fInvIssue" class="issue-sel" style="border-color:rgba(37,99,235,.35);background:var(--accent-l)" onchange="onIssueChange()">
+            <option value="">None</option>
+            <option>Quantity Discrepancy</option><option>Missing Item</option>
+            <option>Overstock</option><option>Location Error</option>
+            <option>Not Found in System</option><option>Other</option>
+          </select>
         </div>
-        <div class="field">
-          <label>Quality Issue Type</label>
-          <select id="fQualIssue" onchange="onIssueChange()"><option value="">None</option><option>Damaged on Arrival</option><option>Wrong Item</option><option>Packaging Defect</option><option>Expired / Outdated</option><option>Other</option></select>
+        <div class="field issue-block issue-qual">
+          <label><span class="ic-qual"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/><polyline points="8 11 10.5 13.5 14 9"/></svg></span> Quality Issue</label>
+          <select id="fQualIssue" class="issue-sel" style="border-color:rgba(234,88,12,.35);background:var(--orange-l)" onchange="onIssueChange()">
+            <option value="">None</option>
+            <option>Damaged on Arrival</option><option>Wrong Item</option>
+            <option>Packaging Defect</option><option>Expired / Outdated</option><option>Other</option>
+          </select>
         </div>
       </div>
       <div class="form-row">
-        <div class="field">
-          <label>Shipping Issue Type</label>
-          <select id="fShipIssue" onchange="onIssueChange()"><option value="">None</option><option>Wrong Quantity Shipped</option><option>Missing from Shipment</option><option>Shipped to Wrong Location</option><option>Carrier Damage</option><option>Late Shipment</option><option>Other</option></select>
+        <div class="field issue-block issue-ship">
+          <label><span class="ic-ship"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Shipping Issue</label>
+          <select id="fShipIssue" class="issue-sel" style="border-color:rgba(124,58,237,.35);background:var(--purple-l)" onchange="onIssueChange()">
+            <option value="">None</option>
+            <option>Wrong Quantity Shipped</option><option>Missing from Shipment</option>
+            <option>Shipped to Wrong Location</option><option>Carrier Damage</option>
+            <option>Late Shipment</option><option>Other</option>
+          </select>
         </div>
-        <div class="field">
-          <label>Receiving Issue Type</label>
-          <select id="fRecvIssue" onchange="onIssueChange()"><option value="">None</option><option>Inventory on Dock — Not Received</option><option>PO Count Discrepancy</option><option>Wrong Item Received</option><option>Receiving Delay</option><option>No PO on File</option><option>Other</option></select>
+        <div class="field issue-block issue-recv">
+          <label><span class="ic-recv"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="12" y1="12" x2="12" y2="17"/><polyline points="9 15 12 18 15 15"/></svg></span> Receiving Issue</label>
+          <select id="fRecvIssue" class="issue-sel" style="border-color:rgba(8,145,178,.35);background:#ecfeff" onchange="onIssueChange()">
+            <option value="">None</option>
+            <option>Inventory on Dock — Not Received</option>
+            <option>PO Count Discrepancy</option><option>Wrong Item Received</option>
+            <option>Receiving Delay</option><option>No PO on File</option><option>Other</option>
+          </select>
         </div>
       </div>
-      <!-- Dock alert banner — shown when Shipping or Receiving issue selected -->
-      <div id="dockAlertBanner" style="display:none;background:var(--orange-l);border:1px solid rgba(234,88,12,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--orange);margin-bottom:4px">
-        📦 <strong>Christian Prater (Inbound Dock Manager)</strong> will automatically be added as a primary recipient on this inquiry.
+
+      <!-- Dock alert — Receiving or Shipping selected -->
+      <div id="dockAlertBanner" style="display:none;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:12px;color:#991b1b;font-weight:500;margin-top:4px">
+        🚨 <strong>Christian Prater (Inbound Dock Manager)</strong> — cprater@cnfei.com — will automatically be added as a primary recipient on this inquiry.
       </div>
-      <div class="form-row one"><div class="field">
+
+      <div class="form-row one" style="margin-top:8px"><div class="field">
         <label>Category</label>
         <select id="fCat"><option value="">Select Category…</option><option>Pick Demand</option><option>Receiving</option><option>Putaway</option><option>Returns</option><option>Bin Move</option><option>Cycle Count</option><option>Other</option></select>
       </div></div>
@@ -761,29 +829,40 @@ button,select,input,textarea{font-family:var(--sans)}
           <th class="num">Investigating</th>
           <th class="num">Needs Info</th>
           <th class="num">Completed</th>
-          <th class="num">Inventory Issues</th>
-          <th class="num">Quality Issues</th>
-          <th style="min-width:140px">Volume</th>
+          <th class="num" style="color:var(--accent)"><span class="ic-inv"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> Inv</th>
+          <th class="num" style="color:var(--orange)"><span class="ic-qual"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/><polyline points="8 11 10.5 13.5 14 9"/></svg></span> Qual</th>
+          <th class="num" style="color:var(--purple)"><span class="ic-ship"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Ship</th>
+          <th class="num" style="color:#0891b2"><span class="ic-recv"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="12" y1="12" x2="12" y2="17"/><polyline points="9 15 12 18 15 15"/></svg></span> Recv</th>
+          <th style="min-width:120px">Volume</th>
         </tr></thead>
         <tbody id="divStatsTbody"></tbody>
       </table>
     </div>
 
-    <!-- By Issue Type table -->
-    <div class="stats-section">
-      <div class="stats-section-head"><h3>Inventory Issue Breakdown</h3></div>
-      <table class="stats-tbl" id="invIssueTable">
-        <thead><tr><th>Issue Type</th><th class="num">Count</th><th style="min-width:160px">Share</th></tr></thead>
-        <tbody id="invIssueTbody"></tbody>
-      </table>
+    <!-- Issue Type Breakdowns — all 4 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="stats-section" style="margin-bottom:0">
+        <div class="stats-section-head"><h3 style="color:var(--accent)"><span class="ic-inv"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> Inventory Issue Breakdown</h3></div>
+        <table class="stats-tbl"><thead><tr><th>Issue Type</th><th class="num">Count</th><th style="min-width:120px">Share</th></tr></thead>
+        <tbody id="invIssueTbody"></tbody></table>
+      </div>
+      <div class="stats-section" style="margin-bottom:0">
+        <div class="stats-section-head"><h3 style="color:var(--orange)"><span class="ic-qual"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/><polyline points="8 11 10.5 13.5 14 9"/></svg></span> Quality Issue Breakdown</h3></div>
+        <table class="stats-tbl"><thead><tr><th>Issue Type</th><th class="num">Count</th><th style="min-width:120px">Share</th></tr></thead>
+        <tbody id="qualIssueTbody"></tbody></table>
+      </div>
     </div>
-
-    <div class="stats-section">
-      <div class="stats-section-head"><h3>Quality Issue Breakdown</h3></div>
-      <table class="stats-tbl" id="qualIssueTable">
-        <thead><tr><th>Issue Type</th><th class="num">Count</th><th style="min-width:160px">Share</th></tr></thead>
-        <tbody id="qualIssueTbody"></tbody>
-      </table>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="stats-section" style="margin-bottom:0">
+        <div class="stats-section-head"><h3 style="color:var(--purple)"><span class="ic-ship"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Shipping Issue Breakdown</h3></div>
+        <table class="stats-tbl"><thead><tr><th>Issue Type</th><th class="num">Count</th><th style="min-width:120px">Share</th></tr></thead>
+        <tbody id="shipIssueTbody"></tbody></table>
+      </div>
+      <div class="stats-section" style="margin-bottom:0">
+        <div class="stats-section-head"><h3 style="color:#0891b2"><span class="ic-recv"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="12" y1="12" x2="12" y2="17"/><polyline points="9 15 12 18 15 15"/></svg></span> Receiving Issue Breakdown</h3></div>
+        <table class="stats-tbl"><thead><tr><th>Issue Type</th><th class="num">Count</th><th style="min-width:120px">Share</th></tr></thead>
+        <tbody id="recvIssueTbody"></tbody></table>
+      </div>
     </div>
 
     <!-- By Category -->
@@ -917,7 +996,7 @@ button,select,input,textarea{font-family:var(--sans)}
    ═══════════════════════════════════════════════════════ */
 const CFG = {
   GAS_URL:     'https://script.google.com/macros/s/AKfycbwNZOeZn2QPkhaABdBQo65IFsj9CSsOPpmybmJEoF0sxG0C6EPhPRlLqEyTbRpSk3I/exec',
-  DEMO_MODE:   false,
+  DEMO_MODE:   true,
   PIN_ICTEAM:  '7150',
   PIN_MANAGER: '1988',
   DIV_PINS: { GT:'4411',NH:'4422',FS:'4433',EE:'4444',BC:'4455',VP:'4466',TP:'4477',CI:'4488' },
@@ -1142,50 +1221,53 @@ function clearBanner(){
    GLOBAL STATS
    ═══════════════════════════════════════════════════════ */
 function loadGlobalStats(){
-  // allTix is already division-filtered for division users — use it directly
-  // For demo mode, filter DEMO_TIX the same way allTix would be
   let tix;
   if(CFG.DEMO_MODE){
-    tix = role==='division'
-      ? DEMO_TIX.filter(t=>t.division===currentDiv)
-      : DEMO_TIX;
+    tix = role==='division' ? DEMO_TIX.filter(t=>t.division===currentDiv) : DEMO_TIX;
   } else {
-    tix = allTix; // already correctly filtered per role
+    tix = allTix;
   }
   const stats={};
-  Object.keys(DIV_NAMES).forEach(d=>{ stats[d]={inv:0,qual:0,total:0}; });
-  stats._overall={inv:0,qual:0,total:0};
+  Object.keys(DIV_NAMES).forEach(d=>{ stats[d]={inv:0,qual:0,ship:0,recv:0,total:0}; });
+  stats._overall={inv:0,qual:0,ship:0,recv:0,total:0};
   tix.forEach(t=>{
     const d=t.division;
-    if(!stats[d]) stats[d]={inv:0,qual:0,total:0};
+    if(!stats[d]) stats[d]={inv:0,qual:0,ship:0,recv:0,total:0};
     stats[d].total++;
     stats._overall.total++;
-    if(t.inventoryIssue&&t.inventoryIssue!=='None'&&t.inventoryIssue!==''){stats[d].inv++;stats._overall.inv++;}
-    if(t.qualityIssue&&t.qualityIssue!=='None'&&t.qualityIssue!==''){stats[d].qual++;stats._overall.qual++;}
+    if(t.inventoryIssue &&t.inventoryIssue !=='None'&&t.inventoryIssue !==''){stats[d].inv++;  stats._overall.inv++;}
+    if(t.qualityIssue   &&t.qualityIssue   !=='None'&&t.qualityIssue   !==''){stats[d].qual++; stats._overall.qual++;}
+    if(t.shippingIssue  &&t.shippingIssue  !=='None'&&t.shippingIssue  !==''){stats[d].ship++; stats._overall.ship++;}
+    if(t.receivingIssue &&t.receivingIssue !=='None'&&t.receivingIssue !==''){stats[d].recv++; stats._overall.recv++;}
   });
   globalStatsData=stats;
   renderGlobalStats();
 }
+
 function renderGlobalStats(){
   const gs=document.getElementById('globalStats');
   const grid=document.getElementById('gsGrid');
   const s=globalStatsData;
   if(!s||!s._overall){ gs.classList.remove('show'); return; }
   gs.classList.add('show');
+  const o=s._overall;
   let pills=`
-    <div class="gs-pill total"><span class="gsp-num">${s._overall.total}</span><span class="gsp-lbl">Total Tickets</span></div>
-    <div class="gs-pill inv"><span class="gsp-num">${s._overall.inv}</span><span class="gsp-lbl">Inventory Issues</span></div>
-    <div class="gs-pill qual"><span class="gsp-num">${s._overall.qual}</span><span class="gsp-lbl">Quality Issues</span></div>
+    <div class="gs-pill total"><span class="gsp-num">${o.total}</span><span class="gsp-lbl">Total</span></div>
+    <div class="gs-pill inv"><span class="gsp-num">${o.inv}</span><span class="gsp-lbl" style="color:var(--accent)"><span class="ic-inv"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> Inventory</span></div>
+    <div class="gs-pill qual"><span class="gsp-num" style="color:var(--orange)">${o.qual}</span><span class="gsp-lbl" style="color:var(--orange)"><span class="ic-qual"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/><polyline points="8 11 10.5 13.5 14 9"/></svg></span> Quality</span></div>
+    <div class="gs-pill" style="border-color:rgba(124,58,237,.2)"><span class="gsp-num" style="color:var(--purple)">${o.ship}</span><span class="gsp-lbl" style="color:var(--purple)"><span class="ic-ship"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Shipping</span></div>
+    <div class="gs-pill" style="border-color:rgba(8,145,178,.2)"><span class="gsp-num" style="color:#0891b2">${o.recv}</span><span class="gsp-lbl" style="color:#0891b2"><span class="ic-recv"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="12" y1="12" x2="12" y2="17"/><polyline points="9 15 12 18 15 15"/></svg></span> Receiving</span></div>
   `;
-  // Add per-division pills if IC role or show current division only
   if(role==='icteam'||role==='manager'){
     Object.keys(DIV_NAMES).forEach(d=>{
       if(s[d]&&s[d].total>0) pills+=`<div class="gs-pill"><span class="gsp-num" style="color:var(--muted)">${s[d].total}</span><span class="gsp-lbl">${d}</span></div>`;
     });
   } else if(role==='division'&&currentDiv){
-    const d=s[currentDiv]||{inv:0,qual:0,total:0};
+    const d=s[currentDiv]||{inv:0,qual:0,ship:0,recv:0,total:0};
     pills+=`<div class="gs-pill inv"><span class="gsp-num">${d.inv}</span><span class="gsp-lbl">${currentDiv} Inventory</span></div>`;
-    pills+=`<div class="gs-pill qual"><span class="gsp-num">${d.qual}</span><span class="gsp-lbl">${currentDiv} Quality</span></div>`;
+    pills+=`<div class="gs-pill qual"><span class="gsp-num" style="color:var(--orange)">${d.qual}</span><span class="gsp-lbl" style="color:var(--orange)">${currentDiv} Quality</span></div>`;
+    pills+=`<div class="gs-pill" style="border-color:rgba(124,58,237,.2)"><span class="gsp-num" style="color:var(--purple)">${d.ship}</span><span class="gsp-lbl" style="color:var(--purple)">${currentDiv} Shipping</span></div>`;
+    pills+=`<div class="gs-pill" style="border-color:rgba(8,145,178,.2)"><span class="gsp-num" style="color:#0891b2">${d.recv}</span><span class="gsp-lbl" style="color:#0891b2">${currentDiv} Receiving</span></div>`;
   }
   grid.innerHTML=pills;
 }
@@ -1202,6 +1284,51 @@ const INTERNAL_TEAM = [
   'cprater@cnfei.com','ngonzalez@cnfei.com','cshorts@cnfei.com',
   'mtimm@cnfei.com','astanley@cnfei.com','dalexander@cnfei.com',
 ];
+
+/* ═══════════════════════════════════════════════════════
+   PRODUCT CODE LIST
+   ═══════════════════════════════════════════════════════ */
+function addProductRow(value){
+  const list=document.getElementById('productList');
+  const entry=document.createElement('div');
+  entry.className='product-entry';
+  const input=document.createElement('input');
+  input.type='text'; input.placeholder='e.g. BCH44210'; input.className='product-input';
+  if(value) input.value=value;
+  const btn=document.createElement('button');
+  btn.type='button'; btn.className='rem-product'; btn.title='Remove'; btn.textContent='×';
+  btn.onclick=function(){ removeProduct(this); };
+  entry.appendChild(input); entry.appendChild(btn);
+  list.appendChild(entry);
+  input.focus();
+}
+
+function removeProduct(btn){
+  const list=document.getElementById('productList');
+  const entries=list.querySelectorAll('.product-entry');
+  if(entries.length<=1){ btn.closest('.product-entry').querySelector('input').value=''; return; }
+  btn.closest('.product-entry').remove();
+}
+
+function getProductCodes(){
+  return [...document.querySelectorAll('#productList .product-input')]
+    .map(i=>i.value.trim()).filter(Boolean);
+}
+
+function resetProductList(){
+  const list=document.getElementById('productList');
+  list.innerHTML='';
+  // Always start with one blank row
+  const entry=document.createElement('div');
+  entry.className='product-entry';
+  const input=document.createElement('input');
+  input.type='text'; input.placeholder='e.g. BCH44210'; input.className='product-input';
+  const btn=document.createElement('button');
+  btn.type='button'; btn.className='rem-product'; btn.title='Remove'; btn.textContent='×';
+  btn.onclick=function(){ removeProduct(this); };
+  entry.appendChild(input); entry.appendChild(btn);
+  list.appendChild(entry);
+}
 
 function onDivChange(){
   const div=document.getElementById('fDiv').value;
@@ -1350,7 +1477,8 @@ function setupForm(){
 
 async function submitForm(){
   const div=document.getElementById('fDiv').value;
-  const prod=document.getElementById('fProducts').value.trim();
+  const codes=getProductCodes();
+  const prod=codes.join(', ');
   const desc=document.getElementById('fDesc').value.trim();
   const selectedEmails=getSelectedEmails();
   if(!div){toast('Please select a Division','error');return;}
@@ -1383,6 +1511,7 @@ async function submitForm(){
       const newTx={inquiryId:id,division:div,contactEmail:selectedEmails.join(','),productCodes:prod,
         orderNumber:payload.orderNumber,qtyPick:payload.qtyPick,
         inventoryIssue:payload.inventoryIssue,qualityIssue:payload.qualityIssue,
+        shippingIssue:payload.shippingIssue||'',receivingIssue:payload.receivingIssue||'',
         category:payload.category||'General',progress:'Received',
         timestamp:new Date().toISOString(),description:desc,findings:'',followUpQuestions:'',
         conversationLog:[{direction:'outbound',body:'Your inquiry '+id+' has been received. Our IC team will investigate and follow up shortly.',timestamp:new Date().toISOString(),attachments:[],read:true,divRead:true}]
@@ -1416,7 +1545,8 @@ function resetForm(){
   ['fInvIssue','fQualIssue','fShipIssue','fRecvIssue','fCat'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
-  ['fOrderNum','fQtyPick','fProducts','fDesc'].forEach(id=>document.getElementById(id).value='');
+  ['fOrderNum','fQtyPick','fDesc'].forEach(id=>document.getElementById(id).value='');
+  resetProductList();
   // setupForm handles division pre-fill, email lists (nothing checked), dock banner reset
   setupForm();
 }
@@ -1442,7 +1572,7 @@ async function loadTrackerTix(){
       if(cached&&!isForce){
         allTix=cached;
       } else {
-        const r=await gasGet({action:'getTickets',division:currentDiv,mode:'list'});
+        const r=await gasGet({action:'getTickets',division:currentDiv,mode:'list',includeCompleted:'true'});
         // Double-filter on client too — belt and suspenders
         allTix=(r.tickets||[]).filter(t=>t.division===currentDiv);
         sessionSet(cacheKey,allTix);
@@ -1510,13 +1640,13 @@ async function loadTix(forceRefresh){
       if(cached&&!forceRefresh){
         allTix=cached;
       } else {
-        // List mode — fast, no conv logs embedded
-        const r=await gasGet({action:'getTickets',mode:'list'});
+        // Include completed so stats counts all 4 issue types accurately
+        const r=await gasGet({action:'getTickets',mode:'list',includeCompleted:'true'});
         allTix=r.tickets||[];
         sessionSet(cacheKey,allTix);
       }
     }
-    renderTix(allTix); updStats(allTix); loadGlobalStats();
+    renderTix(allTix.filter(t=>t.progress!=='Completed')); updStats(allTix); loadGlobalStats();
   } catch(e){ toast('Load failed: '+e.message,'error'); }
   hideLoad(); document.getElementById('refreshBtn').classList.remove('spinning');
 }
@@ -1528,9 +1658,11 @@ function filterTix(){
   const q=document.getElementById('searchIn').value.toLowerCase();
   const st=document.getElementById('stFilter').value;
   const dv=document.getElementById('dvFilter').value;
+  // If no status filter set, hide Completed by default — they clutter the work queue
   renderTix(allTix.filter(t=>{
     const mq=!q||[t.inquiryId,t.division,t.productCodes,t.description].join(' ').toLowerCase().includes(q);
-    return mq&&(!st||t.progress===st)&&(!dv||t.division===dv);
+    const stMatch=st ? t.progress===st : t.progress!=='Completed';
+    return mq&&stMatch&&(!dv||t.division===dv);
   }));
 }
 
@@ -1804,45 +1936,48 @@ function buildMetaHTML(t, days){
    STATS TABLE SCREEN
    ═══════════════════════════════════════════════════════ */
 function renderStatsScreen(){
-  // allTix is already division-filtered for division users
   let tix;
   if(CFG.DEMO_MODE){
-    tix = role==='division'
-      ? DEMO_TIX.filter(t=>t.division===currentDiv)
-      : DEMO_TIX;
+    tix = role==='division' ? DEMO_TIX.filter(t=>t.division===currentDiv) : DEMO_TIX;
   } else {
     tix = allTix;
   }
 
-  // Summary strip
+  // ── Summary strip — all 4 issue types
   const strip=document.getElementById('statsSummaryStrip');
-  const open=tix.filter(t=>t.progress!=='Completed').length;
-  const inv=tix.filter(t=>t.inventoryIssue&&t.inventoryIssue!=='').length;
-  const qual=tix.filter(t=>t.qualityIssue&&t.qualityIssue!=='').length;
-  const comp=tix.filter(t=>t.progress==='Completed').length;
+  const open =tix.filter(t=>t.progress!=='Completed').length;
+  const comp =tix.filter(t=>t.progress==='Completed').length;
+  const inv  =tix.filter(t=>t.inventoryIssue &&t.inventoryIssue !==''&&t.inventoryIssue !=='None').length;
+  const qual =tix.filter(t=>t.qualityIssue   &&t.qualityIssue   !==''&&t.qualityIssue   !=='None').length;
+  const ship =tix.filter(t=>t.shippingIssue  &&t.shippingIssue  !==''&&t.shippingIssue  !=='None').length;
+  const recv =tix.filter(t=>t.receivingIssue &&t.receivingIssue !==''&&t.receivingIssue !=='None').length;
   strip.innerHTML=`
     <div class="stat-card sc-blue"><div class="sv">${tix.length}</div><div class="sl">Total Tickets</div></div>
     <div class="stat-card sc-yellow"><div class="sv">${open}</div><div class="sl">Open</div></div>
     <div class="stat-card sc-green"><div class="sv">${comp}</div><div class="sl">Completed</div></div>
-    <div class="stat-card sc-blue" style="--accent:#7c3aed"><div class="sv" style="color:#7c3aed">${inv}</div><div class="sl">Inventory Issues</div></div>
-    <div class="stat-card sc-orange"><div class="sv">${qual}</div><div class="sl">Quality Issues</div></div>
+    <div class="stat-card"><div class="sv" style="color:var(--accent)">${inv}</div><div class="sl"><span class="ic-inv"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> Inventory</div></div>
+    <div class="stat-card"><div class="sv" style="color:var(--orange)">${qual}</div><div class="sl"><span class="ic-qual"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/><polyline points="8 11 10.5 13.5 14 9"/></svg></span> Quality</div></div>
+    <div class="stat-card"><div class="sv" style="color:var(--purple)">${ship}</div><div class="sl"><span class="ic-ship"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Shipping</div></div>
+    <div class="stat-card"><div class="sv" style="color:#0891b2">${recv}</div><div class="sl"><span class="ic-recv"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="12" y1="12" x2="12" y2="17"/><polyline points="9 15 12 18 15 15"/></svg></span> Receiving</div></div>
   `;
 
-  // Division breakdown table
+  // ── Division table — all 4 issue types as columns
   const divs = role==='division' ? [currentDiv] : Object.keys(DIV_NAMES);
   const maxTotal = Math.max(1,...divs.map(d=>tix.filter(t=>t.division===d).length));
   const divBody=document.getElementById('divStatsTbody');
   const divRows=divs.map(d=>{
-    const dt=tix.filter(t=>t.division===d);
+    const dt  =tix.filter(t=>t.division===d);
     const total=dt.length;
-    const open=dt.filter(t=>t.progress!=='Completed').length;
+    const open =dt.filter(t=>t.progress!=='Completed').length;
     const inv_c=dt.filter(t=>t.progress==='Investigating').length;
-    const info=dt.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
-    const done=dt.filter(t=>t.progress==='Completed').length;
-    const inv_i=dt.filter(t=>t.inventoryIssue&&t.inventoryIssue!=='').length;
-    const qual_i=dt.filter(t=>t.qualityIssue&&t.qualityIssue!=='').length;
+    const info =dt.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
+    const done =dt.filter(t=>t.progress==='Completed').length;
+    const inv_i =dt.filter(t=>t.inventoryIssue &&t.inventoryIssue !==''&&t.inventoryIssue !=='None').length;
+    const qual_i=dt.filter(t=>t.qualityIssue   &&t.qualityIssue   !==''&&t.qualityIssue   !=='None').length;
+    const ship_i=dt.filter(t=>t.shippingIssue  &&t.shippingIssue  !==''&&t.shippingIssue  !=='None').length;
+    const recv_i=dt.filter(t=>t.receivingIssue &&t.receivingIssue !==''&&t.receivingIssue !=='None').length;
     const pct=Math.round((total/maxTotal)*100);
-    return {d,total,open,inv_c,info,done,inv_i,qual_i,pct};
+    return {d,total,open,inv_c,info,done,inv_i,qual_i,ship_i,recv_i,pct};
   }).sort((a,b)=>b.total-a.total);
 
   divBody.innerHTML=divRows.map(r=>`<tr>
@@ -1852,14 +1987,14 @@ function renderStatsScreen(){
     <td class="num" style="color:${r.inv_c>0?'var(--yellow)':'var(--muted)'}">${r.inv_c}</td>
     <td class="num" style="color:${r.info>0?'var(--orange)':'var(--muted)'}">${r.info}</td>
     <td class="num" style="color:${r.done>0?'var(--green)':'var(--muted)'}">${r.done}</td>
-    <td class="num">${r.inv_i}</td>
-    <td class="num">${r.qual_i}</td>
+    <td class="num" style="color:${r.inv_i>0?'var(--accent)':'var(--muted)'}">${r.inv_i}</td>
+    <td class="num" style="color:${r.qual_i>0?'var(--orange)':'var(--muted)'}">${r.qual_i}</td>
+    <td class="num" style="color:${r.ship_i>0?'var(--purple)':'var(--muted)'}">${r.ship_i}</td>
+    <td class="num" style="color:${r.recv_i>0?'#0891b2':'var(--muted)'}">${r.recv_i}</td>
     <td><div class="mini-bar"><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${r.pct}%;background:var(--accent)"></div></div><span class="mini-bar-label">${r.total}</span></div></td>
   </tr>`).join('');
 
-  // Totals row
-  const totInv_i=tix.filter(t=>t.inventoryIssue&&t.inventoryIssue!=='').length;
-  const totQual_i=tix.filter(t=>t.qualityIssue&&t.qualityIssue!=='').length;
+  // Totals row — all 4 issue types
   divBody.innerHTML+=`<tr class="total-row">
     <td>TOTAL</td>
     <td class="num">${tix.length}</td>
@@ -1867,17 +2002,19 @@ function renderStatsScreen(){
     <td class="num">${tix.filter(t=>t.progress==='Investigating').length}</td>
     <td class="num">${tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length}</td>
     <td class="num">${tix.filter(t=>t.progress==='Completed').length}</td>
-    <td class="num">${totInv_i}</td>
-    <td class="num">${totQual_i}</td>
+    <td class="num" style="color:var(--accent)">${inv}</td>
+    <td class="num" style="color:var(--orange)">${qual}</td>
+    <td class="num" style="color:var(--purple)">${ship}</td>
+    <td class="num" style="color:#0891b2">${recv}</td>
     <td></td>
   </tr>`;
 
-  // Inventory issue breakdown
-  renderBreakdownTable('invIssueTbody', tix.map(t=>t.inventoryIssue).filter(v=>v&&v!=='None'&&v!==''));
-  // Quality issue breakdown
+  // ── Issue breakdowns — all 4 types
+  renderBreakdownTable('invIssueTbody',  tix.map(t=>t.inventoryIssue).filter(v=>v&&v!=='None'&&v!==''));
   renderBreakdownTable('qualIssueTbody', tix.map(t=>t.qualityIssue).filter(v=>v&&v!=='None'&&v!==''));
-  // Category breakdown
-  renderBreakdownTable('catStatsTbody', tix.map(t=>t.category).filter(v=>v&&v!==''));
+  renderBreakdownTable('shipIssueTbody', tix.map(t=>t.shippingIssue).filter(v=>v&&v!=='None'&&v!==''));
+  renderBreakdownTable('recvIssueTbody', tix.map(t=>t.receivingIssue).filter(v=>v&&v!=='None'&&v!==''));
+  renderBreakdownTable('catStatsTbody',  tix.map(t=>t.category).filter(v=>v&&v!==''));
 }
 
 function renderBreakdownTable(tbodyId, values){
@@ -1979,28 +2116,51 @@ function hideLoad(){document.getElementById('loadOv').classList.remove('show');}
    DEMO DATA
    ═══════════════════════════════════════════════════════ */
 const DEMO_TIX=[
-  {inquiryId:'IC-1042',division:'BC',contactEmail:'bc-team@cnfei.com',productCodes:'BCH44210 BCH44220',orderNumber:'BC00098821',qtyPick:'48',category:'Pick Demand',inventoryIssue:'Quantity Discrepancy',qualityIssue:'',progress:'Investigating',timestamp:new Date(Date.now()-3*86400000).toISOString(),description:'System shows 48 units available but bin is physically empty. Pick demand was flagged for this SKU yesterday.',findings:'Reviewing cycle count records.',followUpQuestions:'',
-  conversationLog:[
+  {inquiryId:'IC-1042',division:'BC',contactEmail:'bc-team@cnfei.com',productCodes:'BCH44210 BCH44220',orderNumber:'BC00098821',qtyPick:'48',category:'Pick Demand',
+   inventoryIssue:'Quantity Discrepancy',qualityIssue:'',shippingIssue:'',receivingIssue:'',
+   progress:'Investigating',timestamp:new Date(Date.now()-3*86400000).toISOString(),
+   description:'System shows 48 units available but bin is physically empty. Pick demand was flagged for this SKU yesterday.',findings:'Reviewing cycle count records.',followUpQuestions:'',
+   conversationLog:[
     {direction:'outbound',body:'Your inquiry IC-1042 has been received. Our IC team is now investigating.',timestamp:new Date(Date.now()-3*86400000+600000).toISOString(),attachments:[],read:true,divRead:true},
     {direction:'inbound',body:'Thanks! Bin was B-14-C. There might be two bins with similar labels nearby.',timestamp:new Date(Date.now()-3*86400000+3600000).toISOString(),attachments:[],read:true,divRead:true},
     {direction:'outbound',body:'We flagged both B-14-C and B-14-D and will reconcile both.',timestamp:new Date(Date.now()-2*86400000).toISOString(),attachments:[],read:true,divRead:false},
   ]},
-  {inquiryId:'IC-1039',division:'NH',contactEmail:'nh-team@cnfei.com',productCodes:'NPH88010',orderNumber:'NH00023321',qtyPick:'',category:'Receiving',inventoryIssue:'Quantity Discrepancy',qualityIssue:'',progress:'Need More Info',timestamp:new Date(Date.now()-5*86400000).toISOString(),description:'Received PO shows 200 units but physical count on dock is 185.',findings:'',followUpQuestions:'Can you provide the PO number and dock receipt timestamp?',
-  conversationLog:[
+  {inquiryId:'IC-1039',division:'NH',contactEmail:'nh-team@cnfei.com,cprater@cnfei.com',productCodes:'NPH88010',orderNumber:'NH00023321',qtyPick:'',category:'Receiving',
+   inventoryIssue:'',qualityIssue:'',shippingIssue:'',receivingIssue:'PO Count Discrepancy',
+   progress:'Need More Info',timestamp:new Date(Date.now()-5*86400000).toISOString(),
+   description:'Received PO shows 200 units but physical count on dock is 185.',findings:'',followUpQuestions:'Can you provide the PO number and dock receipt timestamp?',
+   conversationLog:[
     {direction:'outbound',body:'IC-1039 received.\n\nFollow-Up Questions:\nCan you provide the PO number and dock receipt timestamp?',timestamp:new Date(Date.now()-5*86400000+600000).toISOString(),attachments:[],read:true,divRead:false},
   ]},
-  {inquiryId:'IC-1035',division:'GT',contactEmail:'m.wilkins@tagltd.com',productCodes:'GTG22100',orderNumber:'',qtyPick:'',category:'Cycle Count',inventoryIssue:'Quantity Discrepancy',qualityIssue:'',progress:'Completed',timestamp:new Date(Date.now()-8*86400000).toISOString(),description:'Count variance of -12 units on last cycle count.',findings:'Two mis-scanned units from the 3/24 replenishment run. Physical count matches system. No adjustment needed.',followUpQuestions:'',
-  conversationLog:[
+  {inquiryId:'IC-1035',division:'GT',contactEmail:'m.wilkins@tagltd.com',productCodes:'GTG22100',orderNumber:'',qtyPick:'',category:'Cycle Count',
+   inventoryIssue:'Quantity Discrepancy',qualityIssue:'',shippingIssue:'',receivingIssue:'',
+   progress:'Completed',timestamp:new Date(Date.now()-8*86400000).toISOString(),
+   description:'Count variance of -12 units on last cycle count.',findings:'Two mis-scanned units from the 3/24 replenishment run. Physical count matches system. No adjustment needed.',followUpQuestions:'',
+   conversationLog:[
     {direction:'outbound',body:'IC-1035 received and assigned.',timestamp:new Date(Date.now()-8*86400000+600000).toISOString(),attachments:[],read:true,divRead:true},
     {direction:'outbound',body:'Investigation complete.\n\nFindings: Two mis-scanned units from replenishment. Physical count matches system. No adjustment needed.',timestamp:new Date(Date.now()-6*86400000).toISOString(),attachments:[],read:true,divRead:true},
   ]},
-  {inquiryId:'IC-1031',division:'EE',contactEmail:'ee-team@cnfei.com',productCodes:'EEV99010 EEV99020',orderNumber:'',qtyPick:'',category:'Bin Move',inventoryIssue:'Location Error',qualityIssue:'',progress:'Received',timestamp:new Date(Date.now()-1*86400000).toISOString(),description:'Three SKUs bin-moved yesterday but Apprise still shows old location.',findings:'',followUpQuestions:'',
-  conversationLog:[{direction:'outbound',body:'IC-1031 received. Our team will begin investigating shortly.',timestamp:new Date(Date.now()-1*86400000+600000).toISOString(),attachments:[],read:true,divRead:false}]},
-  {inquiryId:'IC-1028',division:'FS',contactEmail:'fs-team@cnfei.com',productCodes:'FSR11440',orderNumber:'',qtyPick:'',category:'Returns',inventoryIssue:'',qualityIssue:'Damaged on Arrival',progress:'Waiting on Info',timestamp:new Date(Date.now()-7*86400000).toISOString(),description:'Customer return came in damaged.',findings:'',followUpQuestions:'Please attach photos of the damage and confirm which carrier returned the item.',
-  conversationLog:[
+  {inquiryId:'IC-1031',division:'EE',contactEmail:'ee-team@cnfei.com',productCodes:'EEV99010 EEV99020',orderNumber:'',qtyPick:'',category:'Bin Move',
+   inventoryIssue:'Location Error',qualityIssue:'',shippingIssue:'',receivingIssue:'',
+   progress:'Received',timestamp:new Date(Date.now()-1*86400000).toISOString(),
+   description:'Three SKUs bin-moved yesterday but Apprise still shows old location.',findings:'',followUpQuestions:'',
+   conversationLog:[{direction:'outbound',body:'IC-1031 received. Our team will begin investigating shortly.',timestamp:new Date(Date.now()-1*86400000+600000).toISOString(),attachments:[],read:true,divRead:false}]},
+  {inquiryId:'IC-1028',division:'FS',contactEmail:'fs-team@cnfei.com',productCodes:'FSR11440',orderNumber:'',qtyPick:'',category:'Returns',
+   inventoryIssue:'',qualityIssue:'Damaged on Arrival',shippingIssue:'Carrier Damage',receivingIssue:'',
+   progress:'Waiting on Info',timestamp:new Date(Date.now()-7*86400000).toISOString(),
+   description:'Customer return came in damaged. Carrier appears to have mishandled during transit.',findings:'',followUpQuestions:'Please attach photos of the damage and confirm which carrier returned the item.',
+   conversationLog:[
     {direction:'outbound',body:'IC-1028 received.\n\nFollow-Up Questions:\nPlease attach photos and confirm which carrier.',timestamp:new Date(Date.now()-7*86400000+600000).toISOString(),attachments:[],read:true,divRead:true},
     {direction:'inbound',body:'Return via UPS — 1Z999AA10123456784.',timestamp:new Date(Date.now()-6*86400000).toISOString(),attachments:[],read:true,divRead:true},
     {direction:'outbound',body:'Photos received. Corner damage visible. Escalating to confirm carrier claim.',timestamp:new Date(Date.now()-5*86400000).toISOString(),attachments:[],read:true,divRead:false},
+  ]},
+  {inquiryId:'IC-1022',division:'CI',contactEmail:'cshorts@cnfei.com,cprater@cnfei.com',productCodes:'CI00881 CI00882',orderNumber:'CI00045512',qtyPick:'36',category:'Receiving',
+   inventoryIssue:'',qualityIssue:'',shippingIssue:'',receivingIssue:'Inventory on Dock — Not Received',
+   progress:'Investigating',timestamp:new Date(Date.now()-10*86400000).toISOString(),
+   description:'Two pallets arrived 10 days ago and are still sitting on dock. Not yet received into Apprise. Blocking putaway for that bay.',findings:'Reviewing receiving log — looks like a missing PO match.',followUpQuestions:'',
+   conversationLog:[
+    {direction:'outbound',body:'IC-1022 received. This has been flagged as a priority — dock inventory not received into system.',timestamp:new Date(Date.now()-10*86400000+600000).toISOString(),attachments:[],read:true,divRead:true},
+    {direction:'outbound',body:'Findings:\nReviewing receiving log — looks like a missing PO match. Working with dock team.',timestamp:new Date(Date.now()-8*86400000).toISOString(),attachments:[],read:true,divRead:true},
   ]},
 ];
 
