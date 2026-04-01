@@ -340,15 +340,15 @@ button,select,input,textarea{font-family:var(--sans)}
 
 /* PRODUCT CODE LIST */
 .product-list{display:flex;flex-direction:column;gap:8px}
-.product-entry{display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:8px;align-items:center}
-@media(max-width:560px){.product-entry{grid-template-columns:1fr 1fr;gap:6px}.product-entry .rem-product{grid-column:2;justify-self:end}}
+.product-entry{display:grid;grid-template-columns:2fr 1.5fr 1.5fr 1fr auto;gap:8px;align-items:center}
+@media(max-width:620px){.product-entry{grid-template-columns:1fr 1fr;gap:6px;}.product-entry .rem-product{grid-column:2;justify-self:end}}
 .product-entry input{background:var(--panel);border:1.5px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:13px;padding:9px 12px;transition:border-color .15s;width:100%}
 .product-entry input:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
 .product-entry .rem-product{background:none;border:1.5px solid var(--border);color:var(--muted);width:32px;height:38px;border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .product-entry .rem-product:hover{border-color:var(--red);color:var(--red);background:var(--red-l)}
-.product-list-header{display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:8px;margin-bottom:2px}
+.product-list-header{display:grid;grid-template-columns:2fr 1.5fr 1.5fr 1fr auto;gap:8px;margin-bottom:2px}
 .product-list-header span{font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;padding:0 2px}
-@media(max-width:560px){.product-list-header{display:none}}
+@media(max-width:620px){.product-list-header{display:none}}
 .add-product-btn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:none;border:1.5px dashed var(--border2);color:var(--muted);border-radius:var(--radius);font-size:12px;cursor:pointer;transition:all .15s;margin-top:4px}
 .add-product-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-l);border-style:solid}
 
@@ -657,19 +657,21 @@ button,select,input,textarea{font-family:var(--sans)}
     <div class="card">
       <div class="card-title">Issue Details</div>
 
-      <!-- Product Codes — each row has Product Code + Order Number + Quantity -->
+      <!-- Product Codes — each row: Code | Order # | Shipment # | Qty -->
       <div class="field">
         <label>Product Code(s) <em>*</em></label>
         <div class="product-list-header">
           <span>Product Code</span>
-          <span>Order Number <span style="font-weight:400;opacity:.6">(if applicable)</span></span>
-          <span>Quantity</span>
+          <span>Order # <span style="font-weight:400;opacity:.6">(if applicable)</span></span>
+          <span>Shipment # <span style="font-weight:400;opacity:.6">(if applicable)</span></span>
+          <span>Qty</span>
           <span></span>
         </div>
         <div class="product-list" id="productList">
           <div class="product-entry">
             <input type="text" placeholder="e.g. BCH44210" class="product-code">
             <input type="text" placeholder="e.g. NH00023321" class="product-order">
+            <input type="text" placeholder="e.g. SHP00441" class="product-shipment">
             <input type="number" placeholder="Qty" class="product-qty" min="0">
             <button type="button" class="rem-product" onclick="removeProduct(this)" title="Remove">×</button>
           </div>
@@ -1323,7 +1325,7 @@ const INTERNAL_TEAM = [
 /* ═══════════════════════════════════════════════════════
    PRODUCT CODE LIST — each row: code + order number + qty
    ═══════════════════════════════════════════════════════ */
-function makeProductRow(code, order, qty){
+function makeProductRow(code, order, shipment, qty){
   const entry=document.createElement('div');
   entry.className='product-entry';
 
@@ -1335,6 +1337,10 @@ function makeProductRow(code, order, qty){
   orderIn.type='text'; orderIn.placeholder='e.g. NH00023321'; orderIn.className='product-order';
   if(order) orderIn.value=order;
 
+  const shipIn=document.createElement('input');
+  shipIn.type='text'; shipIn.placeholder='e.g. SHP00441'; shipIn.className='product-shipment';
+  if(shipment) shipIn.value=shipment;
+
   const qtyIn=document.createElement('input');
   qtyIn.type='number'; qtyIn.placeholder='Qty'; qtyIn.className='product-qty'; qtyIn.min='0';
   if(qty) qtyIn.value=qty;
@@ -1345,6 +1351,7 @@ function makeProductRow(code, order, qty){
 
   entry.appendChild(codeIn);
   entry.appendChild(orderIn);
+  entry.appendChild(shipIn);
   entry.appendChild(qtyIn);
   entry.appendChild(btn);
   return entry;
@@ -1352,7 +1359,7 @@ function makeProductRow(code, order, qty){
 
 function addProductRow(){
   const list=document.getElementById('productList');
-  const row=makeProductRow('','','');
+  const row=makeProductRow('','','','');
   list.appendChild(row);
   row.querySelector('.product-code').focus();
 }
@@ -1361,7 +1368,6 @@ function removeProduct(btn){
   const list=document.getElementById('productList');
   const entries=list.querySelectorAll('.product-entry');
   if(entries.length<=1){
-    // Keep the row but clear all three fields
     const entry=btn.closest('.product-entry');
     entry.querySelectorAll('input').forEach(i=>i.value='');
     return;
@@ -1369,16 +1375,16 @@ function removeProduct(btn){
   btn.closest('.product-entry').remove();
 }
 
-// Returns array of {code, orderNumber, qty} objects — skips blank code rows
+// Returns array of {code, orderNumber, shipmentNumber, qty} — skips blank code rows
 function getProductEntries(){
   return [...document.querySelectorAll('#productList .product-entry')].map(entry=>({
-    code:        entry.querySelector('.product-code')?.value.trim()||'',
-    orderNumber: entry.querySelector('.product-order')?.value.trim()||'',
-    qty:         entry.querySelector('.product-qty')?.value.trim()||'',
+    code:           entry.querySelector('.product-code')?.value.trim()||'',
+    orderNumber:    entry.querySelector('.product-order')?.value.trim()||'',
+    shipmentNumber: entry.querySelector('.product-shipment')?.value.trim()||'',
+    qty:            entry.querySelector('.product-qty')?.value.trim()||'',
   })).filter(e=>e.code);
 }
 
-// Flat comma-joined product codes string (for backwards compat display)
 function getProductCodes(){
   return getProductEntries().map(e=>e.code);
 }
@@ -1386,7 +1392,7 @@ function getProductCodes(){
 function resetProductList(){
   const list=document.getElementById('productList');
   list.innerHTML='';
-  list.appendChild(makeProductRow('','',''));
+  list.appendChild(makeProductRow('','','',''));
 }
 
 function onDivChange(){
