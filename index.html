@@ -553,6 +553,7 @@ button,select,input,textarea{font-family:var(--sans)}
       <button class="div-btn" onclick="goPin('VP')"><span class="db-code">VP</span><span class="db-name">VIP</span></button>
       <button class="div-btn" onclick="goPin('TP')"><span class="db-code">TP</span><span class="db-name">Transpac</span></button>
       <button class="div-btn" onclick="goPin('CI')"><span class="db-code">CI</span><span class="db-name">Chapman Internal</span></button>
+      <button class="div-btn" onclick="goPin('KA')"><span class="db-code">KA</span><span class="db-name">Key Account</span></button>
     </div>
     <div class="login-section-title" style="margin-top:8px">IC Team</div>
     <div class="ic-btns" style="grid-template-columns:1fr 1fr 1fr">
@@ -644,6 +645,7 @@ button,select,input,textarea{font-family:var(--sans)}
             <option value="VP">VP — VIP</option>
             <option value="TP">TP — Transpac</option>
             <option value="CI">CI — Chapman Internal</option>
+            <option value="KA">KA — Key Account</option>
           </select>
         </div>
       </div>
@@ -807,7 +809,7 @@ button,select,input,textarea{font-family:var(--sans)}
     </select>
     <select class="filter-sel" id="dvFilter" onchange="filterTix()">
       <option value="">All Divisions</option>
-      <option>GT</option><option>NH</option><option>FS</option><option>EE</option><option>BC</option><option>VP</option><option>TP</option><option>CI</option>
+      <option>GT</option><option>NH</option><option>FS</option><option>EE</option><option>BC</option><option>VP</option><option>TP</option><option>CI</option><option>KA</option>
     </select>
     <button class="refresh-btn" id="refreshBtn">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -923,6 +925,7 @@ button,select,input,textarea{font-family:var(--sans)}
             <option value="FS">FS — Forside</option><option value="EE">EE — Ever Ellis</option>
             <option value="BC">BC — Beachcombers</option><option value="VP">VP — VIP</option>
             <option value="TP">TP — Transpac</option><option value="CI">CI — Chapman Internal</option>
+            <option value="KA">KA — Key Account</option>
           </select>
         </div>
         <div class="ef2"><label>Category</label>
@@ -1037,11 +1040,11 @@ const CFG = {
   PIN_ICTEAM:     '7150',
   PIN_MANAGER:    '1988',
   PIN_DOCK_MGR:   '2244',   // Christian Prater — Inbound Dock Manager
-  DIV_PINS: { GT:'4411',NH:'4422',FS:'4433',EE:'4444',BC:'4455',VP:'4466',TP:'4477',CI:'4488' },
+  DIV_PINS: { GT:'4411',NH:'4422',FS:'4433',EE:'4444',BC:'4455',VP:'4466',TP:'4477',CI:'4488',KA:'5000' },
   MAX_FILES: 5, MAX_MB: 10,
 };
 
-const DIV_NAMES = { GT:'TAG Home Goods',NH:'NAPA Home',FS:'Forside',EE:'Ever Ellis',BC:'Beachcombers',VP:'VIP',TP:'Transpac',CI:'Chapman Internal' };
+const DIV_NAMES = { GT:'TAG Home Goods',NH:'NAPA Home',FS:'Forside',EE:'Ever Ellis',BC:'Beachcombers',VP:'VIP',TP:'Transpac',CI:'Chapman Internal',KA:'Key Account' };
 
 /* Division email directories — stored in localStorage so additions persist */
 const DEFAULT_EMAILS = {
@@ -1052,7 +1055,8 @@ const DEFAULT_EMAILS = {
   BC:['mkhang@cnfei.com','darango@cnfei.com','nchow@cnfei.com','rwigginton@cnfei.com','cshorts@cnfei.com','mtimm@cnfei.com'],
   VP:['mmartin@shoptii.com'],
   TP:['mkhang@cnfei.com','darango@cnfei.com'],
-  CI:['dalexander@cnfei.com','ksanders@cnfei.com','jimmy@fang.org','mdoerr@cnfei.com','hmeredithboyd@cnfei.com','cprater@cnfei.com','astanley@cnfei.com','ngonzalez@cnfei.com','awilson@cnfei.com','rmendoza@cnfei.com','mdoerr@cnfei.com','ksanders@cnfei.com','colleenf@cnfei.com','twalker@cnfei.com','ribas@cnfei.com','droyal@cnfei.com'],
+  CI:['dalexander@cnfei.com','mmincey@cnfei.com','hmeredithboyd@cnfei.com','cprater@cnfei.com','astanley@cnfei.com','ngonzalez@cnfei.com','awilson@cnfei.com','rmendoza@cnfei.com','mdoerr@cnfei.com','ksanders@cnfei.com','colleenf@cnfei.com','twalker@cnfei.com','ribas@cnfei.com','droyal@cnfei.com'],
+  KA:['ybowers@cnfei.com','rwigginton@cnfei.com'],
 };
 
 /* Forgot PIN lookup — maps email → PIN */
@@ -1394,8 +1398,7 @@ const INTERNAL_TEAM = [
   'rmendoza@cnfei.com','droyal@cnfei.com','mkhang@cnfei.com',
   'darango@cnfei.com','nchow@cnfei.com','rwigginton@cnfei.com',
   'cprater@cnfei.com','ngonzalez@cnfei.com','cshorts@cnfei.com',
-  'mtimm@cnfei.com','astanley@cnfei.com','dalexander@cnfei.com','ksanders@cnfei.com',
-  'jimmy@fang.org','mdoerr@cnfei.com',
+  'mtimm@cnfei.com','astanley@cnfei.com','dalexander@cnfei.com',
 ];
 
 /* ═══════════════════════════════════════════════════════
