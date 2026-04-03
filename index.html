@@ -1010,25 +1010,41 @@ button,select,input,textarea{font-family:var(--sans)}
     </div>
     <div class="manager-panel" id="managerPanel" style="display:none">
       <div class="manager-panel-title">IC Manager — Full Control</div>
-      <div class="mf"><label>Progress</label><select id="mProg"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Completed</option></select></div>
-      <div class="mf"><label>Investigation Findings <span class="note">(emailed to requester)</span></label><textarea id="mFind" placeholder="Findings to share…"></textarea></div>
-      <div class="mf"><label>Follow-Up Questions <span class="note">(emailed to requester)</span></label><textarea id="mFupQ" placeholder="Questions to send…"></textarea></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="mf" style="flex:1;min-width:160px"><label>Progress</label>
+          <select id="mProg"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Completed</option></select>
+        </div>
+        <div class="mf" style="flex:2;min-width:200px"><label>Follow-Up Questions <span class="note">(emailed to requester)</span></label>
+          <textarea id="mFupQ" rows="2" placeholder="Questions to send…"></textarea>
+        </div>
+      </div>
+      <div id="mgInvestigationGrid" style="overflow-x:auto;margin-top:4px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px">
+        <button class="quick-save-btn" style="background:var(--green);padding:8px 16px" id="mSubBtn" onclick="createSubTicketFromRows('mg')">
+          ✓ Close Selected Rows as Sub-Ticket →
+        </button>
+        <button class="btn-primary" id="mSaveBtn" onclick="saveManager()">Save &amp; Send Update →</button>
+      </div>
+      <div class="hint" style="text-align:right">⚠ "Save & Send" emails the division. "Close Selected Rows" creates a sub-ticket and emails just those items.</div>
     </div>
     <div class="dock-panel" id="dockPanel" style="display:none">
       <div class="dock-panel-title">🚛 Dock Manager — Receiving &amp; Shipping Response</div>
-      <div class="df"><label>Status Update</label>
-        <select id="dkProg">
-          <option>Received</option><option>Investigating</option>
-          <option>Need More Info</option><option>Waiting on Info</option><option>Completed</option>
-        </select>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="df" style="flex:1;min-width:160px"><label>Status Update</label>
+          <select id="dkProg"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Completed</option></select>
+        </div>
+        <div class="df" style="flex:2;min-width:200px"><label>Follow-Up Questions <span style="font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400;color:#0891b2;opacity:.75">(emailed to division)</span></label>
+          <textarea id="dkFollowup" rows="2" placeholder="Questions for the division or IC team…"></textarea>
+        </div>
       </div>
-      <div class="df"><label>Dock Findings <span style="font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400;color:#0891b2;opacity:.75">(emailed to requester)</span></label>
-        <textarea id="dkFindings" placeholder="What was found on dock, receiving log notes, carrier details…"></textarea>
+      <div id="dkInvestigationGrid" style="overflow-x:auto;margin-top:4px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px">
+        <button class="dock-save-btn" style="background:var(--green);padding:8px 16px" id="dkSubBtn" onclick="createSubTicketFromRows('dk')">
+          ✓ Close Selected Rows as Sub-Ticket →
+        </button>
+        <button class="dock-save-btn" id="dkSaveBtn" onclick="saveDockManager()">Save &amp; Send →</button>
       </div>
-      <div class="df"><label>Follow-Up Questions <span style="font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400;color:#0891b2;opacity:.75">(emailed to requester)</span></label>
-        <textarea id="dkFollowup" placeholder="Questions for the division or IC team…"></textarea>
-      </div>
-      <button class="dock-save-btn" id="dkSaveBtn" onclick="saveDockManager()">Save &amp; Send →</button>
+      <div class="hint" style="text-align:right">⚠ "Save & Send" emails the division. "Close Selected Rows" creates a sub-ticket and emails just those items.</div>
     </div>
     <div><div class="blk-label">Conversation Thread</div><div class="thread" id="mThread"></div></div>
   </div>
@@ -1976,10 +1992,18 @@ async function openTicket(id){
   if(isIC){
     document.getElementById('qProgress').value=t.progress||'Received';
     document.getElementById('qFollowup').value=t.followUpQuestions||'';
-    buildInvestigationGrid();
+    buildInvestigationGrid('ic');
   }
-  if(isMgr){ document.getElementById('mProg').value=t.progress||'Received'; document.getElementById('mFind').value=t.findings||''; document.getElementById('mFupQ').value=t.followUpQuestions||''; }
-  if(isDock){ document.getElementById('dkProg').value=t.progress||'Received'; document.getElementById('dkFindings').value=t.findings||''; document.getElementById('dkFollowup').value=t.followUpQuestions||''; }
+  if(isMgr){
+    document.getElementById('mProg').value=t.progress||'Received';
+    document.getElementById('mFupQ').value=t.followUpQuestions||'';
+    buildInvestigationGrid('mg');
+  }
+  if(isDock){
+    document.getElementById('dkProg').value=t.progress||'Received';
+    document.getElementById('dkFollowup').value=t.followUpQuestions||'';
+    buildInvestigationGrid('dk');
+  }
 
   // Render THIS ticket's thread only
   renderThread(activeTx.conversationLog);
@@ -2020,41 +2044,43 @@ function renderThread(log){
    IC TEAM — PER-ROW INVESTIGATION GRID
    ═══════════════════════════════════════════════════════ */
 
-function buildInvestigationGrid(){
+function buildInvestigationGrid(prefix){
+  prefix = prefix || 'ic';
+  const gridId = {ic:'icInvestigationGrid', mg:'mgInvestigationGrid', dk:'dkInvestigationGrid'}[prefix] || 'icInvestigationGrid';
   const t = activeTx;
   if(!t) return;
-  const el = document.getElementById('icInvestigationGrid');
+  const el = document.getElementById(gridId);
   if(!el) return;
 
-  // Parse entries — may be array or JSON string
   let entries = [];
   if(Array.isArray(t.productEntries) && t.productEntries.length){
     entries = t.productEntries;
   } else if(typeof t.productEntries === 'string' && t.productEntries.trim().startsWith('[')){
     try{ entries = JSON.parse(t.productEntries); }catch(e){ entries = []; }
   }
-  // Fallback from flat strings
   if(!entries.length && t.productCodes){
     const codes = t.productCodes.split(/[,\s]+/).map(s=>s.trim()).filter(Boolean);
     entries = codes.map(code=>({code, orderNumber:'', shipmentNumber:'', qty:''}));
   }
 
   const isQuality = t.qualityIssue && t.qualityIssue !== '' && t.qualityIssue !== 'None';
+  const qualColH  = isQuality ? '<th>Quality Notes</th>' : '';
 
   const colsHtml = `
-    <th style="width:28px"><input type="checkbox" id="chkAll" title="Select all" onchange="toggleAllInvRows(this)" style="width:16px;height:16px;accent-color:var(--purple);cursor:pointer"></th>
+    <th style="width:28px"><input type="checkbox" title="Select all" onchange="toggleAllInvRows('${prefix}',this)" style="width:16px;height:16px;accent-color:var(--purple);cursor:pointer"></th>
     <th>Product Code</th>
     <th style="text-align:center">Expected Qty</th>
     <th style="text-align:center">Qty Located</th>
     <th>Bin Located</th>
-    ${isQuality ? '<th>Quality Notes</th>' : ''}
+    ${qualColH}
     <th>Findings / Notes</th>
     <th style="text-align:center">Done</th>`;
 
   const rowsHtml = entries.map((e,i)=>{
     const isDone = !!e.resolved;
-    return `<tr class="${isDone?'inv-row-done':''}" id="inv-row-${i}">
-      <td><input type="checkbox" class="inv-check inv-row-chk" data-idx="${i}" ${isDone?'checked disabled':''}></td>
+    const qualCell = isQuality ? `<td><input type="text" class="inv-inp notes-inp" data-prefix="${prefix}" data-idx="${i}" data-field="qualityNotes" value="${esc(e.qualityNotes||'')}" placeholder="Damage, defect details…" ${isDone?'disabled':''}></td>` : '';
+    return `<tr class="${isDone?'inv-row-done':''}" id="${prefix}-inv-row-${i}">
+      <td><input type="checkbox" class="inv-check inv-row-chk-${prefix}" data-prefix="${prefix}" data-idx="${i}" ${isDone?'checked disabled':''}></td>
       <td>
         <div class="inv-code">${esc(e.code)}</div>
         ${e.orderNumber?`<div style="font-size:10px;color:var(--muted);font-family:var(--mono)">Order: ${esc(e.orderNumber)}</div>`:''}
@@ -2062,174 +2088,158 @@ function buildInvestigationGrid(){
         ${e.subId?`<span class="sub-ticket-badge">${esc(e.subId)}</span>`:''}
       </td>
       <td class="inv-expected">${esc(e.qty||'—')}</td>
-      <td><input type="number" min="0" class="inv-inp qty-inp" data-idx="${i}" data-field="qtyLocated" value="${esc(e.qtyLocated||'')}" placeholder="0" ${isDone?'disabled':''}></td>
-      <td><input type="text" class="inv-inp bin-inp" data-idx="${i}" data-field="binLocated" value="${esc(e.binLocated||'')}" placeholder="e.g. A-04-B" ${isDone?'disabled':''}></td>
-      ${isQuality?`<td><input type="text" class="inv-inp notes-inp" data-idx="${i}" data-field="qualityNotes" value="${esc(e.qualityNotes||'')}" placeholder="Damage, defect details…" ${isDone?'disabled':''}></td>`:''}
-      <td><input type="text" class="inv-inp notes-inp" data-idx="${i}" data-field="findings" value="${esc(e.findings||'')}" placeholder="Notes…" ${isDone?'disabled':''}></td>
+      <td><input type="number" min="0" class="inv-inp qty-inp" data-prefix="${prefix}" data-idx="${i}" data-field="qtyLocated" value="${esc(e.qtyLocated||'')}" placeholder="0" ${isDone?'disabled':''}></td>
+      <td><input type="text" class="inv-inp bin-inp" data-prefix="${prefix}" data-idx="${i}" data-field="binLocated" value="${esc(e.binLocated||'')}" placeholder="e.g. A-04-B" ${isDone?'disabled':''}></td>
+      ${qualCell}
+      <td><input type="text" class="inv-inp notes-inp" data-prefix="${prefix}" data-idx="${i}" data-field="findings" value="${esc(e.findings||'')}" placeholder="Notes…" ${isDone?'disabled':''}></td>
       <td style="text-align:center">${isDone
-        ? `<span class="inv-done-badge">✓ Done</span>`
-        : `<input type="checkbox" class="inv-check inv-done-chk" data-idx="${i}" title="Mark row complete">`
+        ? `<span class="inv-done-badge">&#10003; Done</span>`
+        : `<input type="checkbox" class="inv-check inv-done-chk-${prefix}" data-prefix="${prefix}" data-idx="${i}" title="Mark row complete">`
       }</td>
     </tr>`;
   }).join('');
 
-  el.innerHTML = `<table class="inv-grid"><thead><tr>${colsHtml}</tr></thead><tbody>${rowsHtml||'<tr><td colspan="8" style="padding:12px;color:var(--muted);text-align:center">No products on this ticket</td></tr>'}</tbody></table>`;
+  el.innerHTML = `<table class="inv-grid"><thead><tr>${colsHtml}</tr></thead><tbody>${rowsHtml||`<tr><td colspan="8" style="padding:12px;color:var(--muted);text-align:center">No products on this ticket</td></tr>`}</tbody></table>`;
 }
 
-function toggleAllInvRows(chk){
-  document.querySelectorAll('.inv-row-chk:not(:disabled)').forEach(c=>c.checked=chk.checked);
+function toggleAllInvRows(prefix, chk){
+  document.querySelectorAll(`.inv-row-chk-${prefix}:not(:disabled)`).forEach(c=>c.checked=chk.checked);
 }
 
-// Read all input values from the grid back into the entries array
-function readGridEntries(){
+function readGridEntries(prefix){
+  prefix = prefix || 'ic';
   const t = activeTx;
   if(!t) return [];
   let entries = [];
-  if(Array.isArray(t.productEntries)) entries = JSON.parse(JSON.stringify(t.productEntries));
+  if(Array.isArray(t.productEntries) && t.productEntries.length) entries = JSON.parse(JSON.stringify(t.productEntries));
   else if(typeof t.productEntries === 'string' && t.productEntries.trim().startsWith('[')){
     try{ entries = JSON.parse(t.productEntries); }catch(e){}
   }
   if(!entries.length && t.productCodes){
     entries = t.productCodes.split(/[,\s]+/).map(s=>s.trim()).filter(Boolean).map(code=>({code, orderNumber:'', shipmentNumber:'', qty:''}));
   }
-  // Update each entry from inputs
-  document.querySelectorAll('[data-idx]').forEach(inp=>{
+  document.querySelectorAll(`[data-prefix="${prefix}"][data-field]`).forEach(inp=>{
     const i = parseInt(inp.dataset.idx);
     const field = inp.dataset.field;
-    if(field && entries[i] !== undefined){
-      entries[i][field] = inp.value.trim();
-    }
+    if(field && entries[i] !== undefined) entries[i][field] = inp.value.trim();
   });
-  // Mark rows checked in done column as resolved
-  document.querySelectorAll('.inv-done-chk:checked').forEach(chk=>{
+  document.querySelectorAll(`.inv-done-chk-${prefix}:checked`).forEach(chk=>{
     const i = parseInt(chk.dataset.idx);
     if(entries[i]) entries[i].resolved = true;
   });
   return entries;
 }
 
-async function saveICTeam(){
-  if(!activeTx) return;
-  const progress = document.getElementById('qProgress').value;
-  const followup = document.getElementById('qFollowup').value.trim();
-  const entries  = readGridEntries();
-
-  // Build findings summary from per-row data
-  const findingsSummary = entries.map(e=>{
-    const parts = [];
-    if(e.qtyLocated)  parts.push('Located: '+e.qtyLocated+(e.qty?' of '+e.qty:''));
-    if(e.binLocated)  parts.push('Bin: '+e.binLocated);
-    if(e.qualityNotes)parts.push('Quality: '+e.qualityNotes);
-    if(e.findings)    parts.push(e.findings);
-    return parts.length ? e.code+' — '+parts.join(' | ') : null;
-  }).filter(Boolean).join('\n');
-
-  document.getElementById('qSaveBtn').disabled=true;
-  showLoad('Saving & sending…');
-  try{
-    const payload = {
-      action:'updateTicket', inquiryId:activeTx.inquiryId,
-      progress, findings:findingsSummary, followUpQuestions:followup,
-      updatedBy:'icteam', productEntries:JSON.stringify(entries),
-    };
-    if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress, findingsSummary, followup, 'IC Team'); }
-    else { await gasPost(payload); _applyUpdate(progress, findingsSummary, followup, 'IC Team'); }
-    // Persist updated entries back to activeTx
-    activeTx.productEntries = entries;
-    hideLoad(); renderTix(allTix); updStats(allTix);
-    toast('Updated — email sent ✓', 'success');
-  }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
-  document.getElementById('qSaveBtn').disabled=false;
-}
-
-async function createSubTicketFromRows(){
-  if(!activeTx) return;
-  const entries = readGridEntries();
-
-  // Collect rows that are checked via the row-select checkbox (left column)
-  const selectedIdxs = [...document.querySelectorAll('.inv-row-chk:checked:not(:disabled)')].map(c=>parseInt(c.dataset.idx));
-  if(!selectedIdxs.length){ toast('Select at least one row to close as a sub-ticket','error'); return; }
-
-  const completedEntries = selectedIdxs.map(i=>entries[i]).filter(Boolean);
-
-  // Build findings summary for sub-ticket
-  const findings = completedEntries.map(e=>{
+function buildFindingsSummary(entries){
+  return entries.map(e=>{
     const parts = [];
     if(e.qtyLocated)   parts.push('Located: '+e.qtyLocated+(e.qty?' of '+e.qty:''));
     if(e.binLocated)   parts.push('Bin: '+e.binLocated);
     if(e.qualityNotes) parts.push('Quality: '+e.qualityNotes);
     if(e.findings)     parts.push(e.findings);
-    return parts.length ? e.code+' — '+parts.join(' | ') : e.code+' — Resolved';
-  }).join('\n');
+    return parts.length ? e.code+' — '+parts.join(' | ') : null;
+  }).filter(Boolean).join('\n');
+}
 
+async function saveICTeam(){
+  if(!activeTx) return;
+  const progress = document.getElementById('qProgress').value;
   const followup = document.getElementById('qFollowup').value.trim();
+  const entries  = readGridEntries('ic');
+  const findingsSummary = buildFindingsSummary(entries);
+  document.getElementById('qSaveBtn').disabled=true;
+  showLoad('Saving & sending…');
+  try{
+    const payload = {action:'updateTicket', inquiryId:activeTx.inquiryId, progress, findings:findingsSummary, followUpQuestions:followup, updatedBy:'icteam', productEntries:JSON.stringify(entries)};
+    if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress, findingsSummary, followup, 'IC Team'); }
+    else { await gasPost(payload); _applyUpdate(progress, findingsSummary, followup, 'IC Team'); }
+    activeTx.productEntries = entries;
+    hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
+  }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
+  document.getElementById('qSaveBtn').disabled=false;
+}
 
-  document.getElementById('qSubBtn').disabled=true;
+async function createSubTicketFromRows(prefix){
+  if(!activeTx) return;
+  prefix = prefix || 'ic';
+  const entries = readGridEntries(prefix);
+  const followupId = {ic:'qFollowup', mg:'mFupQ', dk:'dkFollowup'}[prefix] || 'qFollowup';
+  const subBtnId   = {ic:'qSubBtn',   mg:'mSubBtn', dk:'dkSubBtn'}[prefix] || 'qSubBtn';
+
+  const selectedIdxs = [...document.querySelectorAll(`.inv-row-chk-${prefix}:checked:not(:disabled)`)].map(c=>parseInt(c.dataset.idx));
+  if(!selectedIdxs.length){ toast('Select at least one row to close as a sub-ticket','error'); return; }
+
+  const completedEntries = selectedIdxs.map(i=>entries[i]).filter(Boolean);
+  const findings = buildFindingsSummary(completedEntries) || completedEntries.map(e=>e.code+' — Resolved').join('\n');
+  const followup = document.getElementById(followupId)?.value.trim()||'';
+
+  document.getElementById(subBtnId).disabled=true;
   showLoad('Creating sub-ticket & sending email…');
   try{
     let result;
     if(CFG.DEMO_MODE){
       await delay(800);
-      const subSeq = (activeTx._subCount = (activeTx._subCount||0)+1);
-      const subId  = activeTx.inquiryId + '-' + String(subSeq).padStart(2,'0');
-      result = {success:true, subId, remainingCount: entries.length - completedEntries.length};
-      // Mark completed entries as resolved with subId
+      const subSeq = (activeTx._subCount=(activeTx._subCount||0)+1);
+      const subId  = activeTx.inquiryId+'-'+String(subSeq).padStart(2,'0');
+      result = {success:true, subId, remainingCount:entries.length-completedEntries.length, parentStatus:'Investigating'};
       completedEntries.forEach(e=>{ e.resolved=true; e.subId=subId; });
-      const remaining = entries.filter((_,i)=>!selectedIdxs.includes(i));
-      activeTx.productEntries = entries; // keep all, just mark resolved
+      activeTx.productEntries = entries;
     } else {
       result = await gasPost({
-        action:'createSubTicket',
-        parentId:activeTx.inquiryId,
+        action:'createSubTicket', parentId:activeTx.inquiryId,
         completedEntries:JSON.stringify(completedEntries),
         findings, followUpQuestions:followup,
       });
       if(result.error) throw new Error(result.error);
-      // Mark entries in local state
       completedEntries.forEach(e=>{ e.resolved=true; e.subId=result.subId; });
       activeTx.productEntries = entries;
       activeTx.progress = result.parentStatus;
-      // Update allTix
       const idx = allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
       if(idx>=0){ allTix[idx].productEntries=entries; allTix[idx].progress=result.parentStatus; }
       sessionClear();
     }
     hideLoad();
-    toast(`Sub-ticket ${result.subId} created — email sent ✓`, 'success');
-    // Rebuild the grid to reflect resolved rows
-    buildInvestigationGrid();
+    toast('Sub-ticket '+result.subId+' created — email sent ✓','success');
+    buildInvestigationGrid(prefix);
     renderTix(allTix); updStats(allTix);
-  }catch(e){ hideLoad(); toast('Failed: '+e.message,'error'); }
-  document.getElementById('qSubBtn').disabled=false;
+  }catch(ex){ hideLoad(); toast('Failed: '+ex.message,'error'); }
+  document.getElementById(subBtnId).disabled=false;
 }
 
 async function saveManager(){
-  if(!activeTx)return;
-  const progress=document.getElementById('mProg').value;
-  const findings=document.getElementById('mFind').value.trim();
-  const followup=document.getElementById('mFupQ').value.trim();
+  if(!activeTx) return;
+  const progress = document.getElementById('mProg').value;
+  const followup = document.getElementById('mFupQ').value.trim();
+  const entries  = readGridEntries('mg');
+  const findings = buildFindingsSummary(entries);
   document.getElementById('mSaveBtn').disabled=true; showLoad('Saving & sending…');
-  try {
+  try{
+    const payload = {action:'updateTicket', inquiryId:activeTx.inquiryId, progress, findings, followUpQuestions:followup, updatedBy:'manager', productEntries:JSON.stringify(entries)};
     if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress,findings,followup,'IC Manager'); }
-    else { await gasPost({action:'updateTicket',inquiryId:activeTx.inquiryId,progress,findings,followUpQuestions:followup,updatedBy:'manager'}); _applyUpdate(progress,findings,followup,'IC Manager'); }
+    else { await gasPost(payload); _applyUpdate(progress,findings,followup,'IC Manager'); }
+    activeTx.productEntries = entries;
     hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
-  } catch(e){hideLoad();toast('Save failed: '+e.message,'error');}
+  }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
   document.getElementById('mSaveBtn').disabled=false;
 }
 
 async function saveDockManager(){
-  if(!activeTx)return;
-  const progress=document.getElementById('dkProg').value;
-  const findings=document.getElementById('dkFindings').value.trim();
-  const followup=document.getElementById('dkFollowup').value.trim();
+  if(!activeTx) return;
+  const progress = document.getElementById('dkProg').value;
+  const followup = document.getElementById('dkFollowup').value.trim();
+  const entries  = readGridEntries('dk');
+  const findings = buildFindingsSummary(entries);
   document.getElementById('dkSaveBtn').disabled=true; showLoad('Saving & sending…');
-  try {
+  try{
+    const payload = {action:'updateTicket', inquiryId:activeTx.inquiryId, progress, findings, followUpQuestions:followup, updatedBy:'dockmanager', productEntries:JSON.stringify(entries)};
     if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress,findings,followup,'Dock Manager'); }
-    else { await gasPost({action:'updateTicket',inquiryId:activeTx.inquiryId,progress,findings,followUpQuestions:followup,updatedBy:'dockmanager'}); _applyUpdate(progress,findings,followup,'Dock Manager'); }
+    else { await gasPost(payload); _applyUpdate(progress,findings,followup,'Dock Manager'); }
+    activeTx.productEntries = entries;
     hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
-  } catch(e){hideLoad();toast('Save failed: '+e.message,'error');}
+  }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
   document.getElementById('dkSaveBtn').disabled=false;
 }
+
 
 function _applyUpdate(progress,findings,followup,by){
   const idx=allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
