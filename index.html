@@ -1815,6 +1815,12 @@ async function loadTix(forceRefresh){
       } else {
         const r=await gasGet({action:'getTickets',mode:'list',includeCompleted:'true',forDockManager:role==='dockmanager'?'true':'false'});
         let tickets=r.tickets||[];
+        // Parse productEntries JSON string — GAS returns it as a string, we need an array
+        tickets.forEach(t=>{
+          if(t.productEntries && typeof t.productEntries==='string' && t.productEntries.trim().startsWith('[')){
+            try{ t.productEntries=JSON.parse(t.productEntries); }catch(e){ t.productEntries=[]; }
+          }
+        });
         if(role==='dockmanager') tickets=tickets.filter(t=>isDockTicket(t));
         allTix=tickets;
         sessionSet(cacheKey,allTix);
@@ -1897,7 +1903,13 @@ async function openTicket(id){
     showLoad('Loading conversation…');
     try {
       const r=await gasGet({action:'getTicket',inquiryId:id});
-      if(r.ticket){ Object.assign(t,r.ticket); }
+      if(r.ticket){
+        Object.assign(t,r.ticket);
+        // Parse productEntries if it came back as a JSON string
+        if(t.productEntries && typeof t.productEntries==='string' && t.productEntries.trim().startsWith('[')){
+          try{ t.productEntries=JSON.parse(t.productEntries); }catch(e){ t.productEntries=[]; }
+        }
+      }
     } catch(e){} // fall back to cached data silently
     hideLoad();
   }
@@ -2115,32 +2127,51 @@ async function saveTicketEdits(){
 
 // Shared helper to build meta HTML (used by openTicket and _applyUpdate)
 function buildMetaHTML(t, days){
-  // Build per-product table if structured entries are available
-  const entries = Array.isArray(t.productEntries) && t.productEntries.length
-    ? t.productEntries
-    : null;
+  // Parse productEntries — may arrive as a JSON string from GAS or as an array from local state
+  let entries = [];
+  if(t.productEntries){
+    if(Array.isArray(t.productEntries) && t.productEntries.length){
+      entries = t.productEntries;
+    } else if(typeof t.productEntries === 'string' && t.productEntries.trim().startsWith('[')){
+      try{ entries = JSON.parse(t.productEntries); }catch(e){ entries = []; }
+    }
+  }
 
-  const productBlock = entries
+  // If no structured entries, build rows from flat comma/space-separated strings
+  if(!entries.length && t.productCodes){
+    const codes    = t.productCodes.split(/[,\s]+/).map(s=>s.trim()).filter(Boolean);
+    const orders   = (t.orderNumber||'').split(/[,]+/).map(s=>s.trim());
+    const shipments= (t.shipmentNumber||'').split(/[,]+/).map(s=>s.trim());
+    const qtys     = (t.qtyPick||'').split(/[,]+/).map(s=>s.trim());
+    entries = codes.map((code,i)=>({
+      code,
+      orderNumber:    orders[i]    || '',
+      shipmentNumber: shipments[i] || '',
+      qty:            qtys[i]      || '',
+    }));
+  }
+
+  const productBlock = entries.length
     ? `<div class="meta-item" style="grid-column:1/-1">
-        <div class="ml">Products</div>
-        <div class="mv">
-          <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)">
-            <thead><tr>
-              <th style="text-align:left;padding:3px 10px 3px 0;color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)">Code</th>
-              <th style="text-align:left;padding:3px 10px 3px 0;color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)">Order #</th>
-              <th style="text-align:right;padding:3px 0;color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border)">Qty</th>
+        <div class="ml">Product Details</div>
+        <div class="mv" style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono);min-width:360px">
+            <thead><tr style="border-bottom:2px solid var(--border)">
+              <th style="text-align:left;padding:4px 12px 6px 0;color:var(--muted);font-size:10px;letter-spacing:.07em;text-transform:uppercase">Product Code</th>
+              <th style="text-align:left;padding:4px 12px 6px 0;color:var(--muted);font-size:10px;letter-spacing:.07em;text-transform:uppercase">Order #</th>
+              <th style="text-align:left;padding:4px 12px 6px 0;color:var(--muted);font-size:10px;letter-spacing:.07em;text-transform:uppercase">Shipment #</th>
+              <th style="text-align:right;padding:4px 0 6px 0;color:var(--muted);font-size:10px;letter-spacing:.07em;text-transform:uppercase">Qty</th>
             </tr></thead>
-            <tbody>${entries.map(e=>`<tr>
-              <td style="padding:4px 10px 4px 0;color:var(--accent);font-weight:600">${esc(e.code)}</td>
-              <td style="padding:4px 10px 4px 0;color:var(--muted)">${esc(e.orderNumber||'—')}</td>
-              <td style="padding:4px 0;text-align:right;color:var(--text)">${esc(e.qty||'—')}</td>
+            <tbody>${entries.map((e,i)=>`<tr style="border-bottom:1px solid var(--border);${i%2===1?'background:var(--panel)':''}">
+              <td style="padding:6px 12px 6px 0;color:var(--accent);font-weight:700">${esc(e.code||'—')}</td>
+              <td style="padding:6px 12px 6px 0;color:var(--text)">${esc(e.orderNumber||'—')}</td>
+              <td style="padding:6px 12px 6px 0;color:var(--text)">${esc(e.shipmentNumber||'—')}</td>
+              <td style="padding:6px 0;text-align:right;color:var(--text)">${esc(e.qty||'—')}</td>
             </tr>`).join('')}</tbody>
           </table>
         </div>
       </div>`
-    : `<div class="meta-item"><div class="ml">Product Code(s)</div><div class="mv mono">${esc(t.productCodes)}</div></div>
-       ${t.orderNumber?`<div class="meta-item"><div class="ml">Order Number</div><div class="mv mono">${esc(t.orderNumber)}</div></div>`:''}
-       ${t.qtyPick?`<div class="meta-item"><div class="ml">Quantity</div><div class="mv mono">${esc(t.qtyPick)}</div></div>`:''}`;
+    : '';
 
   return`
     <div class="meta-item"><div class="ml">Division</div><div class="mv">${DIV_NAMES[t.division]||t.division}</div></div>
