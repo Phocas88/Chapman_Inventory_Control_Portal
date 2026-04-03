@@ -417,6 +417,24 @@ button,select,input,textarea{font-family:var(--sans)}
 .quick-save-btn{padding:9px 18px;background:var(--purple);color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;align-self:flex-end}
 .quick-save-btn:hover{background:#6d28d9}
 .quick-save-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Investigation grid */
+.inv-grid{width:100%;border-collapse:collapse;font-size:12px;min-width:640px}
+.inv-grid th{text-align:left;padding:5px 8px 8px;font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;border-bottom:2px solid var(--border);white-space:nowrap}
+.inv-grid td{padding:6px 8px;vertical-align:middle;border-bottom:1px solid var(--border)}
+.inv-grid tr:last-child td{border-bottom:none}
+.inv-grid tr.inv-row-done{background:#f0fdf4}
+.inv-grid tr.inv-row-done td{opacity:.7}
+.inv-grid .inv-code{font-family:var(--mono);font-weight:700;color:var(--accent);font-size:12px;white-space:nowrap}
+.inv-grid .inv-expected{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center}
+.inv-inp{border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);background:var(--panel);width:100%;box-sizing:border-box;transition:border-color .15s}
+.inv-inp:focus{outline:none;border-color:var(--accent);background:#fff}
+.inv-inp.qty-inp{width:64px;text-align:center;font-family:var(--mono)}
+.inv-inp.bin-inp{width:120px;font-family:var(--mono)}
+.inv-inp.notes-inp{width:100%;min-width:120px}
+.inv-check{width:18px;height:18px;accent-color:var(--green);cursor:pointer}
+.inv-done-badge{display:inline-block;background:var(--green-l);color:var(--green);border:1px solid rgba(5,150,105,.2);border-radius:20px;font-size:10px;font-weight:700;padding:1px 8px;white-space:nowrap}
+.sub-ticket-badge{display:inline-block;background:var(--accent-l);color:var(--accent);border:1px solid rgba(37,99,235,.2);border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px;font-family:var(--mono)}
 .manager-panel{background:var(--accent-l);border:1.5px solid rgba(37,99,235,.2);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .manager-panel-title{font-size:11px;font-family:var(--mono);font-weight:600;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
 .manager-panel-title::after{content:'';flex:1;height:1px;background:rgba(37,99,235,.2)}
@@ -963,11 +981,32 @@ button,select,input,textarea{font-family:var(--sans)}
 
     <div><div class="blk-label">Original Request</div><div class="blk-val" id="mDesc">—</div></div>
     <div class="quick-panel" id="icTeamPanel" style="display:none">
-      <div class="quick-panel-title">IC Team — Update</div>
-      <div class="qf"><label>Progress</label><select id="qProgress"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Completed</option></select></div>
-      <div class="qf"><label>Investigation Findings</label><textarea id="qFindings" placeholder="Share findings with requester…"></textarea><div class="hint">⚠ Emailed to division on save</div></div>
-      <div class="qf"><label>Follow-Up Questions</label><textarea id="qFollowup" placeholder="Questions for the requester…"></textarea><div class="hint">⚠ Triggers follow-up email to division</div></div>
-      <button class="quick-save-btn" id="qSaveBtn" onclick="saveICTeam()">Save &amp; Send →</button>
+      <div class="quick-panel-title">IC Team — Investigation</div>
+
+      <!-- Overall status + follow-up -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="qf" style="flex:1;min-width:160px"><label>Overall Status</label>
+          <select id="qProgress">
+            <option>Received</option><option>Investigating</option>
+            <option>Need More Info</option><option>Waiting on Info</option><option>Completed</option>
+          </select>
+        </div>
+        <div class="qf" style="flex:2;min-width:200px"><label>Follow-Up Questions <span style="font-weight:400;color:var(--muted);font-size:10px">(emailed to division)</span></label>
+          <textarea id="qFollowup" rows="2" placeholder="Questions for the requester…"></textarea>
+        </div>
+      </div>
+
+      <!-- Per-row investigation table -->
+      <div id="icInvestigationGrid" style="overflow-x:auto;margin-top:4px"></div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px">
+        <button class="quick-save-btn" style="background:var(--green);padding:8px 16px" id="qSubBtn" onclick="createSubTicketFromRows()">
+          ✓ Close Selected Rows as Sub-Ticket →
+        </button>
+        <button class="quick-save-btn" id="qSaveBtn" onclick="saveICTeam()">Save &amp; Send Update →</button>
+      </div>
+      <div class="hint" style="text-align:right">⚠ "Save & Send" emails the division. "Close Selected Rows" creates a sub-ticket (IC-XXXX-01) and emails just those items.</div>
     </div>
     <div class="manager-panel" id="managerPanel" style="display:none">
       <div class="manager-panel-title">IC Manager — Full Control</div>
@@ -1934,7 +1973,11 @@ async function openTicket(id){
   document.getElementById('editFields').classList.remove('show');
   document.getElementById('editToggleBtn').classList.remove('active');
   document.getElementById('editToggleBtn').textContent='✏️ Edit Ticket Info';
-  if(isIC){ document.getElementById('qProgress').value=t.progress||'Received'; document.getElementById('qFindings').value=t.findings||''; document.getElementById('qFollowup').value=t.followUpQuestions||''; }
+  if(isIC){
+    document.getElementById('qProgress').value=t.progress||'Received';
+    document.getElementById('qFollowup').value=t.followUpQuestions||'';
+    buildInvestigationGrid();
+  }
   if(isMgr){ document.getElementById('mProg').value=t.progress||'Received'; document.getElementById('mFind').value=t.findings||''; document.getElementById('mFupQ').value=t.followUpQuestions||''; }
   if(isDock){ document.getElementById('dkProg').value=t.progress||'Received'; document.getElementById('dkFindings').value=t.findings||''; document.getElementById('dkFollowup').value=t.followUpQuestions||''; }
 
@@ -1973,18 +2016,191 @@ function renderThread(log){
 /* ═══════════════════════════════════════════════════════
    SAVE ACTIONS
    ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   IC TEAM — PER-ROW INVESTIGATION GRID
+   ═══════════════════════════════════════════════════════ */
+
+function buildInvestigationGrid(){
+  const t = activeTx;
+  if(!t) return;
+  const el = document.getElementById('icInvestigationGrid');
+  if(!el) return;
+
+  // Parse entries — may be array or JSON string
+  let entries = [];
+  if(Array.isArray(t.productEntries) && t.productEntries.length){
+    entries = t.productEntries;
+  } else if(typeof t.productEntries === 'string' && t.productEntries.trim().startsWith('[')){
+    try{ entries = JSON.parse(t.productEntries); }catch(e){ entries = []; }
+  }
+  // Fallback from flat strings
+  if(!entries.length && t.productCodes){
+    const codes = t.productCodes.split(/[,\s]+/).map(s=>s.trim()).filter(Boolean);
+    entries = codes.map(code=>({code, orderNumber:'', shipmentNumber:'', qty:''}));
+  }
+
+  const isQuality = t.qualityIssue && t.qualityIssue !== '' && t.qualityIssue !== 'None';
+
+  const colsHtml = `
+    <th style="width:28px"><input type="checkbox" id="chkAll" title="Select all" onchange="toggleAllInvRows(this)" style="width:16px;height:16px;accent-color:var(--purple);cursor:pointer"></th>
+    <th>Product Code</th>
+    <th style="text-align:center">Expected Qty</th>
+    <th style="text-align:center">Qty Located</th>
+    <th>Bin Located</th>
+    ${isQuality ? '<th>Quality Notes</th>' : ''}
+    <th>Findings / Notes</th>
+    <th style="text-align:center">Done</th>`;
+
+  const rowsHtml = entries.map((e,i)=>{
+    const isDone = !!e.resolved;
+    return `<tr class="${isDone?'inv-row-done':''}" id="inv-row-${i}">
+      <td><input type="checkbox" class="inv-check inv-row-chk" data-idx="${i}" ${isDone?'checked disabled':''}></td>
+      <td>
+        <div class="inv-code">${esc(e.code)}</div>
+        ${e.orderNumber?`<div style="font-size:10px;color:var(--muted);font-family:var(--mono)">Order: ${esc(e.orderNumber)}</div>`:''}
+        ${e.shipmentNumber?`<div style="font-size:10px;color:var(--muted);font-family:var(--mono)">Ship: ${esc(e.shipmentNumber)}</div>`:''}
+        ${e.subId?`<span class="sub-ticket-badge">${esc(e.subId)}</span>`:''}
+      </td>
+      <td class="inv-expected">${esc(e.qty||'—')}</td>
+      <td><input type="number" min="0" class="inv-inp qty-inp" data-idx="${i}" data-field="qtyLocated" value="${esc(e.qtyLocated||'')}" placeholder="0" ${isDone?'disabled':''}></td>
+      <td><input type="text" class="inv-inp bin-inp" data-idx="${i}" data-field="binLocated" value="${esc(e.binLocated||'')}" placeholder="e.g. A-04-B" ${isDone?'disabled':''}></td>
+      ${isQuality?`<td><input type="text" class="inv-inp notes-inp" data-idx="${i}" data-field="qualityNotes" value="${esc(e.qualityNotes||'')}" placeholder="Damage, defect details…" ${isDone?'disabled':''}></td>`:''}
+      <td><input type="text" class="inv-inp notes-inp" data-idx="${i}" data-field="findings" value="${esc(e.findings||'')}" placeholder="Notes…" ${isDone?'disabled':''}></td>
+      <td style="text-align:center">${isDone
+        ? `<span class="inv-done-badge">✓ Done</span>`
+        : `<input type="checkbox" class="inv-check inv-done-chk" data-idx="${i}" title="Mark row complete">`
+      }</td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `<table class="inv-grid"><thead><tr>${colsHtml}</tr></thead><tbody>${rowsHtml||'<tr><td colspan="8" style="padding:12px;color:var(--muted);text-align:center">No products on this ticket</td></tr>'}</tbody></table>`;
+}
+
+function toggleAllInvRows(chk){
+  document.querySelectorAll('.inv-row-chk:not(:disabled)').forEach(c=>c.checked=chk.checked);
+}
+
+// Read all input values from the grid back into the entries array
+function readGridEntries(){
+  const t = activeTx;
+  if(!t) return [];
+  let entries = [];
+  if(Array.isArray(t.productEntries)) entries = JSON.parse(JSON.stringify(t.productEntries));
+  else if(typeof t.productEntries === 'string' && t.productEntries.trim().startsWith('[')){
+    try{ entries = JSON.parse(t.productEntries); }catch(e){}
+  }
+  if(!entries.length && t.productCodes){
+    entries = t.productCodes.split(/[,\s]+/).map(s=>s.trim()).filter(Boolean).map(code=>({code, orderNumber:'', shipmentNumber:'', qty:''}));
+  }
+  // Update each entry from inputs
+  document.querySelectorAll('[data-idx]').forEach(inp=>{
+    const i = parseInt(inp.dataset.idx);
+    const field = inp.dataset.field;
+    if(field && entries[i] !== undefined){
+      entries[i][field] = inp.value.trim();
+    }
+  });
+  // Mark rows checked in done column as resolved
+  document.querySelectorAll('.inv-done-chk:checked').forEach(chk=>{
+    const i = parseInt(chk.dataset.idx);
+    if(entries[i]) entries[i].resolved = true;
+  });
+  return entries;
+}
+
 async function saveICTeam(){
-  if(!activeTx)return;
-  const progress=document.getElementById('qProgress').value;
-  const findings=document.getElementById('qFindings').value.trim();
-  const followup=document.getElementById('qFollowup').value.trim();
-  document.getElementById('qSaveBtn').disabled=true; showLoad('Saving & sending…');
-  try {
-    if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress,findings,followup,'IC Team'); }
-    else { await gasPost({action:'updateTicket',inquiryId:activeTx.inquiryId,progress,findings,followUpQuestions:followup,updatedBy:'icteam'}); _applyUpdate(progress,findings,followup,'IC Team'); }
-    hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
-  } catch(e){hideLoad();toast('Save failed: '+e.message,'error');}
+  if(!activeTx) return;
+  const progress = document.getElementById('qProgress').value;
+  const followup = document.getElementById('qFollowup').value.trim();
+  const entries  = readGridEntries();
+
+  // Build findings summary from per-row data
+  const findingsSummary = entries.map(e=>{
+    const parts = [];
+    if(e.qtyLocated)  parts.push('Located: '+e.qtyLocated+(e.qty?' of '+e.qty:''));
+    if(e.binLocated)  parts.push('Bin: '+e.binLocated);
+    if(e.qualityNotes)parts.push('Quality: '+e.qualityNotes);
+    if(e.findings)    parts.push(e.findings);
+    return parts.length ? e.code+' — '+parts.join(' | ') : null;
+  }).filter(Boolean).join('\n');
+
+  document.getElementById('qSaveBtn').disabled=true;
+  showLoad('Saving & sending…');
+  try{
+    const payload = {
+      action:'updateTicket', inquiryId:activeTx.inquiryId,
+      progress, findings:findingsSummary, followUpQuestions:followup,
+      updatedBy:'icteam', productEntries:JSON.stringify(entries),
+    };
+    if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress, findingsSummary, followup, 'IC Team'); }
+    else { await gasPost(payload); _applyUpdate(progress, findingsSummary, followup, 'IC Team'); }
+    // Persist updated entries back to activeTx
+    activeTx.productEntries = entries;
+    hideLoad(); renderTix(allTix); updStats(allTix);
+    toast('Updated — email sent ✓', 'success');
+  }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
   document.getElementById('qSaveBtn').disabled=false;
+}
+
+async function createSubTicketFromRows(){
+  if(!activeTx) return;
+  const entries = readGridEntries();
+
+  // Collect rows that are checked via the row-select checkbox (left column)
+  const selectedIdxs = [...document.querySelectorAll('.inv-row-chk:checked:not(:disabled)')].map(c=>parseInt(c.dataset.idx));
+  if(!selectedIdxs.length){ toast('Select at least one row to close as a sub-ticket','error'); return; }
+
+  const completedEntries = selectedIdxs.map(i=>entries[i]).filter(Boolean);
+
+  // Build findings summary for sub-ticket
+  const findings = completedEntries.map(e=>{
+    const parts = [];
+    if(e.qtyLocated)   parts.push('Located: '+e.qtyLocated+(e.qty?' of '+e.qty:''));
+    if(e.binLocated)   parts.push('Bin: '+e.binLocated);
+    if(e.qualityNotes) parts.push('Quality: '+e.qualityNotes);
+    if(e.findings)     parts.push(e.findings);
+    return parts.length ? e.code+' — '+parts.join(' | ') : e.code+' — Resolved';
+  }).join('\n');
+
+  const followup = document.getElementById('qFollowup').value.trim();
+
+  document.getElementById('qSubBtn').disabled=true;
+  showLoad('Creating sub-ticket & sending email…');
+  try{
+    let result;
+    if(CFG.DEMO_MODE){
+      await delay(800);
+      const subSeq = (activeTx._subCount = (activeTx._subCount||0)+1);
+      const subId  = activeTx.inquiryId + '-' + String(subSeq).padStart(2,'0');
+      result = {success:true, subId, remainingCount: entries.length - completedEntries.length};
+      // Mark completed entries as resolved with subId
+      completedEntries.forEach(e=>{ e.resolved=true; e.subId=subId; });
+      const remaining = entries.filter((_,i)=>!selectedIdxs.includes(i));
+      activeTx.productEntries = entries; // keep all, just mark resolved
+    } else {
+      result = await gasPost({
+        action:'createSubTicket',
+        parentId:activeTx.inquiryId,
+        completedEntries:JSON.stringify(completedEntries),
+        findings, followUpQuestions:followup,
+      });
+      if(result.error) throw new Error(result.error);
+      // Mark entries in local state
+      completedEntries.forEach(e=>{ e.resolved=true; e.subId=result.subId; });
+      activeTx.productEntries = entries;
+      activeTx.progress = result.parentStatus;
+      // Update allTix
+      const idx = allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
+      if(idx>=0){ allTix[idx].productEntries=entries; allTix[idx].progress=result.parentStatus; }
+      sessionClear();
+    }
+    hideLoad();
+    toast(`Sub-ticket ${result.subId} created — email sent ✓`, 'success');
+    // Rebuild the grid to reflect resolved rows
+    buildInvestigationGrid();
+    renderTix(allTix); updStats(allTix);
+  }catch(e){ hideLoad(); toast('Failed: '+e.message,'error'); }
+  document.getElementById('qSubBtn').disabled=false;
 }
 
 async function saveManager(){
