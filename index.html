@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"><!-- v2 -->
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IC Inquiry — C&F Enterprises</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -421,17 +421,18 @@ button,select,input,textarea{font-family:var(--sans)}
 /* Investigation grid */
 .inv-grid{width:100%;border-collapse:collapse;font-size:12px;min-width:640px}
 .inv-grid th{text-align:left;padding:5px 8px 8px;font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;border-bottom:2px solid var(--border);white-space:nowrap}
-.inv-grid td{padding:6px 8px;vertical-align:middle;border-bottom:1px solid var(--border)}
+.inv-grid td{padding:6px 8px;vertical-align:top;border-bottom:1px solid var(--border)}
 .inv-grid tr:last-child td{border-bottom:none}
 .inv-grid tr.inv-row-done{background:#f0fdf4}
 .inv-grid tr.inv-row-done td{opacity:.7}
 .inv-grid .inv-code{font-family:var(--mono);font-weight:700;color:var(--accent);font-size:12px;white-space:nowrap}
-.inv-grid .inv-expected{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center}
-.inv-inp{border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);background:var(--panel);width:100%;box-sizing:border-box;transition:border-color .15s}
-.inv-inp:focus{outline:none;border-color:var(--accent);background:#fff}
+.inv-grid .inv-expected{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center;padding-top:10px}
+.inv-inp{border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;color:var(--text);background:var(--panel);width:100%;box-sizing:border-box;transition:border-color .15s;font-family:inherit}
+.inv-inp:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(37,99,235,.08)}
 .inv-inp.qty-inp{width:64px;text-align:center;font-family:var(--mono)}
-.inv-inp.bin-inp{width:120px;font-family:var(--mono)}
-.inv-inp.notes-inp{width:100%;min-width:120px}
+.inv-inp.bin-ta{width:100%;min-width:110px;resize:none;overflow:hidden;min-height:32px;line-height:1.4;font-family:var(--mono);font-size:12px}
+.inv-inp.notes-ta{width:100%;min-width:140px;resize:none;overflow:hidden;min-height:32px;line-height:1.5;font-size:12px}
+.inv-field-hint{font-size:9px;color:var(--muted);margin-top:2px;line-height:1.3}
 .inv-check{width:18px;height:18px;accent-color:var(--green);cursor:pointer}
 .inv-done-badge{display:inline-block;background:var(--green-l);color:var(--green);border:1px solid rgba(5,150,105,.2);border-radius:20px;font-size:10px;font-weight:700;padding:1px 8px;white-space:nowrap}
 .sub-ticket-badge{display:inline-block;background:var(--accent-l);color:var(--accent);border:1px solid rgba(37,99,235,.2);border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px;font-family:var(--mono)}
@@ -2044,6 +2045,11 @@ function renderThread(log){
    IC TEAM — PER-ROW INVESTIGATION GRID
    ═══════════════════════════════════════════════════════ */
 
+function autoExpand(el){
+  el.style.height = 'auto';
+  el.style.height = (el.scrollHeight) + 'px';
+}
+
 function buildInvestigationGrid(prefix){
   prefix = prefix || 'ic';
   const gridId = {ic:'icInvestigationGrid', mg:'mgInvestigationGrid', dk:'dkInvestigationGrid'}[prefix] || 'icInvestigationGrid';
@@ -2078,9 +2084,9 @@ function buildInvestigationGrid(prefix){
 
   const rowsHtml = entries.map((e,i)=>{
     const isDone = !!e.resolved;
-    const qualCell = isQuality ? `<td><input type="text" class="inv-inp notes-inp" data-prefix="${prefix}" data-idx="${i}" data-field="qualityNotes" value="${esc(e.qualityNotes||'')}" placeholder="Damage, defect details…" ${isDone?'disabled':''}></td>` : '';
+    const qualCell = isQuality ? `<td><textarea class="inv-inp notes-ta" data-prefix="${prefix}" data-idx="${i}" data-field="qualityNotes" placeholder="Damage, defect details…" rows="1" oninput="autoExpand(this)" ${isDone?'disabled':''}>${esc(e.qualityNotes||'')}</textarea></td>` : '';
     return `<tr class="${isDone?'inv-row-done':''}" id="${prefix}-inv-row-${i}">
-      <td><input type="checkbox" class="inv-check inv-row-chk-${prefix}" data-prefix="${prefix}" data-idx="${i}" ${isDone?'checked disabled':''}></td>
+      <td style="vertical-align:top;padding-top:10px"><input type="checkbox" class="inv-check inv-row-chk-${prefix}" data-prefix="${prefix}" data-idx="${i}" ${isDone?'checked disabled':''}></td>
       <td>
         <div class="inv-code">${esc(e.code)}</div>
         ${e.orderNumber?`<div style="font-size:10px;color:var(--muted);font-family:var(--mono)">Order: ${esc(e.orderNumber)}</div>`:''}
@@ -2089,10 +2095,15 @@ function buildInvestigationGrid(prefix){
       </td>
       <td class="inv-expected">${esc(e.qty||'—')}</td>
       <td><input type="number" min="0" class="inv-inp qty-inp" data-prefix="${prefix}" data-idx="${i}" data-field="qtyLocated" value="${esc(e.qtyLocated||'')}" placeholder="0" ${isDone?'disabled':''}></td>
-      <td><input type="text" class="inv-inp bin-inp" data-prefix="${prefix}" data-idx="${i}" data-field="binLocated" value="${esc(e.binLocated||'')}" placeholder="e.g. A-04-B" ${isDone?'disabled':''}></td>
+      <td>
+        <textarea class="inv-inp bin-ta" data-prefix="${prefix}" data-idx="${i}" data-field="binLocated" placeholder="A-04-B" rows="1" oninput="autoExpand(this)" ${isDone?'disabled':''}>${esc(e.binLocated||'')}</textarea>
+        <div class="inv-field-hint">Separate multiple bins with commas</div>
+      </td>
       ${qualCell}
-      <td><input type="text" class="inv-inp notes-inp" data-prefix="${prefix}" data-idx="${i}" data-field="findings" value="${esc(e.findings||'')}" placeholder="Notes…" ${isDone?'disabled':''}></td>
-      <td style="text-align:center">${isDone
+      <td>
+        <textarea class="inv-inp notes-ta" data-prefix="${prefix}" data-idx="${i}" data-field="findings" placeholder="Notes…" rows="1" oninput="autoExpand(this)" ${isDone?'disabled':''}>${esc(e.findings||'')}</textarea>
+      </td>
+      <td style="vertical-align:top;padding-top:8px;text-align:center">${isDone
         ? `<span class="inv-done-badge">&#10003; Done</span>`
         : `<input type="checkbox" class="inv-check inv-done-chk-${prefix}" data-prefix="${prefix}" data-idx="${i}" title="Mark row complete">`
       }</td>
@@ -2100,6 +2111,8 @@ function buildInvestigationGrid(prefix){
   }).join('');
 
   el.innerHTML = `<table class="inv-grid"><thead><tr>${colsHtml}</tr></thead><tbody>${rowsHtml||`<tr><td colspan="8" style="padding:12px;color:var(--muted);text-align:center">No products on this ticket</td></tr>`}</tbody></table>`;
+  // Expand any textareas that already have content
+  el.querySelectorAll('textarea').forEach(function(ta){ autoExpand(ta); });
 }
 
 function toggleAllInvRows(prefix, chk){
