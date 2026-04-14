@@ -908,9 +908,31 @@ button,select,input,textarea{font-family:var(--sans)}
   <div class="table-wrap"><div id="tblArea"></div></div>
 </div>
 
-</div><!-- #app -->
 
-<!-- ═══════════ STATS SCREEN ═══════════ -->
+<div class="screen" id="opsScreen">
+  <div class="dash-toolbar" style="padding:8px 20px">
+    <div style="font-size:13px;font-weight:600;color:var(--purple);display:flex;align-items:center;gap:8px">
+      ⚙️ <span>Operations — Allocated Item Alerts</span>
+    </div>
+    <button class="refresh-btn" id="opsRefreshBtn" onclick="loadOpsAlerts(true)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+  <div class="stats-strip" id="opsStatsStrip" style="padding:8px 20px">
+    <div class="stat-card" style="border-color:rgba(234,88,12,.2);background:#fff7ed"><div class="sv" id="osTotal" style="color:#ea580c">—</div><div class="sl" style="color:#ea580c">🔒 Total Allocated</div></div>
+    <div class="stat-card" style="border-color:rgba(234,88,12,.2);background:#fff7ed"><div class="sv" id="osPending" style="color:#ea580c">—</div><div class="sl">Pending Release</div></div>
+    <div class="stat-card sc-green"><div class="sv" id="osReleased">—</div><div class="sl">Released Today</div></div>
+    <div class="stat-card sc-blue"><div class="sv" id="osTickets">—</div><div class="sl">Tickets Affected</div></div>
+  </div>
+  <div style="padding:8px 20px;background:#f5f3ff;border-bottom:1px solid rgba(124,58,237,.15);font-size:12px;color:#7c3aed;flex-shrink:0">
+    🔒 Items flagged as <strong>allocated in Apprise</strong> by IC. Confirm release here so IC can proceed.
+  </div>
+  <div id="opsAlertArea" style="padding:16px 20px 40px">
+    <div style="color:var(--muted);font-size:13px">Loading…</div>
+  </div>
+</div>
+
 <div class="screen" id="statsScreen">
   <div class="stats-wrap">
     <div class="stats-header">
@@ -981,6 +1003,9 @@ button,select,input,textarea{font-family:var(--sans)}
     </div>
   </div>
 </div>
+</div><!-- #app -->
+
+<!-- ═══════════ STATS SCREEN ═══════════ -->
 
 <!-- ═══════════ TICKET MODAL ═══════════ -->
 <div class="overlay" id="modalOv" onclick="closeMoBg(event)">
@@ -1152,29 +1177,6 @@ button,select,input,textarea{font-family:var(--sans)}
 
 
 <!-- ═══════════ OPS SCREEN ═══════════ -->
-<div class="screen" id="opsScreen">
-  <div class="dash-toolbar" style="padding:8px 20px">
-    <div style="font-size:13px;font-weight:600;color:var(--purple);display:flex;align-items:center;gap:8px">
-      ⚙️ <span>Operations — Allocated Item Alerts</span>
-    </div>
-    <button class="refresh-btn" id="opsRefreshBtn" onclick="loadOpsAlerts(true)">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-      Refresh
-    </button>
-  </div>
-  <div class="stats-strip" id="opsStatsStrip" style="padding:8px 20px">
-    <div class="stat-card" style="border-color:rgba(234,88,12,.2);background:#fff7ed"><div class="sv" id="osTotal" style="color:#ea580c">—</div><div class="sl" style="color:#ea580c">🔒 Total Allocated</div></div>
-    <div class="stat-card" style="border-color:rgba(234,88,12,.2);background:#fff7ed"><div class="sv" id="osPending" style="color:#ea580c">—</div><div class="sl">Pending Release</div></div>
-    <div class="stat-card sc-green"><div class="sv" id="osReleased">—</div><div class="sl">Released Today</div></div>
-    <div class="stat-card sc-blue"><div class="sv" id="osTickets">—</div><div class="sl">Tickets Affected</div></div>
-  </div>
-  <div style="padding:8px 20px;background:#f5f3ff;border-bottom:1px solid rgba(124,58,237,.15);font-size:12px;color:#7c3aed;flex-shrink:0">
-    🔒 Items flagged as <strong>allocated in Apprise</strong> by IC. Confirm release here so IC can proceed.
-  </div>
-  <div id="opsAlertArea" style="padding:16px 20px 40px">
-    <div style="color:var(--muted);font-size:13px">Loading…</div>
-  </div>
-</div>
 
 <!-- ═══════════ MERGE MODAL ═══════════ -->
 <div class="merge-overlay" id="mergeOverlay">
