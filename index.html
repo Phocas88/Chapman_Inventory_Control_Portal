@@ -1063,12 +1063,15 @@ button,select,input,textarea{font-family:var(--sans)}
 
       <!-- Action buttons -->
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px">
-        <button class="quick-save-btn" style="background:var(--green);padding:8px 16px" id="qSubBtn" onclick="createSubTicketFromRows()">
+        <button class="quick-save-btn" style="background:#ea580c;padding:8px 16px" id="qAllocBtn" onclick="saveAllocationOnly('ic')" title="Flag checked 🔒 rows as allocated — alerts Ops immediately">
+          🔒 Flag Allocated Items
+        </button>
+        <button class="quick-save-btn" style="background:var(--green);padding:8px 16px" id="qSubBtn" onclick="createSubTicketFromRows('ic')">
           ✓ Close Selected Rows as Sub-Ticket →
         </button>
         <button class="quick-save-btn" id="qSaveBtn" onclick="saveICTeam()">Save &amp; Send Update →</button>
       </div>
-      <div class="hint" style="text-align:right">⚠ "Save & Send" emails the division. "Close Selected Rows" creates a sub-ticket (IC-XXXX-01) and emails just those items.</div>
+      <div class="hint" style="text-align:right">🔒 Flag Allocated alerts Ops. Save &amp; Send emails division. Close Rows creates sub-ticket.</div>
     </div>
     <div class="manager-panel" id="managerPanel" style="display:none">
       <div class="manager-panel-title">IC Manager — Full Control</div>
@@ -1082,6 +1085,9 @@ button,select,input,textarea{font-family:var(--sans)}
       </div>
       <div id="mgInvestigationGrid" style="overflow-x:auto;margin-top:4px"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px">
+        <button class="quick-save-btn" style="background:#ea580c;padding:8px 16px" id="mAllocBtn" onclick="saveAllocationOnly('mg')" title="Flag checked 🔒 rows as allocated — alerts Ops immediately">
+          🔒 Flag Allocated Items
+        </button>
         <button class="quick-save-btn" style="background:var(--green);padding:8px 16px" id="mSubBtn" onclick="createSubTicketFromRows('mg')">
           ✓ Close Selected Rows as Sub-Ticket →
         </button>
@@ -1113,6 +1119,9 @@ button,select,input,textarea{font-family:var(--sans)}
       </div>
       <div id="dkInvestigationGrid" style="overflow-x:auto;margin-top:4px"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px">
+        <button class="dock-save-btn" style="background:#ea580c;padding:8px 16px" id="dkAllocBtn" onclick="saveAllocationOnly('dk')" title="Flag checked 🔒 rows as allocated — alerts Ops immediately">
+          🔒 Flag Allocated Items
+        </button>
         <button class="dock-save-btn" style="background:var(--green);padding:8px 16px" id="dkSubBtn" onclick="createSubTicketFromRows('dk')">
           ✓ Close Selected Rows as Sub-Ticket →
         </button>
@@ -1521,7 +1530,15 @@ async function loadOpsAlerts(forceRefresh){
   el.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px"><span style="animation:spin 1s linear infinite;display:inline-block">⟳</span> Loading allocation alerts…</div>';
   try {
     if(CFG.DEMO_MODE){
-      opsAlerts = [];
+      // Demo: show sample allocated items so the screen is testable
+      opsAlerts = [{
+        inquiryId:'IC-1039', division:'NH', productCodes:'NPH88010',
+        description:'PO Count Discrepancy — receiving dock item.',
+        progress:'Investigating', findings:'BCH44210 — Located: 4 of 12 | Bin: A-04-B | Cannot adjust — item is allocated to open pick wave.',
+        timestamp: new Date(Date.now()-2*86400000).toISOString(),
+        productEntries: JSON.stringify([{code:'NPH88010',orderNumber:'NH00023321',qty:'12',qtyLocated:'4',binLocated:'A-04-B',findings:'Allocated to open pick wave PW-4421'}]),
+        allocFlags: JSON.stringify([{code:'NPH88010',notes:'Allocated to open pick wave PW-4421',allocated:true,confirmed:false}]),
+      }];
     } else {
       const r = await gasGet({action:'getOpsAlerts'});
       opsAlerts = (r && r.alerts) ? r.alerts : [];
@@ -1529,7 +1546,7 @@ async function loadOpsAlerts(forceRefresh){
     renderOpsAlerts();
   } catch(e){
     opsAlerts = [];
-    el.innerHTML = '<div style="padding:20px;color:var(--red);font-size:13px">⚠ Failed to load allocation alerts: '+e.message+'<br><button onclick="loadOpsAlerts(true)" style="margin-top:8px;padding:6px 14px;border:1px solid var(--red);border-radius:6px;background:none;color:var(--red);cursor:pointer">Retry</button></div>';
+    el.innerHTML = '<div style="padding:20px;color:var(--red);font-size:13px">⚠ Failed to load: '+e.message+'<br><button onclick="loadOpsAlerts(true)" style="margin-top:8px;padding:6px 14px;border:1px solid var(--red);border-radius:6px;background:none;color:var(--red);cursor:pointer">Retry</button></div>';
   }
 }
 
@@ -2760,6 +2777,39 @@ function buildFindingsSummary(entries){
     if(e.findings)     parts.push(e.findings);
     return parts.length ? e.code+' — '+parts.join(' | ') : null;
   }).filter(Boolean).join('\n');
+}
+
+async function saveAllocationOnly(prefix){
+  if(!activeTx) return;
+  prefix = prefix || 'ic';
+  const entries = readGridEntries(prefix);
+  const allocEntries = entries.filter(e=>e.allocated).map(e=>({
+    code:      e.code,
+    notes:     e.findings || '',
+    allocated: true,
+    confirmed: false,
+  }));
+  if(!allocEntries.length){
+    toast('Check the 🔒 Alloc box on at least one row first','error');
+    return;
+  }
+  const btnId = {ic:'qAllocBtn', mg:'mAllocBtn', dk:'dkAllocBtn'}[prefix]||'qAllocBtn';
+  const btn   = document.getElementById(btnId);
+  if(btn) btn.disabled=true;
+  showLoad('Flagging as allocated — alerting Ops…');
+  try{
+    if(!CFG.DEMO_MODE){
+      await gasPost({action:'setAllocation', inquiryId:activeTx.inquiryId, allocEntries:JSON.stringify(allocEntries)});
+    }
+    // Update local entries
+    activeTx.productEntries = entries;
+    const idx = allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
+    if(idx>=0) allTix[idx].productEntries = entries;
+    hideLoad();
+    toast('🔒 '+allocEntries.map(e=>e.code).join(', ')+' flagged as allocated — Ops alerted ✓','success');
+    buildInvestigationGrid(prefix);
+  }catch(e){ hideLoad(); toast('Failed: '+e.message,'error'); }
+  if(btn) btn.disabled=false;
 }
 
 async function saveICTeam(){
