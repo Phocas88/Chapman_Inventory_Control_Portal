@@ -1377,6 +1377,7 @@ function doLogin(target){
     allTix=[];
     setChip('⚙️ Operations','ops');
     setNav('none','none','none','none','');
+    document.getElementById('globalStats').classList.remove('show');
     loadBanner(); saveSession(target);
     showScreen('ops'); // show immediately — loadOpsAlerts fires inside showScreen
   } else {
@@ -2018,6 +2019,8 @@ function renderGlobalStats(){
   const gs=document.getElementById('globalStats');
   const grid=document.getElementById('gsGrid');
   const s=globalStatsData;
+  // Ops role never shows the global stats bar
+  if(role==='ops'){ gs.classList.remove('show'); return; }
   if(!s||!s._overall){ gs.classList.remove('show'); return; }
   gs.classList.add('show');
   const o=s._overall;
