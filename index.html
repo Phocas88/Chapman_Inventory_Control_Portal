@@ -44,6 +44,7 @@ button,select,input,textarea{font-family:var(--sans)}
 .role-chip.icteam{color:var(--purple);background:var(--purple-l);border:1px solid rgba(124,58,237,.2)}
 .role-chip.manager{color:var(--accent);background:var(--accent-l);border:1px solid rgba(37,99,235,.2)}
 .role-chip.dockmanager{color:#0891b2;background:#ecfeff;border:1px solid rgba(8,145,178,.2)}
+.role-chip.ops{color:#7c3aed;background:var(--purple-l);border:1px solid rgba(124,58,237,.2)}
 .topbar-nav{display:flex;gap:4px;margin-left:auto}
 .nav-btn{font-size:12px;font-weight:500;padding:6px 14px;border-radius:6px;border:1px solid transparent;cursor:pointer;background:none;color:var(--muted);transition:all .15s}
 .nav-btn:hover{color:var(--text);background:var(--panel)}
@@ -73,6 +74,7 @@ button,select,input,textarea{font-family:var(--sans)}
 .ic-login-btn:hover{border-color:var(--purple);background:var(--purple-l);transform:translateY(-1px)}
 .ic-login-btn.manager:hover{border-color:var(--accent);background:var(--accent-l)}
 .ic-login-btn.dockmanager:hover{border-color:#0891b2;background:#ecfeff}
+.ic-login-btn.ops:hover{border-color:var(--purple);background:var(--purple-l)}
 .ic-login-btn .ib-icon{font-size:22px}
 .ic-login-btn .ib-title{font-size:13px;font-weight:600}
 .ic-login-btn .ib-sub{font-size:11px;color:var(--muted)}
@@ -262,6 +264,7 @@ button,select,input,textarea{font-family:var(--sans)}
 .filter-sel{background:var(--panel);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:12px;padding:8px 10px;cursor:pointer;-webkit-appearance:none}
 .refresh-btn{background:none;border:1.5px solid var(--border);color:var(--muted);font-size:12px;padding:8px 13px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s}
 .refresh-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-l)}
+.refresh-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .refresh-btn.spinning svg{animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .stats-strip{display:flex;gap:12px;padding:12px 20px;flex-wrap:wrap}
@@ -449,6 +452,35 @@ button,select,input,textarea{font-family:var(--sans)}
 .df textarea{resize:vertical;min-height:64px;line-height:1.6}
 .dock-save-btn{padding:9px 18px;background:#0891b2;color:#fff;border:none;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;align-self:flex-end}
 .dock-save-btn:hover{background:#0e7490}
+/* Ops screen */
+.ops-card{background:var(--surface);border:1.5px solid rgba(124,58,237,.2);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.ops-card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+.ops-ticket-id{font-family:var(--mono);font-weight:700;color:#7c3aed;font-size:13px}
+.ops-division{font-size:11px;color:var(--muted)}
+.ops-alloc-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.ops-alloc-table th{font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;padding:4px 10px 6px 0;border-bottom:1.5px solid var(--border)}
+.ops-alloc-table td{padding:6px 10px 6px 0;vertical-align:top;border-bottom:1px solid var(--border)}
+.ops-alloc-table tr:last-child td{border-bottom:none}
+.ops-confirm-btn{padding:5px 14px;background:#7c3aed;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.ops-confirm-btn:hover{background:#6d28d9}
+.ops-confirm-btn:disabled{opacity:.5;cursor:not-allowed}
+.ops-confirmed-badge{display:inline-block;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:10px;font-weight:700;padding:3px 10px}
+.alloc-badge{display:inline-block;background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px;white-space:nowrap}
+/* Allocation bell */
+.alloc-bell{background:none;border:none;cursor:pointer;font-size:13px;padding:4px 8px;border-radius:8px;color:#ea580c;font-weight:700;display:flex;align-items:center;gap:4px;animation:bellRing .6s ease infinite}
+@keyframes bellRing{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(8deg)}}
+/* Duplicate grouping */
+.dup-group{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:12px}
+.dup-group-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-family:var(--mono);font-weight:700;color:#d97706;font-size:13px}
+.dup-count-badge{background:#fef3c7;color:#d97706;border:1px solid #fde68a;border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px}
+/* Allocated row in IC grid */
+.inv-alloc-row{background:#fff7ed!important}
+.inv-alloc-row td{border-left:3px solid #ea580c}
+/* Allocation email config panel */
+.alloc-email-panel{background:#fff7ed;border:1.5px solid rgba(234,88,12,.2);border-radius:10px;padding:14px 16px;margin-top:12px}
+.alloc-email-panel-title{font-size:11px;font-family:var(--mono);font-weight:600;color:#ea580c;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+.alloc-email-tag{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid #fed7aa;border-radius:20px;padding:3px 10px;font-size:12px;color:#92400e;margin:3px}
+.alloc-email-tag button{background:none;border:none;cursor:pointer;color:#dc2626;font-size:14px;line-height:1;padding:0}
 .dock-save-btn:disabled{opacity:.5;cursor:not-allowed}
 .mf{display:flex;flex-direction:column;gap:5px}
 .mf label{font-size:11px;font-weight:500;color:var(--accent);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
@@ -542,6 +574,8 @@ button,select,input,textarea{font-family:var(--sans)}
     <button class="nav-btn" onclick="showScreen('form')"    id="navForm"    style="display:none">New Inquiry</button>
     <button class="nav-btn" onclick="showScreen('dash')"    id="navDash"    style="display:none">Dashboard</button>
     <button class="nav-btn" onclick="showScreen('stats')"   id="navStats"   style="display:none">📊 Stats</button>
+    <button class="nav-btn" onclick="showScreen('ops')"      id="navOps"     style="display:none">⚙️ Ops</button>
+    <button id="allocBell" class="alloc-bell" onclick="showScreen('ops')" style="display:none" title="Allocation confirmed by Ops — click to view">🔔 <span id="allocBellCount">0</span></button>
     <button class="nav-btn lock" onclick="logout()">← Lock</button>
   </nav>
 </header>
@@ -587,6 +621,10 @@ button,select,input,textarea{font-family:var(--sans)}
       <button class="ic-login-btn dockmanager" onclick="goPin('dockmanager')">
         <span class="ib-icon">🚛</span>
         <div><div class="ib-title">Dock Manager</div><div class="ib-sub">Shipping &amp; receiving tickets</div></div>
+      </button>
+      <button class="ic-login-btn ops" onclick="goPin('ops')">
+        <span class="ib-icon">🏭</span>
+        <div><div class="ib-title">Operations</div><div class="ib-sub">View &amp; release allocated items</div></div>
       </button>
     </div>
   </div>
@@ -707,7 +745,7 @@ button,select,input,textarea{font-family:var(--sans)}
         </div>
         <div class="product-list" id="productList">
           <div class="product-entry">
-            <input type="text" placeholder="e.g. BCH44210" class="product-code">
+            <input type="text" placeholder="e.g. BCH44210" class="product-code" oninput="this.value=this.value.toUpperCase()">
             <input type="text" placeholder="e.g. NH00023321" class="product-order">
             <input type="text" placeholder="e.g. SHP00441" class="product-shipment">
             <input type="number" placeholder="Qty" class="product-qty" min="0">
@@ -834,6 +872,9 @@ button,select,input,textarea{font-family:var(--sans)}
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Refresh
     </button>
+    <button class="refresh-btn" id="groupByBtn" onclick="toggleGroupByProduct()" title="Group open tickets by product code to find duplicates">
+      🔗 Group by Product
+    </button>
   </div>
   <div class="stats-strip">
     <div class="stat-card sc-blue"><div class="sv" id="sTot">—</div><div class="sl">Open Tickets</div></div>
@@ -954,7 +995,7 @@ button,select,input,textarea{font-family:var(--sans)}
             <option>Returns</option><option>Bin Move</option><option>Cycle Count</option><option>Other</option>
           </select>
         </div>
-        <div class="ef2"><label>Product Code(s)</label><input type="text" id="eFProducts" placeholder="BCH44210 NH00023321"></div>
+        <div class="ef2"><label>Product Code(s)</label><input type="text" id="eFProducts" placeholder="BCH44210 NH00023321" oninput="this.value=this.value.toUpperCase()"></div>
         <div class="ef2"><label>Order Number</label><input type="text" id="eFOrderNum" placeholder="NH00023321"></div>
         <div class="ef2"><label>Quantity</label><input type="number" id="eFQtyPick" min="0" placeholder="24"></div>
         <div class="ef2"><label>Inventory Issue Type</label>
@@ -1027,6 +1068,18 @@ button,select,input,textarea{font-family:var(--sans)}
         <button class="btn-primary" id="mSaveBtn" onclick="saveManager()">Save &amp; Send Update →</button>
       </div>
       <div class="hint" style="text-align:right">⚠ "Save & Send" emails the division. "Close Selected Rows" creates a sub-ticket and emails just those items.</div>
+
+      <!-- Allocation email config — manager only -->
+      <div class="alloc-email-panel" id="allocEmailPanel">
+        <div class="alloc-email-panel-title">🔒 Allocation Alert Emails</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px">These addresses receive an email when IC flags an item as allocated in Apprise.</div>
+        <div id="allocEmailTags" style="margin-bottom:10px"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="email" id="allocEmailInput" placeholder="email@cnfei.com" style="flex:1;min-width:180px;border:1.5px solid rgba(234,88,12,.25);border-radius:6px;padding:6px 10px;font-size:12px">
+          <button onclick="addAllocEmail()" style="padding:6px 14px;background:#ea580c;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
+          <button onclick="saveAllocEmailList()" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Save List</button>
+        </div>
+      </div>
     </div>
     <div class="dock-panel" id="dockPanel" style="display:none">
       <div class="dock-panel-title">🚛 Dock Manager — Receiving &amp; Shipping Response</div>
@@ -1063,6 +1116,26 @@ button,select,input,textarea{font-family:var(--sans)}
     <button class="btn-primary" id="mSaveBtn" onclick="saveManager()">Save &amp; Send Update →</button>
   </div>
 </div>
+</div>
+
+
+<!-- ═══════════ OPS SCREEN ═══════════ -->
+<div class="screen" id="opsScreen">
+  <div class="dash-toolbar">
+    <div style="font-size:13px;font-weight:600;color:var(--purple);display:flex;align-items:center;gap:8px">
+      ⚙️ <span>Operations — Allocated Item Alerts</span>
+    </div>
+    <button class="refresh-btn" id="opsRefreshBtn" onclick="loadOpsAlerts(true)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Refresh
+    </button>
+  </div>
+  <div style="padding:14px 20px;background:#f5f3ff;border-bottom:1px solid rgba(124,58,237,.15);font-size:12px;color:#7c3aed">
+    🔒 Items below are flagged as <strong>allocated in Apprise</strong> by the IC team. Once you release the allocation, confirm here so IC can proceed with the adjustment.
+  </div>
+  <div id="opsAlertArea" style="padding:20px">
+    <div style="color:var(--muted);font-size:13px">Loading…</div>
+  </div>
 </div>
 
 <!-- FORGOT PIN MODAL -->
@@ -1159,6 +1232,10 @@ function goPin(target){
     b.textContent='🚛 Dock Manager';
     b.style.cssText='background:#ecfeff;color:#0891b2;border:1.5px solid rgba(8,145,178,.2)';
     document.getElementById('pinSub').textContent='Enter your Dock Manager PIN';
+  } else if(target==='ops'){
+    b.textContent='⚙️ Operations';
+    b.style.cssText='background:var(--purple-l);color:var(--purple);border:1.5px solid rgba(124,58,237,.2)';
+    document.getElementById('pinSub').textContent='Enter your Operations PIN';
   } else {
     b.textContent='⚙️ IC Manager';
     b.style.cssText='background:var(--accent-l);color:var(--accent);border:1.5px solid rgba(37,99,235,.2)';
@@ -1198,6 +1275,7 @@ function chkPin(){
   if(isDiv)                         exp=CFG.DIV_PINS[pinTarget];
   else if(pinTarget==='icteam')     exp=CFG.PIN_ICTEAM;
   else if(pinTarget==='dockmanager')exp=CFG.PIN_DOCK_MGR;
+  else if(pinTarget==='ops')        exp=CFG.PIN_OPS;
   else                              exp=CFG.PIN_MANAGER;
   if(pinBuf!==exp){ pinShake('Incorrect PIN'); return; }
   doLogin(pinTarget);
@@ -1225,6 +1303,7 @@ function doLogin(target){
     document.getElementById('navForm').style.display='none';
     document.getElementById('navDash').style.display='';
     document.getElementById('navStats').style.display='';
+    document.getElementById('navOps').style.display='';
     loadBanner();
     saveSession(target);
     loadTix().then(()=>showScreen('dash'));
@@ -1239,6 +1318,18 @@ function doLogin(target){
     loadBanner();
     saveSession(target);
     loadTix().then(()=>showScreen('dash'));
+  } else if(target==='ops'){
+    role='ops'; currentDiv='';
+    allTix=[];
+    setChip('⚙️ Operations','ops');
+    document.getElementById('navTracker').style.display='none';
+    document.getElementById('navForm').style.display='none';
+    document.getElementById('navDash').style.display='none';
+    document.getElementById('navStats').style.display='none';
+    document.getElementById('navOps').style.display='';
+    loadBanner();
+    saveSession(target);
+    loadOpsAlerts().then(()=>showScreen('ops'));
   } else {
     role='manager'; currentDiv='';
     allTix=[];
@@ -1273,7 +1364,7 @@ function restoreSession(){
     // Session valid for 8 hours
     if(!target || Date.now() - ts > 8 * 60 * 60 * 1000){ clearSession(); return false; }
     // Validate target is still a known role/division
-    const valid = CFG.DIV_PINS[target] || target==='icteam' || target==='manager' || target==='dockmanager';
+    const valid = CFG.DIV_PINS[target] || target==='icteam' || target==='manager' || target==='dockmanager' || target==='ops';
     if(!valid){ clearSession(); return false; }
     pinTarget = target;
     doLogin(target);
@@ -1382,6 +1473,283 @@ function clearBanner(){
 /* ═══════════════════════════════════════════════════════
    GLOBAL STATS
    ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   OPS SCREEN — Allocation Alerts
+   ═══════════════════════════════════════════════════════ */
+let opsAlerts = [];
+
+async function loadOpsAlerts(forceRefresh){
+  const el = document.getElementById('opsAlertArea');
+  if(!el) return;
+  el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Loading alerts…</div>';
+  try {
+    if(CFG.DEMO_MODE){
+      opsAlerts = [];
+      renderOpsAlerts();
+      return;
+    }
+    const r = await gasGet({action:'getOpsAlerts'});
+    opsAlerts = r.alerts || [];
+    renderOpsAlerts();
+  } catch(e){
+    el.innerHTML = '<div style="color:var(--red);font-size:13px">Failed to load: '+e.message+'</div>';
+  }
+}
+
+function renderOpsAlerts(){
+  const el = document.getElementById('opsAlertArea');
+  if(!el) return;
+  if(!opsAlerts.length){
+    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:32px;margin-bottom:10px">✅</div><div style="font-size:14px;font-weight:600">No allocated items pending release</div><div style="font-size:12px;margin-top:4px">IC has not flagged any items as allocated in Apprise</div></div>';
+    return;
+  }
+  el.innerHTML = opsAlerts.map(a=>{
+    let flags = [];
+    try{ flags = JSON.parse(a.allocFlags||'[]'); }catch(e){}
+    const pending = flags.filter(f=>f.allocated && !f.confirmed);
+    if(!pending.length) return '';
+
+    let entries = [];
+    try{ entries = JSON.parse(a.productEntries||'[]'); }catch(e){}
+
+    const rows = pending.map(f=>{
+      const pe = entries.find(e=>e.code===f.code)||{};
+      return `<tr>
+        <td style="font-family:var(--mono);font-weight:700;color:var(--accent)">${esc(f.code)}</td>
+        <td style="color:var(--muted);font-size:11px">${esc(pe.binLocated||'—')}</td>
+        <td style="max-width:200px;font-size:12px">${esc(f.notes||'—')}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${esc(pe.qtyLocated||'—')} / ${esc(pe.qty||'—')}</td>
+        <td><button class="ops-confirm-btn" onclick="confirmOpsRelease('${esc(a.inquiryId)}','${esc(f.code)}',this)">✓ Confirm Released</button></td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="ops-card">
+      <div class="ops-card-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="ops-ticket-id">${esc(a.inquiryId)}</span>
+            <span class="alloc-badge">🔒 ${pending.length} Allocated</span>
+          </div>
+          <div class="ops-division">${DIV_NAMES[a.division]||a.division} — ${esc(a.progress)}</div>
+          <div style="font-size:11px;color:var(--text);margin-top:4px;max-width:480px">${esc(a.description||'').substring(0,120)}${(a.description||'').length>120?'…':''}</div>
+        </div>
+      </div>
+      ${a.findings?`<div style="font-size:12px;color:var(--text);background:var(--panel);border-radius:6px;padding:8px 10px;margin-bottom:10px;border-left:3px solid var(--purple)"><strong style="font-size:10px;color:var(--purple);font-family:var(--mono);text-transform:uppercase;letter-spacing:.07em">IC Notes</strong><br>${esc(a.findings)}</div>`:''}
+      <table class="ops-alloc-table">
+        <thead><tr>
+          <th>Product Code</th><th>Bin(s)</th><th>IC Notes</th><th>Qty Located/Expected</th><th></th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+  if(!el.innerHTML.trim()) el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">No pending allocations found.</div>';
+}
+
+async function confirmOpsRelease(inquiryId, code, btn){
+  btn.disabled = true;
+  btn.textContent = 'Confirming…';
+  try {
+    if(!CFG.DEMO_MODE){
+      const r = await gasPost({action:'confirmUnallocated', inquiryId, code});
+      if(r.error) throw new Error(r.error);
+    }
+    // Update local state
+    const a = opsAlerts.find(x=>x.inquiryId===inquiryId);
+    if(a){
+      let flags = [];
+      try{ flags = JSON.parse(a.allocFlags||'[]'); }catch(e){}
+      flags = flags.map(f=>f.code===code ? {...f, confirmed:true, confirmedAt:new Date().toISOString()} : f);
+      a.allocFlags = JSON.stringify(flags);
+    }
+    // Check if IC team has pending bell updates
+    checkAllocBell();
+    // Re-render
+    loadOpsAlerts();
+    toast('✓ '+code+' confirmed as released — IC has been notified','success');
+  } catch(e){
+    btn.disabled=false; btn.textContent='✓ Confirm Released';
+    toast('Failed: '+e.message,'error');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   ALLOCATION BELL — polls for Ops-confirmed items
+   ═══════════════════════════════════════════════════════ */
+let _bellPollInterval = null;
+
+function startBellPoll(){
+  checkAllocBell();
+  if(_bellPollInterval) clearInterval(_bellPollInterval);
+  _bellPollInterval = setInterval(checkAllocBell, 90000); // check every 90s
+}
+
+async function checkAllocBell(){
+  if(CFG.DEMO_MODE || (role!=='icteam' && role!=='manager')) return;
+  try {
+    const r = await gasGet({action:'getOpsAlerts'});
+    // Count items that Ops has confirmed but IC hasn't yet seen (confirmed in last 2 hours)
+    let count = 0;
+    const cutoff = Date.now() - 2*60*60*1000;
+    (r.alerts||[]).forEach(a=>{
+      let flags = [];
+      try{ flags = JSON.parse(a.allocFlags||'[]'); }catch(e){}
+      flags.forEach(f=>{
+        if(f.confirmed && f.confirmedAt && new Date(f.confirmedAt).getTime() > cutoff) count++;
+      });
+    });
+    const bell = document.getElementById('allocBell');
+    const cnt  = document.getElementById('allocBellCount');
+    if(bell){
+      bell.style.display = count > 0 ? '' : 'none';
+      if(cnt) cnt.textContent = count;
+    }
+  } catch(e){}
+}
+
+/* ═══════════════════════════════════════════════════════
+   SAVE ALLOCATION — fires when IC saves with alloc flags
+   ═══════════════════════════════════════════════════════ */
+async function syncAllocationFlags(entries, inquiryId){
+  const allocEntries = entries.filter(e=>e.allocated).map(e=>({
+    code:  e.code,
+    notes: e.findings || '',
+    allocated: true,
+    confirmed: e.allocConfirmed || false,
+  }));
+  if(!allocEntries.length) return;
+  try {
+    if(!CFG.DEMO_MODE){
+      await gasPost({action:'setAllocation', inquiryId, allocEntries:JSON.stringify(allocEntries)});
+    }
+  } catch(e){ console.warn('Alloc sync failed:',e); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   DUPLICATE PRODUCT GROUPING
+   ═══════════════════════════════════════════════════════ */
+let groupByProduct = false;
+
+function toggleGroupByProduct(){
+  groupByProduct = !groupByProduct;
+  const btn = document.getElementById('groupByBtn');
+  if(btn) btn.classList.toggle('active', groupByProduct);
+  if(groupByProduct) renderGroupedDash();
+  else filterTix();
+}
+
+function renderGroupedDash(){
+  // Build a map: productCode -> [{ticket}]
+  const map = {};
+  allTix.forEach(t=>{
+    const codes = (t.productCodes||'').split(/[,\s]+/).map(s=>s.trim()).filter(Boolean);
+    codes.forEach(code=>{
+      if(!map[code]) map[code]=[];
+      // Avoid duplicating same ticket under same code
+      if(!map[code].find(x=>x.inquiryId===t.inquiryId)) map[code].push(t);
+    });
+  });
+
+  const dupCodes = Object.keys(map).filter(k=>map[k].length>1).sort();
+  const singleCodes = Object.keys(map).filter(k=>map[k].length===1).sort();
+  const area = document.getElementById('tblArea');
+  if(!area) return;
+
+  let html = '';
+
+  if(dupCodes.length){
+    html += '<div style="font-size:11px;font-family:var(--mono);font-weight:600;color:var(--orange);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">⚠ Duplicate Product Codes — Multiple Open Tickets</div>';
+    dupCodes.forEach(code=>{
+      const tickets = map[code];
+      html += `<div class="dup-group">
+        <div class="dup-group-header">
+          ${esc(code)}
+          <span class="dup-count-badge">${tickets.length} tickets</span>
+        </div>
+        <table class="tbl" style="width:100%"><thead><tr>
+          <th>Ticket</th><th>Division</th><th>Status</th><th>Days Open</th><th>Category</th>
+        </tr></thead><tbody>
+        ${tickets.map(t=>{
+          const days=daysSince(t.timestamp);
+          const dayColor=days>=7?'var(--red)':days>=3?'var(--orange)':'var(--muted)';
+          return `<tr style="cursor:pointer" onclick="openTicket('${esc(t.inquiryId)}')">
+            <td class="mono" style="color:var(--accent)">${esc(t.inquiryId)}</td>
+            <td>${DIV_NAMES[t.division]||t.division}</td>
+            <td>${badge(t.progress)}</td>
+            <td class="mono" style="color:${dayColor}">${days===0?'Today':days+'d'}</td>
+            <td style="color:var(--muted)">${esc(t.category||'—')}</td>
+          </tr>`;
+        }).join('')}
+        </tbody></table>
+      </div>`;
+    });
+  }
+
+  if(singleCodes.length){
+    html += '<div style="font-size:11px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin:14px 0 10px">Single Occurrence</div>';
+    html += '<table class="tbl" style="width:100%"><thead><tr><th>Ticket</th><th>Product Code(s)</th><th>Division</th><th>Status</th><th>Days Open</th></tr></thead><tbody>';
+    singleCodes.forEach(code=>{
+      const t = map[code][0];
+      const days=daysSince(t.timestamp);
+      html += `<tr style="cursor:pointer" onclick="openTicket('${esc(t.inquiryId)}')">
+        <td class="mono" style="color:var(--accent)">${esc(t.inquiryId)}</td>
+        <td class="mono">${esc(code)}</td>
+        <td>${DIV_NAMES[t.division]||t.division}</td>
+        <td>${badge(t.progress)}</td>
+        <td class="mono" style="color:${days>=7?'var(--red)':days>=3?'var(--orange)':'var(--muted)'}">${days===0?'Today':days+'d'}</td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+  }
+
+  if(!html) html = '<div style="padding:24px;text-align:center;color:var(--muted)">No open tickets</div>';
+  area.innerHTML = html;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ALLOCATION EMAIL CONFIG (Manager only)
+   ═══════════════════════════════════════════════════════ */
+let allocEmails = [];
+
+async function loadAllocEmails(){
+  try {
+    if(CFG.DEMO_MODE){ allocEmails=['rmendoza@cnfei.com','droyal@cnfei.com']; renderAllocEmailPanel(); return; }
+    const r = await gasGet({action:'getAllocEmails'});
+    allocEmails = r.emails || [];
+    renderAllocEmailPanel();
+  } catch(e){}
+}
+
+function renderAllocEmailPanel(){
+  const el = document.getElementById('allocEmailTags');
+  if(!el) return;
+  el.innerHTML = allocEmails.map((email,i)=>
+    `<span class="alloc-email-tag">${esc(email)}<button onclick="removeAllocEmail(${i})" title="Remove">&times;</button></span>`
+  ).join('');
+}
+
+function removeAllocEmail(i){
+  allocEmails.splice(i,1);
+  renderAllocEmailPanel();
+}
+
+function addAllocEmail(){
+  const inp = document.getElementById('allocEmailInput');
+  const val = (inp.value||'').trim().toLowerCase();
+  if(!val || !val.includes('@')){ toast('Enter a valid email','error'); return; }
+  if(allocEmails.includes(val)){ toast('Already in list','error'); return; }
+  allocEmails.push(val);
+  inp.value='';
+  renderAllocEmailPanel();
+}
+
+async function saveAllocEmailList(){
+  try {
+    if(!CFG.DEMO_MODE) await gasPost({action:'saveAllocEmails', emails:JSON.stringify(allocEmails)});
+    toast('Allocation alert emails saved ✓','success');
+  } catch(e){ toast('Save failed: '+e.message,'error'); }
+}
+
 function loadGlobalStats(){
   let tix;
   if(CFG.DEMO_MODE){
@@ -1466,7 +1834,8 @@ function makeProductRow(code, order, shipment, qty){
 
   const codeIn=document.createElement('input');
   codeIn.type='text'; codeIn.placeholder='e.g. BCH44210'; codeIn.className='product-code';
-  if(code) codeIn.value=code;
+  codeIn.oninput=function(){ this.value=this.value.toUpperCase(); };
+  if(code) codeIn.value=code.toUpperCase();
 
   const orderIn=document.createElement('input');
   orderIn.type='text'; orderIn.placeholder='e.g. NH00023321'; orderIn.className='product-order';
@@ -1884,6 +2253,7 @@ async function loadTix(forceRefresh){
     }
     document.getElementById('dockMgrBanner').style.display=role==='dockmanager'?'':'none';
     renderTix(allTix.filter(t=>t.progress!=='Completed')); updStats(allTix); loadGlobalStats();
+    if(role==='icteam'||role==='manager') startBellPoll();
   } catch(e){ toast('Load failed: '+e.message,'error'); }
   hideLoad(); document.getElementById('refreshBtn').classList.remove('spinning');
 }
@@ -1999,6 +2369,7 @@ async function openTicket(id){
     document.getElementById('mProg').value=t.progress||'Received';
     document.getElementById('mFupQ').value=t.followUpQuestions||'';
     buildInvestigationGrid('mg');
+    loadAllocEmails();
   }
   if(isDock){
     document.getElementById('dkProg').value=t.progress||'Received';
@@ -2080,6 +2451,7 @@ function buildInvestigationGrid(prefix){
     <th>Bin Located</th>
     ${qualColH}
     <th>Findings / Notes</th>
+    <th style="text-align:center;color:#ea580c">🔒 Alloc</th>
     <th style="text-align:center">Done</th>`;
 
   const rowsHtml = entries.map((e,i)=>{
@@ -2102,6 +2474,14 @@ function buildInvestigationGrid(prefix){
       ${qualCell}
       <td>
         <textarea class="inv-inp notes-ta" data-prefix="${prefix}" data-idx="${i}" data-field="findings" placeholder="Notes…" rows="1" oninput="autoExpand(this)" ${isDone?'disabled':''}>${esc(e.findings||'')}</textarea>
+      </td>
+      <td style="text-align:center;vertical-align:top;padding-top:8px">
+        ${isDone ? (e.allocated ? '<span class="alloc-badge">🔒</span>' : '') :
+          `<div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <input type="checkbox" class="inv-check inv-alloc-chk-${prefix}" data-prefix="${prefix}" data-idx="${i}" title="Flag as allocated in Apprise" style="accent-color:#ea580c;width:16px;height:16px" ${e.allocated?'checked':''} ${e.allocConfirmed?'disabled':''}>
+            ${e.allocConfirmed ? '<span style="font-size:9px;color:#15803d;font-weight:600">Released ✓</span>' : (e.allocated ? '<span style="font-size:9px;color:#ea580c;font-weight:600">Locked</span>' : '')}
+          </div>`
+        }
       </td>
       <td style="vertical-align:top;padding-top:8px;text-align:center">${isDone
         ? `<span class="inv-done-badge">&#10003; Done</span>`
@@ -2136,6 +2516,10 @@ function readGridEntries(prefix){
     const field = inp.dataset.field;
     if(field && entries[i] !== undefined) entries[i][field] = inp.value.trim();
   });
+  document.querySelectorAll(`.inv-alloc-chk-${prefix}`).forEach(chk=>{
+    const i = parseInt(chk.dataset.idx);
+    if(entries[i] !== undefined) entries[i].allocated = chk.checked;
+  });
   document.querySelectorAll(`.inv-done-chk-${prefix}:checked`).forEach(chk=>{
     const i = parseInt(chk.dataset.idx);
     if(entries[i]) entries[i].resolved = true;
@@ -2167,6 +2551,7 @@ async function saveICTeam(){
     if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress, findingsSummary, followup, 'IC Team'); }
     else { await gasPost(payload); _applyUpdate(progress, findingsSummary, followup, 'IC Team'); }
     activeTx.productEntries = entries;
+    await syncAllocationFlags(entries, activeTx.inquiryId);
     hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
   }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
   document.getElementById('qSaveBtn').disabled=false;
@@ -2231,6 +2616,7 @@ async function saveManager(){
     if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress,findings,followup,'IC Manager'); }
     else { await gasPost(payload); _applyUpdate(progress,findings,followup,'IC Manager'); }
     activeTx.productEntries = entries;
+    await syncAllocationFlags(entries, activeTx.inquiryId);
     hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
   }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
   document.getElementById('mSaveBtn').disabled=false;
