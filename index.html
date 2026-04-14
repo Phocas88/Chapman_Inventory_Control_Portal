@@ -474,6 +474,23 @@ button,select,input,textarea{font-family:var(--sans)}
 .dup-group{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:12px}
 .dup-group-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-family:var(--mono);font-weight:700;color:#d97706;font-size:13px}
 .dup-count-badge{background:#fef3c7;color:#d97706;border:1px solid #fde68a;border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px}
+.merge-btn{padding:5px 14px;background:#d97706;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;margin-left:auto}
+.merge-btn:hover{background:#b45309}
+/* Merge modal */
+.merge-overlay{display:none;position:fixed;inset:0;z-index:300;background:rgba(15,20,40,.5);backdrop-filter:blur(6px);justify-content:center;align-items:flex-start;overflow-y:auto;padding:24px 16px}
+.merge-overlay.open{display:flex}
+.merge-modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:780px;box-shadow:var(--shadow-lg);flex-shrink:0;animation:slideUp .2s ease}
+.merge-modal-header{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.merge-modal-title{font-size:14px;font-weight:700;color:var(--text);flex:1}
+.merge-modal-body{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.merge-ticket-card{border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s;position:relative}
+.merge-ticket-card:hover{border-color:var(--accent);background:var(--accent-l)}
+.merge-ticket-card.selected-primary{border-color:var(--green);background:var(--green-l)}
+.merge-ticket-card.selected-secondary{border-color:var(--orange);background:var(--orange-l)}
+.merge-ticket-card .merge-role-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.merge-role-badge.primary{background:var(--green-l);color:var(--green);border:1px solid rgba(5,150,105,.2)}
+.merge-role-badge.secondary{background:var(--orange-l);color:var(--orange);border:1px solid rgba(234,88,12,.2)}
+.merge-modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
 /* Allocated row in IC grid */
 .inv-alloc-row{background:#fff7ed!important}
 .inv-alloc-row td{border-left:3px solid #ea580c}
@@ -1148,6 +1165,26 @@ button,select,input,textarea{font-family:var(--sans)}
   </div>
 </div>
 
+<!-- ═══════════ MERGE MODAL ═══════════ -->
+<div class="merge-overlay" id="mergeOverlay">
+  <div class="merge-modal">
+    <div class="merge-modal-header">
+      <div class="merge-modal-title">⊕ Merge Duplicate Tickets</div>
+      <button class="btn-ghost" onclick="closeMergeModal()" style="padding:4px 10px">✕</button>
+    </div>
+    <div class="merge-modal-body">
+      <div style="font-size:12px;color:var(--muted);background:var(--panel);border-radius:8px;padding:10px 12px;line-height:1.6">
+        <strong>How merge works:</strong> Select the <span style="color:var(--green);font-weight:600">Primary ticket</span> (kept open, receives all items) and one or more <span style="color:var(--orange);font-weight:600">Secondary tickets</span> (archived). All product entries, descriptions, and notes from secondary tickets are combined into the primary. The division receives one consolidated email.
+      </div>
+      <div id="mergeTicketList" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+    <div class="merge-modal-footer">
+      <button class="btn-ghost" onclick="closeMergeModal()">Cancel</button>
+      <button class="btn-primary" id="mergeConfirmBtn" onclick="confirmMerge()" disabled>⊕ Merge Selected</button>
+    </div>
+  </div>
+</div>
+
 <!-- FORGOT PIN MODAL -->
 <div class="forgot-modal" id="forgotModal">
   <div class="forgot-card">
@@ -1658,6 +1695,161 @@ function toggleGroupByProduct(){
   else filterTix();
 }
 
+/* ═══════════════════════════════════════════════════════
+   MERGE TICKETS
+   ═══════════════════════════════════════════════════════ */
+let mergeTicketIds = [];
+let mergePrimaryId = null;
+let mergeSecondaryIds = [];
+
+function openMergeModal(ids){
+  mergeTicketIds   = ids;
+  mergePrimaryId   = null;
+  mergeSecondaryIds = [];
+
+  const list = document.getElementById('mergeTicketList');
+  list.innerHTML = ids.map(id=>{
+    const t = allTix.find(x=>x.inquiryId===id);
+    if(!t) return '';
+    const days = daysSince(t.timestamp);
+
+    // Parse product entries for display
+    let entries = [];
+    if(t.productEntries){
+      if(Array.isArray(t.productEntries)) entries=t.productEntries;
+      else try{ entries=JSON.parse(t.productEntries); }catch(e){}
+    }
+    const productDisplay = entries.length
+      ? entries.map(e=>e.code).filter(Boolean).join(', ')
+      : (t.productCodes||'—');
+
+    return `<div class="merge-ticket-card" id="mcard-${esc(id)}" onclick="selectMergeRole('${esc(id)}')">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-family:var(--mono);font-weight:700;color:var(--accent);font-size:13px">${esc(id)}</span>
+        <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[t.division]||t.division}</span>
+        ${badge(t.progress)}
+        <span style="font-size:11px;color:var(--muted);margin-left:auto">${days===0?'Today':days+'d old'}</span>
+        <span class="merge-role-badge" id="mrole-${esc(id)}"></span>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px;font-family:var(--mono)">${esc(productDisplay)}</div>
+      ${t.description?`<div style="font-size:12px;color:var(--text);line-height:1.5">${esc(t.description.substring(0,120))}${t.description.length>120?'…':''}</div>`:''}
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button onclick="event.stopPropagation();setPrimary('${esc(id)}')" style="padding:4px 12px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">★ Set as Primary</button>
+        <button onclick="event.stopPropagation();toggleSecondary('${esc(id)}')" style="padding:4px 12px;background:var(--orange);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">+ Add as Secondary</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('mergeConfirmBtn').disabled = true;
+  document.getElementById('mergeOverlay').classList.add('open');
+}
+
+function setPrimary(id){
+  mergePrimaryId = id;
+  // Remove from secondary if it was there
+  mergeSecondaryIds = mergeSecondaryIds.filter(x=>x!==id);
+  updateMergeCards();
+}
+
+function toggleSecondary(id){
+  if(id === mergePrimaryId){ toast('Cannot mark the primary ticket as secondary','error'); return; }
+  const idx = mergeSecondaryIds.indexOf(id);
+  if(idx>=0) mergeSecondaryIds.splice(idx,1);
+  else mergeSecondaryIds.push(id);
+  updateMergeCards();
+}
+
+function selectMergeRole(id){
+  // First click = primary, second click = secondary, third = deselect
+  if(!mergePrimaryId){ setPrimary(id); return; }
+  if(mergePrimaryId===id){ mergePrimaryId=null; mergeSecondaryIds=mergeSecondaryIds.filter(x=>x!==id); updateMergeCards(); return; }
+  toggleSecondary(id);
+}
+
+function updateMergeCards(){
+  mergeTicketIds.forEach(id=>{
+    const card  = document.getElementById('mcard-'+id);
+    const badge = document.getElementById('mrole-'+id);
+    if(!card||!badge) return;
+    card.classList.remove('selected-primary','selected-secondary');
+    badge.textContent=''; badge.className='merge-role-badge';
+    if(id===mergePrimaryId){
+      card.classList.add('selected-primary');
+      badge.textContent='★ Primary'; badge.classList.add('primary');
+    } else if(mergeSecondaryIds.includes(id)){
+      card.classList.add('selected-secondary');
+      badge.textContent='⊕ Secondary'; badge.classList.add('secondary');
+    }
+  });
+  const canMerge = mergePrimaryId && mergeSecondaryIds.length>0;
+  document.getElementById('mergeConfirmBtn').disabled = !canMerge;
+}
+
+function closeMergeModal(){
+  document.getElementById('mergeOverlay').classList.remove('open');
+  mergePrimaryId=null; mergeSecondaryIds=[]; mergeTicketIds=[];
+}
+
+async function confirmMerge(){
+  if(!mergePrimaryId || !mergeSecondaryIds.length) return;
+  document.getElementById('mergeConfirmBtn').disabled=true;
+  document.getElementById('mergeConfirmBtn').textContent='Merging…';
+  showLoad('Merging tickets…');
+
+  try{
+    if(CFG.DEMO_MODE){
+      await delay(800);
+      // Local demo merge — combine product codes on primary, remove secondaries from allTix
+      const primary = allTix.find(t=>t.inquiryId===mergePrimaryId);
+      if(primary){
+        mergeSecondaryIds.forEach(sid=>{
+          const sec = allTix.find(t=>t.inquiryId===sid);
+          if(!sec) return;
+          // Merge product codes
+          const existing = (primary.productCodes||'').split(/[,\s]+/).filter(Boolean);
+          const adding   = (sec.productCodes||'').split(/[,\s]+/).filter(Boolean);
+          adding.forEach(c=>{ if(!existing.includes(c)) existing.push(c); });
+          primary.productCodes = existing.join(', ');
+          // Merge description
+          if(sec.description && sec.description!==primary.description)
+            primary.description += '\n\n[Merged from '+sid+']: '+sec.description;
+        });
+        // Remove secondaries from allTix
+        allTix = allTix.filter(t=>!mergeSecondaryIds.includes(t.inquiryId));
+      }
+      hideLoad();
+      toast('Merged '+mergeSecondaryIds.join(', ')+' into '+mergePrimaryId+' ✓','success');
+      closeMergeModal();
+      renderGroupedDash();
+      return;
+    }
+
+    const r = await gasPost({
+      action:       'mergeTickets',
+      primaryId:    mergePrimaryId,
+      secondaryIds: JSON.stringify(mergeSecondaryIds),
+    });
+    if(r.error) throw new Error(r.error);
+
+    // Update local state
+    const primary = allTix.find(t=>t.inquiryId===mergePrimaryId);
+    if(primary && r.productCodes)   primary.productCodes   = r.productCodes;
+    if(primary && r.productEntries) primary.productEntries = r.productEntries;
+    allTix = allTix.filter(t=>!mergeSecondaryIds.includes(t.inquiryId));
+    sessionClear();
+
+    hideLoad();
+    toast('Merged '+mergeSecondaryIds.join(', ')+' into '+mergePrimaryId+' ✓','success');
+    closeMergeModal();
+    renderGroupedDash();
+  } catch(e){
+    hideLoad();
+    toast('Merge failed: '+e.message,'error');
+    document.getElementById('mergeConfirmBtn').disabled=false;
+    document.getElementById('mergeConfirmBtn').textContent='⊕ Merge Selected';
+  }
+}
+
 function renderGroupedDash(){
   // Build a map: productCode -> [{ticket}]
   const map = {};
@@ -1681,13 +1873,15 @@ function renderGroupedDash(){
     html += '<div style="font-size:11px;font-family:var(--mono);font-weight:600;color:var(--orange);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">⚠ Duplicate Product Codes — Multiple Open Tickets</div>';
     dupCodes.forEach(code=>{
       const tickets = map[code];
+      const ids = tickets.map(t=>t.inquiryId).join(',');
       html += `<div class="dup-group">
         <div class="dup-group-header">
           ${esc(code)}
           <span class="dup-count-badge">${tickets.length} tickets</span>
+          <button class="merge-btn" onclick="openMergeModal([${tickets.map(t=>`'${esc(t.inquiryId)}'`).join(',')}])" title="Merge these tickets into one">⊕ Merge Tickets</button>
         </div>
         <table class="tbl" style="width:100%"><thead><tr>
-          <th>Ticket</th><th>Division</th><th>Status</th><th>Days Open</th><th>Category</th>
+          <th>Ticket</th><th>Division</th><th>Status</th><th>Days Open</th><th>Category</th><th>Products</th>
         </tr></thead><tbody>
         ${tickets.map(t=>{
           const days=daysSince(t.timestamp);
@@ -1698,6 +1892,7 @@ function renderGroupedDash(){
             <td>${badge(t.progress)}</td>
             <td class="mono" style="color:${dayColor}">${days===0?'Today':days+'d'}</td>
             <td style="color:var(--muted)">${esc(t.category||'—')}</td>
+            <td class="mono" style="font-size:11px">${esc((t.productCodes||'').substring(0,40))}${(t.productCodes||'').length>40?'…':''}</td>
           </tr>`;
         }).join('')}
         </tbody></table>
