@@ -878,9 +878,11 @@ button,select,input,textarea{font-family:var(--sans)}
   </div>
   <div class="stats-strip">
     <div class="stat-card sc-blue"><div class="sv" id="sTot">—</div><div class="sl">Open Tickets</div></div>
+    <div class="stat-card sc-yellow"><div class="sv" id="sRcv">—</div><div class="sl">Received</div></div>
     <div class="stat-card sc-yellow"><div class="sv" id="sInv">—</div><div class="sl">Investigating</div></div>
-    <div class="stat-card sc-orange"><div class="sv" id="sFup">—</div><div class="sl">Awaiting Info</div></div>
+    <div class="stat-card sc-orange"><div class="sv" id="sFup">—</div><div class="sl">Needs Response</div></div>
     <div class="stat-card sc-green"><div class="sv" id="sDone">—</div><div class="sl">Completed Today</div></div>
+    <div class="stat-card" style="border-color:rgba(234,88,12,.2);background:#fff7ed"><div class="sv" id="sAlloc" style="color:#ea580c">—</div><div class="sl" style="color:#ea580c">🔒 Allocated</div></div>
   </div>
   <div class="table-wrap"><div id="tblArea"></div></div>
 </div>
@@ -1130,6 +1132,13 @@ button,select,input,textarea{font-family:var(--sans)}
       Refresh
     </button>
   </div>
+  <!-- Ops stats ticker -->
+  <div class="stats-strip" id="opsStatsStrip">
+    <div class="stat-card" style="border-color:rgba(234,88,12,.2);background:#fff7ed"><div class="sv" id="osTotal" style="color:#ea580c">—</div><div class="sl" style="color:#ea580c">🔒 Total Allocated</div></div>
+    <div class="stat-card" style="border-color:rgba(234,88,12,.2);background:#fff7ed"><div class="sv" id="osPending" style="color:#ea580c">—</div><div class="sl">Pending Release</div></div>
+    <div class="stat-card sc-green"><div class="sv" id="osReleased">—</div><div class="sl">Released Today</div></div>
+    <div class="stat-card sc-blue"><div class="sv" id="osTickets">—</div><div class="sl">Tickets Affected</div></div>
+  </div>
   <div style="padding:14px 20px;background:#f5f3ff;border-bottom:1px solid rgba(124,58,237,.15);font-size:12px;color:#7c3aed">
     🔒 Items below are flagged as <strong>allocated in Apprise</strong> by the IC team. Once you release the allocation, confirm here so IC can proceed with the adjustment.
   </div>
@@ -1284,64 +1293,50 @@ function chkPin(){
 
 // Shared login logic — called both from PIN entry and from page-load session restore
 function doLogin(target){
+  // Helper to set nav visibility for all nav buttons at once
+  function setNav(tracker,form,dash,stats,ops){
+    document.getElementById('navTracker').style.display=tracker;
+    document.getElementById('navForm').style.display=form;
+    document.getElementById('navDash').style.display=dash;
+    document.getElementById('navStats').style.display=stats;
+    document.getElementById('navOps').style.display=ops;
+  }
   const isDiv=!!CFG.DIV_PINS[target];
   if(isDiv){
     role='division'; currentDiv=target;
     allTix=[];
     setChip(target+' — '+DIV_NAMES[target],'division');
-    document.getElementById('navTracker').style.display='';
-    document.getElementById('navForm').style.display='';
-    document.getElementById('navDash').style.display='none';
-    document.getElementById('navStats').style.display='';
-    loadBanner();
-    saveSession(target);
+    setNav('','','none','','none');
+    loadBanner(); saveSession(target);
     loadTrackerTix().then(()=>showScreen('tracker'));
   } else if(target==='icteam'){
     role='icteam'; currentDiv='';
     allTix=[];
     setChip('IC Team','icteam');
-    document.getElementById('navTracker').style.display='none';
-    document.getElementById('navForm').style.display='none';
-    document.getElementById('navDash').style.display='';
-    document.getElementById('navStats').style.display='';
-    document.getElementById('navOps').style.display='';
-    loadBanner();
-    saveSession(target);
+    setNav('none','none','','','');
+    loadBanner(); saveSession(target);
     loadTix().then(()=>showScreen('dash'));
   } else if(target==='dockmanager'){
     role='dockmanager'; currentDiv='';
     allTix=[];
     setChip('🚛 Dock Manager','dockmanager');
-    document.getElementById('navTracker').style.display='none';
-    document.getElementById('navForm').style.display='none';
-    document.getElementById('navDash').style.display='';
-    document.getElementById('navStats').style.display='';
-    loadBanner();
-    saveSession(target);
+    setNav('none','none','','','none');
+    loadBanner(); saveSession(target);
     loadTix().then(()=>showScreen('dash'));
   } else if(target==='ops'){
     role='ops'; currentDiv='';
     allTix=[];
     setChip('⚙️ Operations','ops');
-    document.getElementById('navTracker').style.display='none';
-    document.getElementById('navForm').style.display='none';
-    document.getElementById('navDash').style.display='none';
-    document.getElementById('navStats').style.display='none';
-    document.getElementById('navOps').style.display='';
-    loadBanner();
-    saveSession(target);
+    setNav('none','none','none','none','');
+    loadBanner(); saveSession(target);
     loadOpsAlerts().then(()=>showScreen('ops'));
   } else {
     role='manager'; currentDiv='';
     allTix=[];
     setChip('IC Manager','manager');
-    document.getElementById('navTracker').style.display='none';
-    document.getElementById('navForm').style.display='none';
-    document.getElementById('navDash').style.display='';
-    document.getElementById('navStats').style.display='';
+    setNav('none','none','','','');
     document.getElementById('bannerCreator').classList.add('show');
-    loadBanner();
-    saveSession(target);
+    loadBanner(); saveSession(target);
     loadTix().then(()=>showScreen('dash'));
   }
   loadGlobalStats();
@@ -1500,6 +1495,26 @@ async function loadOpsAlerts(forceRefresh){
 function renderOpsAlerts(){
   const el = document.getElementById('opsAlertArea');
   if(!el) return;
+
+  // Compute stats across all alerts
+  const today = new Date().toDateString();
+  let totalAlloc=0, pendingCount=0, releasedToday=0;
+  opsAlerts.forEach(a=>{
+    let flags=[]; try{flags=JSON.parse(a.allocFlags||'[]');}catch(e){}
+    flags.forEach(f=>{
+      if(!f.allocated) return;
+      totalAlloc++;
+      if(!f.confirmed) pendingCount++;
+      else if(f.confirmedAt && new Date(f.confirmedAt).toDateString()===today) releasedToday++;
+    });
+  });
+  // Update ops ticker
+  const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+  set('osTotal',   totalAlloc);
+  set('osPending', pendingCount);
+  set('osReleased',releasedToday);
+  set('osTickets', opsAlerts.length);
+
   if(!opsAlerts.length){
     el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:32px;margin-bottom:10px">✅</div><div style="font-size:14px;font-weight:600">No allocated items pending release</div><div style="font-size:12px;margin-top:4px">IC has not flagged any items as allocated in Apprise</div></div>';
     return;
@@ -2301,10 +2316,19 @@ function renderTix(tix){
 
 function updStats(tix){
   const today=new Date().toDateString();
-  document.getElementById('sTot').textContent=tix.filter(t=>t.progress!=='Completed').length;
-  document.getElementById('sInv').textContent=tix.filter(t=>t.progress==='Investigating').length;
-  document.getElementById('sFup').textContent=tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
-  document.getElementById('sDone').textContent=tix.filter(t=>t.progress==='Completed'&&new Date(t.timestamp).toDateString()===today).length;
+  document.getElementById('sTot').textContent  = tix.filter(t=>t.progress!=='Completed').length;
+  document.getElementById('sRcv').textContent  = tix.filter(t=>t.progress==='Received').length;
+  document.getElementById('sInv').textContent  = tix.filter(t=>t.progress==='Investigating').length;
+  document.getElementById('sFup').textContent  = tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
+  document.getElementById('sDone').textContent = tix.filter(t=>t.progress==='Completed'&&new Date(t.timestamp).toDateString()===today).length;
+  // Count tickets with any unconfirmed allocated rows
+  const allocCount = tix.filter(t=>{
+    if(!t.allocFlags) return false;
+    let flags=[]; try{flags=JSON.parse(t.allocFlags);}catch(e){return false;}
+    return flags.some(f=>f.allocated&&!f.confirmed);
+  }).length;
+  const allocEl = document.getElementById('sAlloc');
+  if(allocEl) allocEl.textContent = allocCount;
 }
 
 function badge(s){
