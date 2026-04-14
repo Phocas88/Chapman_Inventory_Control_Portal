@@ -1151,7 +1151,7 @@ button,select,input,textarea{font-family:var(--sans)}
 
 <!-- ═══════════ OPS SCREEN ═══════════ -->
 <div class="screen" id="opsScreen">
-  <div class="dash-toolbar">
+  <div class="dash-toolbar" style="padding:8px 20px">
     <div style="font-size:13px;font-weight:600;color:var(--purple);display:flex;align-items:center;gap:8px">
       ⚙️ <span>Operations — Allocated Item Alerts</span>
     </div>
@@ -1160,17 +1160,16 @@ button,select,input,textarea{font-family:var(--sans)}
       Refresh
     </button>
   </div>
-  <!-- Ops stats ticker -->
-  <div class="stats-strip" id="opsStatsStrip">
+  <div class="stats-strip" id="opsStatsStrip" style="padding:8px 20px">
     <div class="stat-card" style="border-color:rgba(234,88,12,.2);background:#fff7ed"><div class="sv" id="osTotal" style="color:#ea580c">—</div><div class="sl" style="color:#ea580c">🔒 Total Allocated</div></div>
     <div class="stat-card" style="border-color:rgba(234,88,12,.2);background:#fff7ed"><div class="sv" id="osPending" style="color:#ea580c">—</div><div class="sl">Pending Release</div></div>
     <div class="stat-card sc-green"><div class="sv" id="osReleased">—</div><div class="sl">Released Today</div></div>
     <div class="stat-card sc-blue"><div class="sv" id="osTickets">—</div><div class="sl">Tickets Affected</div></div>
   </div>
-  <div style="padding:10px 20px;background:#f5f3ff;border-bottom:1px solid rgba(124,58,237,.15);font-size:12px;color:#7c3aed;flex-shrink:0">
+  <div style="padding:8px 20px;background:#f5f3ff;border-bottom:1px solid rgba(124,58,237,.15);font-size:12px;color:#7c3aed;flex-shrink:0">
     🔒 Items flagged as <strong>allocated in Apprise</strong> by IC. Confirm release here so IC can proceed.
   </div>
-  <div id="opsAlertArea" style="flex:1;overflow-y:auto;padding:20px">
+  <div id="opsAlertArea" style="flex:1;overflow-y:auto;padding:16px 20px">
     <div style="color:var(--muted);font-size:13px">Loading…</div>
   </div>
 </div>
