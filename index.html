@@ -120,12 +120,12 @@ button,select,input,textarea{font-family:var(--sans)}
 .forgot-result{font-size:13px;color:var(--green);margin-top:12px;display:none}
 
 /* ══ STATS BAR (global — visible to all roles) ══ */
-.global-stats{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:none}
+.global-stats{background:var(--surface);border-bottom:1px solid var(--border);padding:8px 20px;display:none}
 .global-stats.show{display:block}
-.gs-inner{max-width:1100px;margin:0 auto}
-.gs-title{font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.gs-title::after{content:'';flex:1;height:1px;background:var(--border)}
-.gs-grid{display:flex;gap:8px;flex-wrap:wrap}
+.gs-inner{max-width:100%;display:flex;align-items:center;gap:10px;overflow:hidden}
+.gs-title{font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;flex-shrink:0}
+.gs-grid{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;flex:1;padding-bottom:2px}
+.gs-grid::-webkit-scrollbar{height:3px}.gs-grid::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
 .gs-pill{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11px;white-space:nowrap}
 .gs-pill .gsp-num{font-family:var(--mono);font-weight:600;font-size:12px}
 .gs-pill.inv .gsp-num{color:var(--accent)}
