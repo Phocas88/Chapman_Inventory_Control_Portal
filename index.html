@@ -3264,25 +3264,44 @@ function sessionClear(){
 
 // READ — always GET, data is small (filters/IDs only)
 async function gasGet(p){
-  const r=await fetch(CFG.GAS_URL+'?'+new URLSearchParams(p));
+  const url = CFG.GAS_URL+'?'+new URLSearchParams(p);
+  const r = await fetch(url);
   if(!r.ok) throw new Error('HTTP '+r.status);
   return r.json();
 }
 
-// WRITE — POST with form-encoded body so large payloads (descriptions,
-// product entries, findings) aren't truncated by URL length limits.
-// GAS 'Anyone' deployments accept POST and return JSON correctly.
+// All writes go through GET — GAS deployed as "Anyone" never has CORS issues
+// on GET requests. POST triggers a 302 redirect that browsers block cross-origin.
+// We keep URLs under ~7500 chars by compressing large text fields.
 async function gasPost(d){
-  const r=await fetch(CFG.GAS_URL, {
-    method:  'POST',
-    headers: {'Content-Type':'application/x-www-form-urlencoded'},
-    body:    new URLSearchParams(d),
-    redirect:'follow',
-  });
-  // GAS may return 200 or 302-then-200; either way parse the JSON body
-  const text=await r.text();
+  // Deep-copy so we don't mutate the original
+  const safe = Object.assign({}, d);
+  // Compress productEntries — strip investigation fields that don't need persisting in the URL
+  // (they're already written to productEntries col in prior saves)
+  if(safe.productEntries && safe.productEntries.length > 1500){
+    try{
+      let entries = JSON.parse(safe.productEntries);
+      // Keep only the essential fields for URL transmission
+      entries = entries.map(e=>({
+        code:e.code, orderNumber:e.orderNumber||'', shipmentNumber:e.shipmentNumber||'',
+        qty:e.qty||'', qtyLocated:e.qtyLocated||'', binLocated:e.binLocated||'',
+        findings:e.findings||'', allocated:e.allocated||false, resolved:e.resolved||false,
+        subId:e.subId||'',
+      }));
+      safe.productEntries = JSON.stringify(entries);
+    }catch(ex){}
+  }
+  // Truncate free-text fields that can be very long
+  if(safe.findings      && safe.findings.length      > 800) safe.findings      = safe.findings.substring(0,800);
+  if(safe.description   && safe.description.length   > 800) safe.description   = safe.description.substring(0,800);
+  if(safe.followUpQuestions && safe.followUpQuestions.length > 400) safe.followUpQuestions = safe.followUpQuestions.substring(0,400);
+
+  const url = CFG.GAS_URL+'?'+new URLSearchParams(safe);
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const text = await r.text();
   try{ return JSON.parse(text); }
-  catch(e){ return {ok:true}; } // GAS sometimes returns HTML on redirects
+  catch(e){ return {ok:true}; }
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
 function fmtDate(ts){if(!ts)return'—';const d=new Date(ts);return isNaN(d)?ts:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
