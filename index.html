@@ -469,6 +469,7 @@ button,select,input,textarea{font-family:var(--sans)}
 /* Allocation bell */
 .alloc-bell{background:none;border:none;cursor:pointer;font-size:13px;padding:4px 8px;border-radius:8px;color:#ea580c;font-weight:700;display:flex;align-items:center;gap:4px;animation:bellRing .6s ease infinite}
 @keyframes bellRing{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(8deg)}}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 /* Duplicate grouping */
 .dup-group{background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:12px 16px;margin-bottom:12px}
 .dup-group-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-family:var(--mono);font-weight:700;color:#d97706;font-size:13px}
@@ -574,7 +575,7 @@ button,select,input,textarea{font-family:var(--sans)}
     <button class="nav-btn" onclick="showScreen('form')"    id="navForm"    style="display:none">New Inquiry</button>
     <button class="nav-btn" onclick="showScreen('dash')"    id="navDash"    style="display:none">Dashboard</button>
     <button class="nav-btn" onclick="showScreen('stats')"   id="navStats"   style="display:none">📊 Stats</button>
-    <button class="nav-btn" onclick="showScreen('ops')"      id="navOps"     style="display:none">⚙️ Ops</button>
+    <button class="nav-btn" onclick="if(role==='ops'||role==='icteam'||role==='manager')showScreen('ops')" id="navOps" style="display:none">⚙️ Ops</button>
     <button id="allocBell" class="alloc-bell" onclick="showScreen('ops')" style="display:none" title="Allocation confirmed by Ops — click to view">🔔 <span id="allocBellCount">0</span></button>
     <button class="nav-btn lock" onclick="logout()">← Lock</button>
   </nav>
@@ -1329,7 +1330,7 @@ function doLogin(target){
     setChip('⚙️ Operations','ops');
     setNav('none','none','none','none','');
     loadBanner(); saveSession(target);
-    loadOpsAlerts().then(()=>showScreen('ops'));
+    showScreen('ops'); // show immediately — loadOpsAlerts fires inside showScreen
   } else {
     role='manager'; currentDiv='';
     allTix=[];
@@ -1422,13 +1423,16 @@ function submitForgotPin(){
    ═══════════════════════════════════════════════════════ */
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id+'Screen').classList.add('active');
-  ['navTracker','navForm','navDash','navStats'].forEach(n=>{const el=document.getElementById(n);if(el)el.classList.remove('active');});
-  const map={tracker:'navTracker',form:'navForm',dash:'navDash',stats:'navStats'};
+  const target = document.getElementById(id+'Screen');
+  if(target) target.classList.add('active');
+  ['navTracker','navForm','navDash','navStats','navOps'].forEach(n=>{
+    const el=document.getElementById(n); if(el) el.classList.remove('active');
+  });
+  const map={tracker:'navTracker',form:'navForm',dash:'navDash',stats:'navStats',ops:'navOps'};
   if(map[id]&&document.getElementById(map[id])) document.getElementById(map[id]).classList.add('active');
   if(id==='form') setupForm();
   if(id==='stats') renderStatsScreen();
-  // Always refresh tracker data when navigating to it (not on initial login load — that's handled separately)
+  if(id==='ops') loadOpsAlerts();
   if(id==='tracker' && role==='division' && allTix.length>0) renderTrackerCards(allTix);
 }
 
@@ -1477,18 +1481,18 @@ let opsAlerts = [];
 async function loadOpsAlerts(forceRefresh){
   const el = document.getElementById('opsAlertArea');
   if(!el) return;
-  el.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Loading alerts…</div>';
+  el.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px"><span style="animation:spin 1s linear infinite;display:inline-block">⟳</span> Loading allocation alerts…</div>';
   try {
     if(CFG.DEMO_MODE){
       opsAlerts = [];
-      renderOpsAlerts();
-      return;
+    } else {
+      const r = await gasGet({action:'getOpsAlerts'});
+      opsAlerts = (r && r.alerts) ? r.alerts : [];
     }
-    const r = await gasGet({action:'getOpsAlerts'});
-    opsAlerts = r.alerts || [];
     renderOpsAlerts();
   } catch(e){
-    el.innerHTML = '<div style="color:var(--red);font-size:13px">Failed to load: '+e.message+'</div>';
+    opsAlerts = [];
+    el.innerHTML = '<div style="padding:20px;color:var(--red);font-size:13px">⚠ Failed to load allocation alerts: '+e.message+'<br><button onclick="loadOpsAlerts(true)" style="margin-top:8px;padding:6px 14px;border:1px solid var(--red);border-radius:6px;background:none;color:var(--red);cursor:pointer">Retry</button></div>';
   }
 }
 
