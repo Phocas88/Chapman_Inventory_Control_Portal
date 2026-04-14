@@ -22,10 +22,10 @@
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{font-size:14px}
-html,body{height:100%;overflow:hidden;margin:0}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.6}
+html,body{margin:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6}
 button,select,input,textarea{font-family:var(--sans)}
-#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#app{display:flex;flex-direction:column;min-height:100vh}
 
 /* BANNER */
 .sys-banner{display:none;padding:12px 20px;font-size:13px;font-weight:600;text-align:center;position:sticky;top:0;z-index:200;letter-spacing:.01em}
@@ -53,12 +53,12 @@ button,select,input,textarea{font-family:var(--sans)}
 .nav-btn.lock:hover{color:var(--red);background:var(--red-l)}
 
 /* SCREENS */
-.screen{display:none;flex:1;overflow:hidden}
-.screen.active{display:flex;flex-direction:column;overflow:hidden}
+.screen{display:none;flex:1}
+.screen.active{display:flex;flex-direction:column}
 
 /* ══ LOGIN ══ */
 #trackerScreen,#formScreen,#statsScreen{overflow-y:auto}
-#loginScreen{justify-content:center;align-items:center;flex:1;overflow-y:auto;background:linear-gradient(135deg,#eef2ff 0%,#f0f2f7 50%,#faf5ff 100%)}
+#loginScreen{justify-content:center;align-items:center;min-height:calc(100vh - 54px);background:linear-gradient(135deg,#eef2ff 0%,#f0f2f7 50%,#faf5ff 100%)}
 .login-wrap{width:100%;max-width:540px;padding:20px}
 .login-header{text-align:center;margin-bottom:28px}
 .login-header .li{font-size:38px;margin-bottom:10px}
@@ -82,7 +82,7 @@ button,select,input,textarea{font-family:var(--sans)}
 .ic-login-btn .ib-sub{font-size:11px;color:var(--muted)}
 
 /* ══ PIN ══ */
-#pinScreen{justify-content:center;align-items:center;flex:1;overflow-y:auto;background:linear-gradient(135deg,#eef2ff 0%,#f0f2f7 50%,#faf5ff 100%)}
+#pinScreen{justify-content:center;align-items:center;min-height:calc(100vh - 54px);background:linear-gradient(135deg,#eef2ff 0%,#f0f2f7 50%,#faf5ff 100%)}
 .pin-card{width:320px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 28px;box-shadow:var(--shadow-lg)}
 .pin-div-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:10px;margin-bottom:14px;font-weight:600;font-size:14px}
 .pin-card p{font-size:12px;color:var(--muted);margin-bottom:20px}
@@ -1171,7 +1171,7 @@ button,select,input,textarea{font-family:var(--sans)}
   <div style="padding:8px 20px;background:#f5f3ff;border-bottom:1px solid rgba(124,58,237,.15);font-size:12px;color:#7c3aed;flex-shrink:0">
     🔒 Items flagged as <strong>allocated in Apprise</strong> by IC. Confirm release here so IC can proceed.
   </div>
-  <div id="opsAlertArea" style="flex:1;overflow-y:auto;padding:16px 20px">
+  <div id="opsAlertArea" style="padding:16px 20px 40px">
     <div style="color:var(--muted);font-size:13px">Loading…</div>
   </div>
 </div>
