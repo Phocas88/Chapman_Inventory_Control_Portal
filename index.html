@@ -2679,12 +2679,14 @@ function priBadge(p){
 }
 
 function sortByPriority(tix){
-  // Sort: 0 (urgent) first, then 1-4, then unset (blank = treat as P3)
+  // Sort order: Allocation Unlocked first (needs immediate action), then P0-P4, unset treated as P3
   return [...tix].sort((a,b)=>{
+    const unlockA = a.progress==='Allocation Unlocked' ? 1 : 0;
+    const unlockB = b.progress==='Allocation Unlocked' ? 1 : 0;
+    if(unlockA !== unlockB) return unlockB - unlockA; // unlocked floats to top
     const pa = (a.priority===''||a.priority===undefined||a.priority===null) ? 3 : parseInt(a.priority,10);
     const pb = (b.priority===''||b.priority===undefined||b.priority===null) ? 3 : parseInt(b.priority,10);
     if(pa!==pb) return pa-pb;
-    // Secondary sort: days open descending
     return daysSince(b.timestamp) - daysSince(a.timestamp);
   });
 }
