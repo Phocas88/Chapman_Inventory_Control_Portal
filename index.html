@@ -2687,32 +2687,12 @@ function sortByPriority(tix){
 async function openTicket(id){
   let t=allTix.find(x=>x.inquiryId===id); if(!t)return;
 
-  // Division users must only see their own division's tickets
   if(role==='division' && t.division !== currentDiv){
     toast('Access denied — this ticket belongs to another division','error');
     return;
   }
 
-  // In live mode, always fetch fresh conversation log when opening a ticket.
-  if(!CFG.DEMO_MODE){
-    showLoad('Loading conversation…');
-    try {
-      const r=await gasGet({action:'getTicket',inquiryId:id});
-      if(r && r.ticket){
-        Object.assign(t,r.ticket);
-        if(t.productEntries && typeof t.productEntries==='string' && t.productEntries.trim().startsWith('[')){
-          try{ t.productEntries=JSON.parse(t.productEntries); }catch(e){ t.productEntries=[]; }
-        }
-      } else if(r && r.error){
-        console.warn('getTicket error:', r.error);
-      }
-    } catch(e){
-      console.warn('openTicket fetch failed:', e);
-    } finally {
-      hideLoad();
-    }
-  }
-
+  // Open modal immediately from cached data — don't make user wait for network
   activeTx=t; replyFiles=[];
   if(!activeTx.conversationLog) activeTx.conversationLog=[];
 
@@ -2727,9 +2707,7 @@ async function openTicket(id){
   document.getElementById('managerPanel').style.display=isMgr?'':'none';
   document.getElementById('dockPanel').style.display=isDock?'':'none';
   document.getElementById('mFooter').style.display=isMgr?'':'none';
-  // Edit mode only for IC team and manager
   document.getElementById('editModeRow').style.display=(isIC||isMgr)?'':'none';
-  // Always close edit fields when opening a ticket
   document.getElementById('editFields').classList.remove('show');
   document.getElementById('editToggleBtn').classList.remove('active');
   document.getElementById('editToggleBtn').textContent='✏️ Edit Ticket Info';
@@ -2750,23 +2728,41 @@ async function openTicket(id){
     buildInvestigationGrid('dk');
   }
 
-  // Render THIS ticket's thread only
   renderThread(activeTx.conversationLog);
   document.getElementById('replyText').value='';
   renderFL(replyFiles,'replyFileList',null);
   if(role==='division') activeTx.conversationLog.forEach(m=>{if(m.direction==='outbound')m.divRead=true;});
   else activeTx.conversationLog.forEach(m=>{if(m.direction==='inbound')m.read=true;});
 
-  // Division priority panel — show only for division on their own tickets
   const priPanel = document.getElementById('divPriorityPanel');
   if(role==='division' && t.division===currentDiv){
-    priPanel.style.display='';
-    renderPriButtons(t);
+    priPanel.style.display=''; renderPriButtons(t);
   } else {
     priPanel.style.display='none';
   }
+
+  // Show modal immediately
   document.getElementById('modalOv').classList.add('open');
   setTimeout(()=>{const th=document.getElementById('mThread');th.scrollTop=th.scrollHeight;},100);
+
+  // Then refresh conversation log in background — update thread when ready
+  if(!CFG.DEMO_MODE){
+    try {
+      const r=await gasGet({action:'getTicket',inquiryId:id});
+      if(r && r.ticket && activeTx && activeTx.inquiryId===id){
+        Object.assign(activeTx, r.ticket);
+        if(activeTx.productEntries && typeof activeTx.productEntries==='string' && activeTx.productEntries.trim().startsWith('[')){
+          try{ activeTx.productEntries=JSON.parse(activeTx.productEntries); }catch(e){ activeTx.productEntries=[]; }
+        }
+        renderThread(activeTx.conversationLog||[]);
+        setTimeout(()=>{const th=document.getElementById('mThread');th.scrollTop=th.scrollHeight;},50);
+        // Refresh investigation grid with latest data
+        if(isIC) buildInvestigationGrid('ic');
+        if(isMgr) buildInvestigationGrid('mg');
+        if(isDock) buildInvestigationGrid('dk');
+      }
+    } catch(e){ console.warn('Background ticket refresh failed:', e); }
+  }
 }
 
 function renderThread(log){
