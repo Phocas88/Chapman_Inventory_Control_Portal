@@ -395,6 +395,10 @@ button,select,input,textarea{font-family:var(--sans)}
 .b-followup{color:#fb923c;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.25)}.b-waiting{color:#fb923c;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.25)}
 .b-completed{color:#34d399;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.25)}.b-other{color:var(--muted);background:var(--panel)}
 .b-allocated{color:#fb923c;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.3)}
+.b-unlocked{color:#4f83f5;background:rgba(79,131,245,.18);border:1px solid rgba(79,131,245,.4)}
+/* Allocation unlocked row — pulsing blue to grab IC attention */
+@keyframes unlockPulse{0%,100%{background:rgba(79,131,245,.1)}50%{background:rgba(79,131,245,.22)}}
+.row-unlocked{animation:unlockPulse 1.8s ease-in-out infinite}
 /* Priority badges */
 .pri-badge{display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;border-radius:6px;font-size:11px;padding:2px 7px;white-space:nowrap;flex-shrink:0}
 .pri-0{background:rgba(248,113,113,.15);color:#f87171;border:1.5px solid rgba(248,113,113,.35)}
@@ -593,7 +597,7 @@ button,select,input,textarea{font-family:var(--sans)}
 .toast{position:fixed;bottom:24px;right:24px;z-index:999;background:var(--text);color:#fff;border-radius:var(--radius);padding:10px 17px;font-size:12px;transform:translateY(16px);opacity:0;transition:all .2s;pointer-events:none;box-shadow:var(--shadow-lg)}
 .toast.show{transform:translateY(0);opacity:1}
 .toast.success{background:var(--green)}.toast.error{background:var(--red)}
-.loading-overlay{position:fixed;inset:0;z-index:300;background:rgba(240,242,247,.75);backdrop-filter:blur(4px);display:none;justify-content:center;align-items:center;flex-direction:column;gap:14px}
+.loading-overlay{position:fixed;inset:0;z-index:300;background:rgba(15,17,23,.8);backdrop-filter:blur(4px);display:none;justify-content:center;align-items:center;flex-direction:column;gap:14px}
 .loading-overlay.show{display:flex}
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 .loading-overlay p{font-size:12px;color:var(--muted)}
@@ -907,7 +911,7 @@ button,select,input,textarea{font-family:var(--sans)}
     </div>
     <select class="filter-sel" id="stFilter" onchange="filterTix()">
       <option value="">All Statuses</option>
-      <option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated</option><option>Completed</option>
+      <option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated / Waiting OPS</option><option>Allocation Unlocked</option><option>Completed</option>
     </select>
     <select class="filter-sel" id="dvFilter" onchange="filterTix()">
       <option value="">All Divisions</option>
@@ -927,7 +931,7 @@ button,select,input,textarea{font-family:var(--sans)}
     <div class="stat-card sc-yellow"><div class="sv" id="sInv">—</div><div class="sl">Investigating</div></div>
     <div class="stat-card sc-orange"><div class="sv" id="sFup">—</div><div class="sl">Needs Response</div></div>
     <div class="stat-card sc-green"><div class="sv" id="sDone">—</div><div class="sl">Completed Today</div></div>
-    <div class="stat-card" style="border-color:rgba(234,88,12,.2);background:#fff7ed"><div class="sv" id="sAlloc" style="color:#ea580c">—</div><div class="sl" style="color:#ea580c">🔒 Allocated</div></div>
+    <div class="stat-card" style="border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)"><div class="sv" id="sAlloc" style="color:var(--orange)">—</div><div class="sl" style="color:var(--orange)">🔒 Allocated</div></div>
   </div>
   <div class="table-wrap"><div id="tblArea"></div></div>
 </div>
@@ -1138,7 +1142,7 @@ button,select,input,textarea{font-family:var(--sans)}
       <div class="manager-panel-title">IC Manager — Full Control</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <div class="mf" style="flex:1;min-width:160px"><label>Progress</label>
-          <select id="mProg"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated</option><option>Completed</option></select>
+          <select id="mProg"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated / Waiting OPS</option><option>Allocation Unlocked</option><option>Completed</option></select>
         </div>
         <div class="mf" style="flex:2;min-width:200px"><label>Follow-Up Questions <span class="note">(emailed to requester)</span></label>
           <textarea id="mFupQ" rows="2" placeholder="Questions to send…"></textarea>
@@ -1172,7 +1176,7 @@ button,select,input,textarea{font-family:var(--sans)}
       <div class="dock-panel-title">🚛 Dock Manager — Receiving &amp; Shipping Response</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <div class="df" style="flex:1;min-width:160px"><label>Status Update</label>
-          <select id="dkProg"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated</option><option>Completed</option></select>
+          <select id="dkProg"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated / Waiting OPS</option><option>Allocation Unlocked</option><option>Completed</option></select>
         </div>
         <div class="df" style="flex:2;min-width:200px"><label>Follow-Up Questions <span style="font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400;color:#0891b2;opacity:.75">(emailed to division)</span></label>
           <textarea id="dkFollowup" rows="2" placeholder="Questions for the division or IC team…"></textarea>
@@ -1673,11 +1677,12 @@ async function confirmOpsRelease(inquiryId, code, btn){
       try{ flags = JSON.parse(a.allocFlags||'[]'); }catch(e){}
       flags = flags.map(f=>f.code===code ? {...f, confirmed:true, confirmedAt:new Date().toISOString()} : f);
       a.allocFlags = JSON.stringify(flags);
-      // Revert progress in allTix if all items confirmed
       const anyStillLocked = flags.some(f=>f.allocated && !f.confirmed);
-      if(!anyStillLocked){
-        const t = allTix.find(x=>x.inquiryId===inquiryId);
-        if(t) t.progress = 'Investigating';
+      const t = allTix.find(x=>x.inquiryId===inquiryId);
+      if(t){
+        t.progress = anyStillLocked ? 'Allocated / Waiting OPS' : 'Allocation Unlocked';
+        // Re-render IC dashboard immediately so blue pulse row appears
+        if(document.getElementById('dashScreen').classList.contains('active')) renderTix(allTix);
       }
     }
     // Check if IC team has pending bell updates
@@ -2607,7 +2612,7 @@ function filterTix(){
   const dv=document.getElementById('dvFilter').value;
   renderTix(allTix.filter(t=>{
     const mq=!q||[t.inquiryId,t.division,t.productCodes,t.description].join(' ').toLowerCase().includes(q);
-    const stMatch=st ? t.progress===st : t.progress!=='Completed';
+    const stMatch=st ? t.progress===st : (t.progress!=='Completed');
     const dvMatch=!dv||t.division===dv;
     // Dock manager only sees shipping/receiving issues
     const dockMatch=role!=='dockmanager'||isDockTicket(t);
@@ -2632,8 +2637,9 @@ function renderTix(tix){
           ? `<td style="text-align:center"><span class="pri-badge pri-${pri}" style="padding:2px 5px">${pri}</span></td>`
           : `<td style="text-align:center;color:var(--border)">—</td>`;
       const rowBg = pri===0?'background:rgba(248,113,113,.13)':pri===1?'background:rgba(251,146,60,.08)':pri===2?'background:rgba(245,158,11,.07)':'';
-      const idCellStyle = pri===0?'color:var(--accent);font-weight:500;border-left:3px solid #f87171;padding-left:11px':pri===1?'color:var(--accent);font-weight:500;border-left:3px solid rgba(251,146,60,.6);padding-left:11px':pri===2?'color:var(--accent);font-weight:500;border-left:3px solid rgba(245,158,11,.5);padding-left:11px':'color:var(--accent);font-weight:500';
-      return `<tr onclick="openTicket('${t.inquiryId}')" style="${rowBg}">${priCell}<td class="mono" style="${idCellStyle}">${t.inquiryId}${hasUnread(t)?'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:6px;vertical-align:middle"></span>':''}</td><td><span class="mono">${t.division}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[t.division]||''}</span></td><td>${esc(t.productCodes)}</td><td>${badge(t.progress)}</td><td class="mono" style="color:${daysColor};font-size:12px">${days===0?'Today':days+'d'}</td><td class="mono" style="color:var(--muted)">${(t.conversationLog||[]).length}</td><td class="mono" style="color:var(--muted);font-size:11px">${fmtDateShort(t.timestamp)}</td></tr>`;
+      const rowClass = t.progress==='Allocation Unlocked' ? 'row-unlocked' : '';
+      const idCellStyle = pri===0?'color:var(--accent);font-weight:500;border-left:3px solid #f87171;padding-left:11px':pri===1?'color:var(--accent);font-weight:500;border-left:3px solid rgba(251,146,60,.6);padding-left:11px':pri===2?'color:var(--accent);font-weight:500;border-left:3px solid rgba(245,158,11,.5);padding-left:11px':t.progress==='Allocation Unlocked'?'color:var(--accent);font-weight:500;border-left:3px solid #4f83f5;padding-left:11px':'color:var(--accent);font-weight:500';
+      return `<tr onclick="openTicket('${t.inquiryId}')" class="${rowClass}" style="${rowBg}">${priCell}<td class="mono" style="${idCellStyle}">${t.inquiryId}${hasUnread(t)?'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:6px;vertical-align:middle"></span>':''}</td><td><span class="mono">${t.division}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[t.division]||''}</span></td><td>${esc(t.productCodes)}</td><td>${badge(t.progress)}</td><td class="mono" style="color:${daysColor};font-size:12px">${days===0?'Today':days+'d'}</td><td class="mono" style="color:var(--muted)">${(t.conversationLog||[]).length}</td><td class="mono" style="color:var(--muted);font-size:11px">${fmtDateShort(t.timestamp)}</td></tr>`;
     }).join('')
   }</tbody></table>`;
 }
@@ -2646,12 +2652,12 @@ function updStats(tix){
   document.getElementById('sFup').textContent  = tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
   document.getElementById('sDone').textContent = tix.filter(t=>t.progress==='Completed'&&new Date(t.timestamp).toDateString()===today).length;
   const allocEl = document.getElementById('sAlloc');
-  if(allocEl) allocEl.textContent = tix.filter(t=>t.progress==='Allocated').length;
+  if(allocEl) allocEl.textContent = tix.filter(t=>t.progress==='Allocated / Waiting OPS'||t.progress==='Allocation Unlocked').length;
 }
 
 function badge(s){
-  const m={'Received':'b-received','Investigating':'b-investigating','Need More Info':'b-followup','Waiting on Info':'b-waiting','Completed':'b-completed','Allocated':'b-allocated'};
-  const icon = s==='Allocated' ? '🔒 ' : '';
+  const m={'Received':'b-received','Investigating':'b-investigating','Need More Info':'b-followup','Waiting on Info':'b-waiting','Completed':'b-completed','Allocated / Waiting OPS':'b-allocated','Allocation Unlocked':'b-unlocked'};
+  const icon = s==='Allocated / Waiting OPS' ? '🔒 ' : s==='Allocation Unlocked' ? '🔓 ' : '';
   return`<span class="badge ${m[s]||'b-other'}">${icon}${s||'Unknown'}</span>`;
 }
 
@@ -2688,20 +2694,23 @@ async function openTicket(id){
   }
 
   // In live mode, always fetch fresh conversation log when opening a ticket.
-  // This ensures IC replies and division replies are always up to date.
   if(!CFG.DEMO_MODE){
     showLoad('Loading conversation…');
     try {
       const r=await gasGet({action:'getTicket',inquiryId:id});
-      if(r.ticket){
+      if(r && r.ticket){
         Object.assign(t,r.ticket);
-        // Parse productEntries if it came back as a JSON string
         if(t.productEntries && typeof t.productEntries==='string' && t.productEntries.trim().startsWith('[')){
           try{ t.productEntries=JSON.parse(t.productEntries); }catch(e){ t.productEntries=[]; }
         }
+      } else if(r && r.error){
+        console.warn('getTicket error:', r.error);
       }
-    } catch(e){} // fall back to cached data silently
-    hideLoad();
+    } catch(e){
+      console.warn('openTicket fetch failed:', e);
+    } finally {
+      hideLoad();
+    }
   }
 
   activeTx=t; replyFiles=[];
@@ -2935,13 +2944,13 @@ async function saveAllocationOnly(prefix){
     }
     // Update local entries and set status to Allocated
     activeTx.productEntries = entries;
-    activeTx.progress = 'Allocated';
+    activeTx.progress = 'Allocated / Waiting OPS';
     const idx = allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
-    if(idx>=0){ allTix[idx].productEntries = entries; allTix[idx].progress = 'Allocated'; }
+    if(idx>=0){ allTix[idx].productEntries = entries; allTix[idx].progress = 'Allocated / Waiting OPS'; }
     // Update the progress dropdown in whichever panel is showing
     const progIds = {ic:'qProgress', mg:'mProg', dk:'dkProg'};
     const progEl  = document.getElementById(progIds[prefix]);
-    if(progEl) progEl.value = 'Allocated';
+    if(progEl) progEl.value = 'Allocated / Waiting OPS';
     hideLoad();
     toast('🔒 '+allocEntries.map(e=>e.code).join(', ')+' flagged as allocated — Ops alerted ✓','success');
     buildInvestigationGrid(prefix);
