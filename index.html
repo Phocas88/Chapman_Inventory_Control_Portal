@@ -31,11 +31,13 @@ button,select,input,textarea{font-family:var(--sans)}
 #app{display:flex;flex-direction:column;min-height:100vh}
 
 /* BANNER */
-.sys-banner{display:none;padding:12px 20px;font-size:13px;font-weight:600;text-align:center;position:sticky;top:0;z-index:200;letter-spacing:.01em}
+.sys-banner{display:none;padding:10px 20px;font-size:13px;font-weight:600;text-align:center;position:fixed;top:0;left:0;right:0;z-index:500;letter-spacing:.01em}
 .sys-banner.show{display:block}
-.sys-banner.info{background:#dc2626;color:#fff;border-bottom:3px solid #991b1b;box-shadow:0 2px 8px rgba(220,38,38,.4)}
-.sys-banner.warn{background:#dc2626;color:#fff;border-bottom:3px solid #991b1b;box-shadow:0 2px 8px rgba(220,38,38,.4)}
-.sys-banner.maint{background:#dc2626;color:#fff;border-bottom:3px solid #991b1b;box-shadow:0 2px 8px rgba(220,38,38,.4)}
+.sys-banner.info{background:#1d4ed8;color:#fff;border-bottom:2px solid #1e40af;box-shadow:0 2px 12px rgba(29,78,216,.5)}
+.sys-banner.warn{background:#dc2626;color:#fff;border-bottom:2px solid #991b1b;box-shadow:0 2px 12px rgba(220,38,38,.5)}
+.sys-banner.maint{background:#d97706;color:#fff;border-bottom:2px solid #b45309;box-shadow:0 2px 12px rgba(217,119,6,.5)}
+/* Push app down when banner is showing */
+body.has-banner #app{margin-top:44px}
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;gap:10px;padding:0 20px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.35)}
@@ -605,10 +607,10 @@ button,select,input,textarea{font-family:var(--sans)}
 </style>
 </head>
 <body>
-<div id="app">
-
 <!-- SYSTEM BANNER -->
 <div class="sys-banner" id="sysBanner"></div>
+
+<div id="app">
 
 <!-- TOPBAR -->
 <header class="topbar" style="position:sticky;top:0;z-index:100">
@@ -1537,13 +1539,15 @@ function loadBanner(){
 }
 function showBanner(text,type){
   const el=document.getElementById('sysBanner');
-  const icons={info:'⚠️',warn:'🔴',maint:'🔧'};
+  const icons={info:'ℹ️',warn:'🔴',maint:'🔧'};
   el.textContent=(icons[type]||'⚠️')+' '+text;
   el.className='sys-banner show '+type;
+  document.body.classList.add('has-banner');
 }
 function hideBanner(){
   const el=document.getElementById('sysBanner');
   el.className='sys-banner'; el.textContent='';
+  document.body.classList.remove('has-banner');
 }
 function postBanner(){
   const text=document.getElementById('bannerText').value.trim();
@@ -1559,6 +1563,8 @@ function clearBanner(){
   document.getElementById('bannerText').value='';
   toast('Banner cleared','success');
 }
+// Poll localStorage every 10s so banner appears on all open tabs without refresh
+setInterval(loadBanner, 10000);
 
 /* ═══════════════════════════════════════════════════════
    GLOBAL STATS
@@ -2698,6 +2704,8 @@ async function openTicket(id){
   activeTx=t; replyFiles=[];
   if(!activeTx.conversationLog) activeTx.conversationLog=[];
 
+  const isIC=role==='icteam', isMgr=role==='manager', isDock=role==='dockmanager';
+
   try {
     const days=daysSince(t.timestamp);
     document.getElementById('mId').textContent=t.inquiryId;
@@ -2705,7 +2713,6 @@ async function openTicket(id){
     document.getElementById('mMeta').innerHTML=buildMetaHTML(t,days);
     document.getElementById('mDesc').textContent=t.description||'—';
 
-    const isIC=role==='icteam', isMgr=role==='manager', isDock=role==='dockmanager';
     document.getElementById('icTeamPanel').style.display=isIC?'':'none';
     document.getElementById('managerPanel').style.display=isMgr?'':'none';
     document.getElementById('dockPanel').style.display=isDock?'':'none';
@@ -2930,7 +2937,7 @@ async function saveAllocationOnly(prefix){
   const entries = readGridEntries(prefix);
   const allocEntries = entries.filter(e=>e.allocated).map(e=>({
     code:      e.code,
-    notes:     e.findings || '',
+    notes:     (e.findings||'').substring(0,120),
     allocated: true,
     confirmed: false,
   }));
