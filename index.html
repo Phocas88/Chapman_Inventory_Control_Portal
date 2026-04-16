@@ -2696,52 +2696,58 @@ async function openTicket(id){
   activeTx=t; replyFiles=[];
   if(!activeTx.conversationLog) activeTx.conversationLog=[];
 
-  const days=daysSince(t.timestamp);
-  document.getElementById('mId').textContent=t.inquiryId;
-  document.getElementById('mTitle').textContent=(DIV_NAMES[t.division]||t.division)+' — '+(t.category||'General Inquiry');
-  document.getElementById('mMeta').innerHTML=buildMetaHTML(t,days);
-  document.getElementById('mDesc').textContent=t.description||'—';
+  try {
+    const days=daysSince(t.timestamp);
+    document.getElementById('mId').textContent=t.inquiryId;
+    document.getElementById('mTitle').textContent=(DIV_NAMES[t.division]||t.division)+' — '+(t.category||'General Inquiry');
+    document.getElementById('mMeta').innerHTML=buildMetaHTML(t,days);
+    document.getElementById('mDesc').textContent=t.description||'—';
 
-  const isIC=role==='icteam', isMgr=role==='manager', isDock=role==='dockmanager';
-  document.getElementById('icTeamPanel').style.display=isIC?'':'none';
-  document.getElementById('managerPanel').style.display=isMgr?'':'none';
-  document.getElementById('dockPanel').style.display=isDock?'':'none';
-  document.getElementById('mFooter').style.display=isMgr?'':'none';
-  document.getElementById('editModeRow').style.display=(isIC||isMgr)?'':'none';
-  document.getElementById('editFields').classList.remove('show');
-  document.getElementById('editToggleBtn').classList.remove('active');
-  document.getElementById('editToggleBtn').textContent='✏️ Edit Ticket Info';
-  if(isIC){
-    document.getElementById('qProgress').value=t.progress||'Received';
-    document.getElementById('qFollowup').value=t.followUpQuestions||'';
-    buildInvestigationGrid('ic');
-  }
-  if(isMgr){
-    document.getElementById('mProg').value=t.progress||'Received';
-    document.getElementById('mFupQ').value=t.followUpQuestions||'';
-    buildInvestigationGrid('mg');
-    loadAllocEmails();
-  }
-  if(isDock){
-    document.getElementById('dkProg').value=t.progress||'Received';
-    document.getElementById('dkFollowup').value=t.followUpQuestions||'';
-    buildInvestigationGrid('dk');
+    const isIC=role==='icteam', isMgr=role==='manager', isDock=role==='dockmanager';
+    document.getElementById('icTeamPanel').style.display=isIC?'':'none';
+    document.getElementById('managerPanel').style.display=isMgr?'':'none';
+    document.getElementById('dockPanel').style.display=isDock?'':'none';
+    document.getElementById('mFooter').style.display=isMgr?'':'none';
+    document.getElementById('editModeRow').style.display=(isIC||isMgr)?'':'none';
+    document.getElementById('editFields').classList.remove('show');
+    document.getElementById('editToggleBtn').classList.remove('active');
+    document.getElementById('editToggleBtn').textContent='✏️ Edit Ticket Info';
+    if(isIC){
+      document.getElementById('qProgress').value=t.progress||'Received';
+      document.getElementById('qFollowup').value=t.followUpQuestions||'';
+      buildInvestigationGrid('ic');
+    }
+    if(isMgr){
+      document.getElementById('mProg').value=t.progress||'Received';
+      document.getElementById('mFupQ').value=t.followUpQuestions||'';
+      buildInvestigationGrid('mg');
+      loadAllocEmails();
+    }
+    if(isDock){
+      document.getElementById('dkProg').value=t.progress||'Received';
+      document.getElementById('dkFollowup').value=t.followUpQuestions||'';
+      buildInvestigationGrid('dk');
+    }
+
+    renderThread(activeTx.conversationLog);
+    document.getElementById('replyText').value='';
+    renderFL(replyFiles,'replyFileList',null);
+    if(role==='division') activeTx.conversationLog.forEach(m=>{if(m.direction==='outbound')m.divRead=true;});
+    else activeTx.conversationLog.forEach(m=>{if(m.direction==='inbound')m.read=true;});
+
+    const priPanel = document.getElementById('divPriorityPanel');
+    if(role==='division' && t.division===currentDiv){
+      priPanel.style.display=''; renderPriButtons(t);
+    } else {
+      priPanel.style.display='none';
+    }
+  } catch(err){
+    console.error('openTicket modal build error:', err);
+    toast('Error opening ticket: '+err.message, 'error');
+    return;
   }
 
-  renderThread(activeTx.conversationLog);
-  document.getElementById('replyText').value='';
-  renderFL(replyFiles,'replyFileList',null);
-  if(role==='division') activeTx.conversationLog.forEach(m=>{if(m.direction==='outbound')m.divRead=true;});
-  else activeTx.conversationLog.forEach(m=>{if(m.direction==='inbound')m.read=true;});
-
-  const priPanel = document.getElementById('divPriorityPanel');
-  if(role==='division' && t.division===currentDiv){
-    priPanel.style.display=''; renderPriButtons(t);
-  } else {
-    priPanel.style.display='none';
-  }
-
-  // Show modal immediately
+  // Show modal
   document.getElementById('modalOv').classList.add('open');
   setTimeout(()=>{const th=document.getElementById('mThread');th.scrollTop=th.scrollHeight;},100);
 
