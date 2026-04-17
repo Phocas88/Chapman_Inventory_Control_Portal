@@ -398,6 +398,13 @@ body.has-banner #app{margin-top:44px}
 .b-completed{color:#34d399;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.25)}.b-other{color:var(--muted);background:var(--panel)}
 .b-allocated{color:#fb923c;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.3)}
 .b-unlocked{color:#4f83f5;background:rgba(79,131,245,.18);border:1px solid rgba(79,131,245,.4)}
+.b-retired{color:var(--muted);background:var(--panel);border:1px solid var(--border);opacity:.7}
+/* Retire panel */
+.retire-panel{background:rgba(107,116,148,.1);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:10px}
+.retire-panel-title{font-size:11px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.retire-reason-sel{border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;background:#1e2334;color:#e8eaf0;cursor:pointer;min-width:220px}
+.retire-btn{background:var(--panel2);color:var(--muted);border:1.5px solid var(--border);padding:8px 14px}
+.retire-btn:hover{border-color:var(--muted);color:var(--text)}
 /* Allocation unlocked row — pulsing blue to grab IC attention */
 @keyframes unlockPulse{0%,100%{background:rgba(79,131,245,.1)}50%{background:rgba(79,131,245,.22)}}
 .row-unlocked{animation:unlockPulse 1.8s ease-in-out infinite}
@@ -913,7 +920,7 @@ body.has-banner #app{margin-top:44px}
     </div>
     <select class="filter-sel" id="stFilter" onchange="filterTix()">
       <option value="">All Statuses</option>
-      <option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated / Waiting OPS</option><option>Allocation Unlocked</option><option>Completed</option>
+      <option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated / Waiting OPS</option><option>Allocation Unlocked</option><option>Completed</option><option>Retired</option>
     </select>
     <select class="filter-sel" id="dvFilter" onchange="filterTix()">
       <option value="">All Divisions</option>
@@ -1132,6 +1139,9 @@ body.has-banner #app{margin-top:44px}
 
       <!-- Action buttons -->
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px">
+        <button class="quick-save-btn retire-btn" onclick="showRetirePanel('ic')" title="Retire this ticket — closes without emailing division">
+          🗄 Retire Ticket
+        </button>
         <button class="quick-save-btn" style="background:#ea580c;padding:8px 16px" id="qAllocBtn" onclick="saveAllocationOnly('ic')" title="Flag checked 🔒 rows as allocated — alerts Ops immediately">
           🔒 Flag Allocated Items
         </button>
@@ -1141,6 +1151,24 @@ body.has-banner #app{margin-top:44px}
         <button class="quick-save-btn" id="qSaveBtn" onclick="saveICTeam()">Save &amp; Send Update →</button>
       </div>
       <div class="hint" style="text-align:right">🔒 Flag Allocated alerts Ops. Save &amp; Send emails division. Close Rows creates sub-ticket.</div>
+      <!-- Retire panel -->
+      <div class="retire-panel" id="retirePanelIc" style="display:none">
+        <div class="retire-panel-title">🗄 Retire Ticket — No email will be sent to the division</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="retireReasonIc" class="retire-reason-sel">
+            <option value="">— Select reason —</option>
+            <option>No response from division</option>
+            <option>Issue resolved outside system</option>
+            <option>Duplicate — superseded by another ticket</option>
+            <option>Aged out — no action needed</option>
+            <option>Item no longer in inventory</option>
+            <option>Other</option>
+          </select>
+          <input type="text" id="retireNoteIc" placeholder="Optional note…" style="flex:1;min-width:160px;border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;background:var(--panel2);color:var(--text)">
+          <button class="btn-primary" style="background:#6b7494;box-shadow:none" onclick="confirmRetire('ic')">Confirm Retire</button>
+          <button class="btn-ghost" onclick="hideRetirePanel('ic')">Cancel</button>
+        </div>
+      </div>
     </div>
     <div class="manager-panel" id="managerPanel" style="display:none">
       <div class="manager-panel-title">IC Manager — Full Control</div>
@@ -1154,6 +1182,9 @@ body.has-banner #app{margin-top:44px}
       </div>
       <div id="mgInvestigationGrid" style="overflow-x:auto;margin-top:4px"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:4px">
+        <button class="quick-save-btn retire-btn" onclick="showRetirePanel('mg')" title="Retire this ticket — closes without emailing division">
+          🗄 Retire Ticket
+        </button>
         <button class="quick-save-btn" style="background:#ea580c;padding:8px 16px" id="mAllocBtn" onclick="saveAllocationOnly('mg')" title="Flag checked 🔒 rows as allocated — alerts Ops immediately">
           🔒 Flag Allocated Items
         </button>
@@ -1163,6 +1194,24 @@ body.has-banner #app{margin-top:44px}
         <button class="btn-primary" id="mSaveBtn" onclick="saveManager()">Save &amp; Send Update →</button>
       </div>
       <div class="hint" style="text-align:right">⚠ "Save & Send" emails the division. "Close Selected Rows" creates a sub-ticket and emails just those items.</div>
+      <!-- Retire panel -->
+      <div class="retire-panel" id="retirePanelMg" style="display:none">
+        <div class="retire-panel-title">🗄 Retire Ticket — No email will be sent to the division</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select id="retireReasonMg" class="retire-reason-sel">
+            <option value="">— Select reason —</option>
+            <option>No response from division</option>
+            <option>Issue resolved outside system</option>
+            <option>Duplicate — superseded by another ticket</option>
+            <option>Aged out — no action needed</option>
+            <option>Item no longer in inventory</option>
+            <option>Other</option>
+          </select>
+          <input type="text" id="retireNoteMg" placeholder="Optional note…" style="flex:1;min-width:160px;border:1.5px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;background:var(--panel2);color:var(--text)">
+          <button class="btn-primary" style="background:#6b7494;box-shadow:none" onclick="confirmRetire('mg')">Confirm Retire</button>
+          <button class="btn-ghost" onclick="hideRetirePanel('mg')">Cancel</button>
+        </div>
+      </div>
 
       <!-- Allocation email config — manager only -->
       <div class="alloc-email-panel" id="allocEmailPanel">
@@ -2620,7 +2669,7 @@ function filterTix(){
   const dv=document.getElementById('dvFilter').value;
   renderTix(allTix.filter(t=>{
     const mq=!q||[t.inquiryId,t.division,t.productCodes,t.description].join(' ').toLowerCase().includes(q);
-    const stMatch=st ? t.progress===st : (t.progress!=='Completed');
+    const stMatch=st ? t.progress===st : (t.progress!=='Completed' && t.progress!=='Retired');
     const dvMatch=!dv||t.division===dv;
     // Dock manager only sees shipping/receiving issues
     const dockMatch=role!=='dockmanager'||isDockTicket(t);
@@ -2664,8 +2713,8 @@ function updStats(tix){
 }
 
 function badge(s){
-  const m={'Received':'b-received','Investigating':'b-investigating','Need More Info':'b-followup','Waiting on Info':'b-waiting','Completed':'b-completed','Allocated / Waiting OPS':'b-allocated','Allocation Unlocked':'b-unlocked'};
-  const icon = s==='Allocated / Waiting OPS' ? '🔒 ' : s==='Allocation Unlocked' ? '🔓 ' : '';
+  const m={'Received':'b-received','Investigating':'b-investigating','Need More Info':'b-followup','Waiting on Info':'b-waiting','Completed':'b-completed','Allocated / Waiting OPS':'b-allocated','Allocation Unlocked':'b-unlocked','Retired':'b-retired'};
+  const icon = s==='Allocated / Waiting OPS' ? '🔒 ' : s==='Allocation Unlocked' ? '🔓 ' : s==='Retired' ? '🗄 ' : '';
   return`<span class="badge ${m[s]||'b-other'}">${icon}${s||'Unknown'}</span>`;
 }
 
@@ -2970,6 +3019,46 @@ async function saveAllocationOnly(prefix){
     renderTix(allTix); updStats(allTix);
   }catch(e){ hideLoad(); toast('Failed: '+e.message,'error'); }
   if(btn) btn.disabled=false;
+}
+
+/* ═══════════════════════════════════════════════════════
+   RETIRE TICKET
+   ═══════════════════════════════════════════════════════ */
+function showRetirePanel(prefix){
+  const panelId = prefix==='ic' ? 'retirePanelIc' : 'retirePanelMg';
+  document.getElementById(panelId).style.display='';
+}
+function hideRetirePanel(prefix){
+  const panelId = prefix==='ic' ? 'retirePanelIc' : 'retirePanelMg';
+  document.getElementById(panelId).style.display='none';
+}
+
+async function confirmRetire(prefix){
+  if(!activeTx) return;
+  const reasonId = prefix==='ic' ? 'retireReasonIc' : 'retireReasonMg';
+  const noteId   = prefix==='ic' ? 'retireNoteIc'   : 'retireNoteMg';
+  const reason   = document.getElementById(reasonId).value;
+  const note     = document.getElementById(noteId).value.trim();
+  if(!reason){ toast('Select a reason before retiring','error'); return; }
+
+  showLoad('Retiring ticket…');
+  try {
+    if(!CFG.DEMO_MODE){
+      const r = await gasPost({action:'retireTicket', inquiryId:activeTx.inquiryId, reason, note, retiredBy: role});
+      if(r && r.error) throw new Error(r.error);
+    }
+    // Update local state
+    const idx = allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
+    if(idx>=0) allTix[idx].progress='Retired';
+    hideLoad();
+    toast('Ticket '+activeTx.inquiryId+' retired ✓','success');
+    closeMo();
+    renderTix(allTix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired'));
+    updStats(allTix);
+  } catch(e){
+    hideLoad();
+    toast('Retire failed: '+e.message,'error');
+  }
 }
 
 async function saveICTeam(){
