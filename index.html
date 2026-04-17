@@ -940,6 +940,8 @@ body.has-banner #app{margin-top:44px}
     <div class="stat-card sc-yellow"><div class="sv" id="sInv">—</div><div class="sl">Investigating</div></div>
     <div class="stat-card sc-orange"><div class="sv" id="sFup">—</div><div class="sl">Needs Response</div></div>
     <div class="stat-card sc-green"><div class="sv" id="sDone">—</div><div class="sl">Completed Today</div></div>
+    <div class="stat-card sc-green"><div class="sv" id="sComp">—</div><div class="sl">Total Completed</div></div>
+    <div class="stat-card" style="border-color:rgba(107,116,148,.3);background:var(--panel)"><div class="sv" id="sRetired" style="color:var(--muted)">—</div><div class="sl" style="color:var(--muted)">🗄 Retired</div></div>
     <div class="stat-card" style="border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)"><div class="sv" id="sAlloc" style="color:var(--orange)">—</div><div class="sl" style="color:var(--orange)">🔒 Allocated</div></div>
   </div>
   <div class="table-wrap"><div id="tblArea"></div></div>
@@ -1314,6 +1316,10 @@ body.has-banner #app{margin-top:44px}
    CONFIG
    ═══════════════════════════════════════════════════════ */
 const CFG = {
+  // ── Firebase (data) ──────────────────────────────────────────────
+  FIREBASE_PROJECT:  'inventory-control-portal',
+  FIREBASE_API_KEY:  'AIzaSyA1n5P6MFUojFsEBqlXaSLumNiChgAH1Lw',
+  // GAS is email-only now — no data reads/writes go here
   GAS_URL:     'https://script.google.com/macros/s/AKfycbwEyxzUgEuTbcWMTyyU8Gl8IhK2zGP490krQKqnf0rtv261kH3AWgcgpfRnDNFy4jaNVQ/exec',
   DEMO_MODE:   false,
   PIN_ICTEAM:     '7150',
@@ -1639,8 +1645,16 @@ async function loadOpsAlerts(forceRefresh){
         allocFlags: JSON.stringify([{code:'NPH88010',notes:'Allocated to open pick wave PW-4421',allocated:true,confirmed:false}]),
       }];
     } else {
-      const r = await gasGet({action:'getOpsAlerts'});
-      opsAlerts = (r && r.alerts) ? r.alerts : [];
+      // Query Firestore for tickets with allocated/unconfirmed items
+      const allTixLocal = allTix.length ? allTix : await fsLoadTickets();
+      opsAlerts = allTixLocal.filter(t=>{
+        const flags = Array.isArray(t.allocFlags) ? t.allocFlags : [];
+        return flags.some(f=>f.allocated && !f.confirmed);
+      }).map(t=>({
+        inquiryId: t.inquiryId, division: t.division, productCodes: t.productCodes,
+        description: t.description, progress: t.progress, findings: t.findings||'',
+        timestamp: t.timestamp, productEntries: t.productEntries, allocFlags: t.allocFlags,
+      }));
     }
     renderOpsAlerts();
   } catch(e){
@@ -1724,8 +1738,18 @@ async function confirmOpsRelease(inquiryId, code, btn){
   btn.textContent = 'Confirming…';
   try {
     if(!CFG.DEMO_MODE){
-      const r = await gasPost({action:'confirmUnallocated', inquiryId, code});
-      if(r.error) throw new Error(r.error);
+      // Update allocFlags and progress in Firestore
+      const tix = allTix.find(x=>x.inquiryId===inquiryId);
+      if(tix){
+        let flags = Array.isArray(tix.allocFlags) ? [...tix.allocFlags] : [];
+        flags = flags.map(f=>f.code===code ? {...f,confirmed:true,confirmedAt:new Date().toISOString(),confirmedBy:'Operations'} : f);
+        const anyLocked = flags.some(f=>f.allocated&&!f.confirmed);
+        const newProgress = anyLocked ? 'Allocated / Waiting OPS' : 'Allocation Unlocked';
+        await fsSaveTicket(inquiryId, {allocFlags:flags, progress:newProgress});
+        await fsAddMessage(inquiryId, {direction:'outbound', sentBy:'Operations',
+          body:'✅ Operations confirmed '+code+' is no longer allocated in Apprise. IC can now proceed.',
+          timestamp:new Date().toISOString()});
+      }
     }
     // Update local state
     const a = opsAlerts.find(x=>x.inquiryId===inquiryId);
@@ -1767,13 +1791,11 @@ function startBellPoll(){
 async function checkAllocBell(){
   if(CFG.DEMO_MODE || (role!=='icteam' && role!=='manager')) return;
   try {
-    const r = await gasGet({action:'getOpsAlerts'});
-    // Count items that Ops has confirmed but IC hasn't yet seen (confirmed in last 2 hours)
+    // Check local allTix for recently confirmed items
     let count = 0;
     const cutoff = Date.now() - 2*60*60*1000;
-    (r.alerts||[]).forEach(a=>{
-      let flags = [];
-      try{ flags = JSON.parse(a.allocFlags||'[]'); }catch(e){}
+    allTix.forEach(a=>{
+      const flags = Array.isArray(a.allocFlags) ? a.allocFlags : [];
       flags.forEach(f=>{
         if(f.confirmed && f.confirmedAt && new Date(f.confirmedAt).getTime() > cutoff) count++;
       });
@@ -1800,7 +1822,10 @@ async function syncAllocationFlags(entries, inquiryId){
   if(!allocEntries.length) return;
   try {
     if(!CFG.DEMO_MODE){
-      await gasPost({action:'setAllocation', inquiryId, allocEntries:JSON.stringify(allocEntries)});
+      await fsSaveTicket(inquiryId, {allocFlags: allocEntries});
+      gasEmail('sendAllocationAlert', {inquiryId, division:(allTix.find(t=>t.inquiryId===inquiryId)||{}).division||'',
+        contactEmail:'', productCodes:'', allocEntries:JSON.stringify(allocEntries),
+        description:(allTix.find(t=>t.inquiryId===inquiryId)||{}).description||''});
     }
   } catch(e){ console.warn('Alloc sync failed:',e); }
 }
@@ -1947,17 +1972,31 @@ async function confirmMerge(){
       return;
     }
 
-    const r = await gasPost({
-      action:       'mergeTickets',
-      primaryId:    mergePrimaryId,
-      secondaryIds: JSON.stringify(mergeSecondaryIds),
-    });
-    if(r.error) throw new Error(r.error);
-
-    // Update local state
+    // Merge in Firestore
     const primary = allTix.find(t=>t.inquiryId===mergePrimaryId);
-    if(primary && r.productCodes)   primary.productCodes   = r.productCodes;
-    if(primary && r.productEntries) primary.productEntries = r.productEntries;
+    if(!primary) throw new Error('Primary ticket not found');
+    let primEntries = Array.isArray(primary.productEntries) ? [...primary.productEntries] : [];
+    const mergedCodes = primEntries.map(e=>e.code);
+    let mergedDesc = primary.description || '';
+    for(const secId of mergeSecondaryIds){
+      const sec = allTix.find(t=>t.inquiryId===secId);
+      if(!sec) continue;
+      const secEntries = Array.isArray(sec.productEntries) ? sec.productEntries : [];
+      secEntries.forEach(e=>{ if(mergedCodes.indexOf(e.code)<0){ primEntries.push(e); mergedCodes.push(e.code); }});
+      if(sec.description && sec.description!==mergedDesc) mergedDesc += '\n\n[Merged from '+secId+']: '+sec.description;
+      // Archive secondaries
+      await fsSaveTicket(secId, {progress:'Retired', archived:true, archivedOn:new Date().toISOString(), description:'Merged into '+mergePrimaryId});
+      await fsAddMessage(secId, {direction:'outbound', sentBy:'IC Team', body:'Ticket merged into '+mergePrimaryId+'. Archived.', timestamp:new Date().toISOString()});
+    }
+    const newCodes = mergedCodes.join(', ');
+    await fsSaveTicket(mergePrimaryId, {productCodes:newCodes, productEntries:primEntries, description:mergedDesc});
+    await fsAddMessage(mergePrimaryId, {direction:'outbound', sentBy:'IC Team', body:'Tickets '+mergeSecondaryIds.join(', ')+' merged into this ticket. Combined codes: '+newCodes, timestamp:new Date().toISOString()});
+    gasEmail('sendUpdateEmail', {inquiryId:mergePrimaryId, division:primary.division,
+      contactEmail:primary.contactEmail, productCodes:newCodes,
+      productEntries:primEntries, description:mergedDesc,
+      status:primary.progress||'Investigating', findings:'',
+      shippingIssue:primary.shippingIssue||'', receivingIssue:primary.receivingIssue||''});
+    primary.productCodes = newCodes; primary.productEntries = primEntries;
     allTix = allTix.filter(t=>!mergeSecondaryIds.includes(t.inquiryId));
     sessionClear();
 
@@ -2395,67 +2434,81 @@ async function submitForm(){
   if(!prod){toast('Please enter at least one Product Code','error');return;}
   if(!desc){toast('Please describe the issue','error');return;}
 
-  // Serialize per-product data as JSON for GAS, plus flat strings for backwards compat
   const orderNumber=entries.map(e=>e.orderNumber).filter(Boolean).join(', ');
   const qtyPick=entries.map(e=>e.qty).filter(Boolean).join(', ');
-
-  const payload={
-    action:'submitInquiry', division:div,
-    contactEmail:selectedEmails.join(','),
-    productCodes:prod,
-    productEntries:JSON.stringify(entries), // full per-product data
-    orderNumber,
-    qtyPick,
-    inventoryIssue:document.getElementById('fInvIssue').value,
-    qualityIssue:document.getElementById('fQualIssue').value,
-    shippingIssue:document.getElementById('fShipIssue').value,
-    receivingIssue:document.getElementById('fRecvIssue').value,
-    category:document.getElementById('fCat').value,
-    description:desc,
-    attachments:JSON.stringify(formFiles.map(f=>({name:f.name,type:f.type,size:f.size,b64:f.b64}))),
-  };
+  const invIssue=document.getElementById('fInvIssue').value;
+  const qualIssue=document.getElementById('fQualIssue').value;
+  const shipIssue=document.getElementById('fShipIssue').value;
+  const recvIssue=document.getElementById('fRecvIssue').value;
+  const category=document.getElementById('fCat').value;
 
   document.getElementById('submitBtn').disabled=true;
   showLoad('Submitting inquiry…');
   try {
     let id;
     if(CFG.DEMO_MODE){
-      await delay(400); // much shorter demo delay
+      await delay(400);
       id='IC-'+String(Math.floor(Math.random()*9000)+1000);
       const newTx={inquiryId:id,division:div,contactEmail:selectedEmails.join(','),
         productCodes:prod,productEntries:entries,orderNumber,qtyPick,
-        inventoryIssue:payload.inventoryIssue,qualityIssue:payload.qualityIssue,
-        shippingIssue:payload.shippingIssue||'',receivingIssue:payload.receivingIssue||'',
-        category:payload.category||'General',progress:'Received',
-        timestamp:new Date().toISOString(),description:desc,findings:'',followUpQuestions:'',
-        conversationLog:[{direction:'outbound',body:'Your inquiry '+id+' has been received. Our IC team will investigate and follow up shortly.',timestamp:new Date().toISOString(),attachments:[],read:true,divRead:true}]
-      };
+        inventoryIssue:invIssue,qualityIssue:qualIssue,shippingIssue:shipIssue||'',receivingIssue:recvIssue||'',
+        category:category||'General',progress:'Received',timestamp:new Date().toISOString(),
+        description:desc,findings:'',followUpQuestions:'',conversationLog:[]};
       allTix.unshift(newTx); DEMO_TIX.unshift(newTx);
       loadGlobalStats();
     } else {
-      // Await GAS — this ensures the email goes out before we show success.
-      // GAS typically responds in 2-4 seconds; the loading spinner covers that.
-      showLoad('Submitting — sending confirmation email…');
-      const r = await gasPost(payload);
-      id = (r && r.inquiryId) ? r.inquiryId : 'IC-' + Date.now();
-      const newTx={inquiryId:id,division:div,contactEmail:selectedEmails.join(','),
-        productCodes:prod,productEntries:entries,orderNumber,qtyPick,
-        inventoryIssue:payload.inventoryIssue,qualityIssue:payload.qualityIssue,
-        shippingIssue:payload.shippingIssue||'',receivingIssue:payload.receivingIssue||'',
-        category:payload.category||'General',progress:'Received',
-        timestamp:new Date().toISOString(),description:desc,findings:'',followUpQuestions:'',
-        conversationLog:[]
+      // 1. Generate ticket ID from Firestore
+      showLoad('Generating ticket ID…');
+      id = await generateTicketId();
+
+      // 2. Write ticket to Firestore
+      showLoad('Saving ticket…');
+      const ticketDoc = {
+        inquiryId: id, division: div,
+        contactEmail: selectedEmails.join(','),
+        productCodes: prod, productEntries: entries,
+        orderNumber, qtyPick,
+        inventoryIssue: invIssue, qualityIssue: qualIssue,
+        shippingIssue: shipIssue||'', receivingIssue: recvIssue||'',
+        category: category||'General', progress: 'Received',
+        timestamp: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        description: desc, findings: '', followUpQuestions: '',
+        archived: false, priority: '',
+        allocFlags: [], parentId: '', subSeq: null,
       };
-      allTix.unshift(newTx);
-      sessionClear(); // bust cache so Refresh gets fresh server data
+      await fsSaveTicket(id, ticketDoc);
+
+      // 3. Add initial message to subcollection
+      const initMsg = {
+        direction:'outbound', sentBy:'System',
+        body:'Your inquiry '+id+' has been received. Our IC team will investigate and follow up shortly.',
+        timestamp: new Date().toISOString(),
+      };
+      await fsAddMessage(id, initMsg);
+
+      // 4. Send email via GAS (async, don't block on it)
+      showLoad('Sending confirmation email…');
+      gasEmail('sendTicketEmail', {
+        inquiryId: id, division: div,
+        contactEmail: selectedEmails.join(','),
+        productCodes: prod,
+        productEntries: JSON.stringify(entries),
+        orderNumber, qtyPick,
+        shippingIssue: shipIssue||'', receivingIssue: recvIssue||'',
+        description: desc, category: category||'General',
+      });
+
+      // 5. Update local state
+      const newTx = Object.assign({}, ticketDoc, {conversationLog:[initMsg], messageCount:1});
+      allTix.unshift(normalizeTicket(newTx));
+      sessionClear();
       loadGlobalStats();
     }
     hideLoad();
-    // Navigate straight to tracker — new ticket is already in allTix
     document.getElementById('formWrap').style.display='none';
     document.getElementById('successId').textContent=id;
     document.getElementById('formSuccess').classList.add('show');
-  } catch(e){hideLoad();toast('Submission failed: '+e.message,'error');document.getElementById('submitBtn').disabled=false;}
+  } catch(e){ hideLoad(); toast('Submission failed: '+e.message,'error'); document.getElementById('submitBtn').disabled=false; console.error('submitForm:',e); }
 }
 
 function goTracker(){
@@ -2498,7 +2551,6 @@ async function loadTrackerTix(){
   try {
     if(CFG.DEMO_MODE){
       await delay(400);
-      // Always filter strictly to this division — never expose other divisions
       allTix = DEMO_TIX.filter(t=>t.division===currentDiv);
     } else {
       const cacheKey='tix_'+currentDiv;
@@ -2506,14 +2558,14 @@ async function loadTrackerTix(){
       if(cached&&!isForce){
         allTix=cached;
       } else {
-        const r=await gasGet({action:'getTickets',division:currentDiv,mode:'list',includeCompleted:'true'});
-        // Double-filter on client too — belt and suspenders
-        allTix=(r.tickets||[]).filter(t=>t.division===currentDiv);
+        // Query Firestore for this division's tickets only
+        const tickets = await fsQuery('tickets',[{field:'division',value:currentDiv}],'timestamp',200);
+        allTix = tickets.map(normalizeTicket).filter(t=>t.division===currentDiv);
         sessionSet(cacheKey,allTix);
       }
     }
     renderTrackerCards(allTix); updTrackerStats(allTix); loadGlobalStats();
-  } catch(e){ toast('Could not load tickets','error'); }
+  } catch(e){ toast('Could not load tickets: '+e.message,'error'); console.error('loadTrackerTix:',e); }
   hideLoad(); if(btn)btn.classList.remove('spinning');
 }
 
@@ -2561,8 +2613,7 @@ async function setPriorityOnTicket(inquiryId, priority, division){
   // Persist to GAS
   try {
     if(!CFG.DEMO_MODE){
-      const r = await gasPost({action:'setPriority', inquiryId, priority, division});
-      if(r && r.error) toast('Priority save failed: '+r.error, 'error');
+      await fsSaveTicket(inquiryId, {priority: String(priority)});
     }
     if(priority===''){
       toast('Priority cleared','');
@@ -2629,22 +2680,20 @@ async function loadTix(forceRefresh){
     if(CFG.DEMO_MODE){
       await delay(400);
       const all=[...DEMO_TIX];
-      allTix = role==='dockmanager'
-        ? all.filter(t=>isDockTicket(t))
-        : all;
+      allTix = role==='dockmanager' ? all.filter(t=>isDockTicket(t)) : all;
     } else {
       const cacheKey='tix_ic';
       const cached=sessionGet(cacheKey);
       if(cached&&!forceRefresh){
         allTix=cached;
       } else {
-        const r=await gasGet({action:'getTickets',mode:'list',includeCompleted:'true',forDockManager:role==='dockmanager'?'true':'false'});
-        let tickets=r.tickets||[];
-        // Parse productEntries JSON string — GAS returns it as a string, we need an array
+        let tickets = await fsLoadTickets();
+        // Normalize productEntries
         tickets.forEach(t=>{
           if(t.productEntries && typeof t.productEntries==='string' && t.productEntries.trim().startsWith('[')){
             try{ t.productEntries=JSON.parse(t.productEntries); }catch(e){ t.productEntries=[]; }
           }
+          if(!Array.isArray(t.productEntries)) t.productEntries=[];
         });
         if(role==='dockmanager') tickets=tickets.filter(t=>isDockTicket(t));
         allTix=tickets;
@@ -2652,9 +2701,9 @@ async function loadTix(forceRefresh){
       }
     }
     document.getElementById('dockMgrBanner').style.display=role==='dockmanager'?'':'none';
-    renderTix(allTix.filter(t=>t.progress!=='Completed')); updStats(allTix); loadGlobalStats();
+    renderTix(allTix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired')); updStats(allTix); loadGlobalStats();
     if(role==='icteam'||role==='manager') startBellPoll();
-  } catch(e){ toast('Load failed: '+e.message,'error'); }
+  } catch(e){ toast('Load failed: '+e.message,'error'); console.error('loadTix:',e); }
   hideLoad(); document.getElementById('refreshBtn').classList.remove('spinning');
 }
 
@@ -2703,13 +2752,17 @@ function renderTix(tix){
 
 function updStats(tix){
   const today=new Date().toDateString();
-  document.getElementById('sTot').textContent  = tix.filter(t=>t.progress!=='Completed').length;
+  document.getElementById('sTot').textContent  = tix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired').length;
   document.getElementById('sRcv').textContent  = tix.filter(t=>t.progress==='Received').length;
   document.getElementById('sInv').textContent  = tix.filter(t=>t.progress==='Investigating').length;
   document.getElementById('sFup').textContent  = tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
   document.getElementById('sDone').textContent = tix.filter(t=>t.progress==='Completed'&&new Date(t.timestamp).toDateString()===today).length;
   const allocEl = document.getElementById('sAlloc');
   if(allocEl) allocEl.textContent = tix.filter(t=>t.progress==='Allocated / Waiting OPS'||t.progress==='Allocation Unlocked').length;
+  const compEl = document.getElementById('sComp');
+  if(compEl) compEl.textContent = tix.filter(t=>t.progress==='Completed').length;
+  const retEl = document.getElementById('sRetired');
+  if(retEl) retEl.textContent = tix.filter(t=>t.progress==='Retired').length;
 }
 
 function badge(s){
@@ -2814,15 +2867,11 @@ async function openTicket(id){
   // Then refresh conversation log in background — update thread when ready
   if(!CFG.DEMO_MODE){
     try {
-      const r=await gasGet({action:'getTicket',inquiryId:id});
-      if(r && r.ticket && activeTx && activeTx.inquiryId===id){
-        Object.assign(activeTx, r.ticket);
-        if(activeTx.productEntries && typeof activeTx.productEntries==='string' && activeTx.productEntries.trim().startsWith('[')){
-          try{ activeTx.productEntries=JSON.parse(activeTx.productEntries); }catch(e){ activeTx.productEntries=[]; }
-        }
-        renderThread(activeTx.conversationLog||[]);
+      const messages = await fsLoadMessages(id);
+      if(activeTx && activeTx.inquiryId===id){
+        activeTx.conversationLog = messages;
+        renderThread(messages);
         setTimeout(()=>{const th=document.getElementById('mThread');th.scrollTop=th.scrollHeight;},50);
-        // Refresh investigation grid with latest data
         if(isIC) buildInvestigationGrid('ic');
         if(isMgr) buildInvestigationGrid('mg');
         if(isDock) buildInvestigationGrid('dk');
@@ -3002,7 +3051,10 @@ async function saveAllocationOnly(prefix){
   showLoad('Flagging as allocated — alerting Ops…');
   try{
     if(!CFG.DEMO_MODE){
-      await gasPost({action:'setAllocation', inquiryId:activeTx.inquiryId, allocEntries:JSON.stringify(allocEntries)});
+      await fsSaveTicket(activeTx.inquiryId, {progress:'Allocated / Waiting OPS', allocFlags:allocEntries});
+      gasEmail('sendAllocationAlert', {inquiryId:activeTx.inquiryId, division:activeTx.division,
+        productCodes:activeTx.productCodes, allocEntries:JSON.stringify(allocEntries),
+        description:activeTx.description});
     }
     // Update local entries and set status to Allocated
     activeTx.productEntries = entries;
@@ -3044,8 +3096,9 @@ async function confirmRetire(prefix){
   showLoad('Retiring ticket…');
   try {
     if(!CFG.DEMO_MODE){
-      const r = await gasPost({action:'retireTicket', inquiryId:activeTx.inquiryId, reason, note, retiredBy: role});
-      if(r && r.error) throw new Error(r.error);
+      const retireMsg = 'Ticket retired by '+role+'.\nReason: '+reason+(note ? '\nNote: '+note : '');
+      await fsSaveTicket(activeTx.inquiryId, {progress:'Retired', archived:true, archivedOn:new Date().toISOString()});
+      await fsAddMessage(activeTx.inquiryId, {direction:'outbound', sentBy:role, body:retireMsg, timestamp:new Date().toISOString()});
     }
     // Update local state
     const idx = allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
@@ -3070,9 +3123,16 @@ async function saveICTeam(){
   document.getElementById('qSaveBtn').disabled=true;
   showLoad('Saving & sending…');
   try{
-    const payload = {action:'updateTicket', inquiryId:activeTx.inquiryId, progress, findings:findingsSummary, followUpQuestions:followup, updatedBy:'icteam', productEntries:JSON.stringify(entries)};
-    if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress, findingsSummary, followup, 'IC Team'); }
-    else { await gasPost(payload); _applyUpdate(progress, findingsSummary, followup, 'IC Team'); }
+    if(CFG.DEMO_MODE){ await delay(700); }
+    else {
+      await fsSaveTicket(activeTx.inquiryId, {progress, findings:findingsSummary, followUpQuestions:followup, productEntries:entries});
+      gasEmail('sendUpdateEmail', {inquiryId:activeTx.inquiryId, division:activeTx.division,
+        contactEmail:activeTx.contactEmail, productCodes:activeTx.productCodes,
+        productEntries:entries, orderNumber:activeTx.orderNumber, qtyPick:activeTx.qtyPick,
+        description:activeTx.description, status:progress, findings:findingsSummary,
+        followUpQuestions:followup, shippingIssue:activeTx.shippingIssue, receivingIssue:activeTx.receivingIssue});
+    }
+    _applyUpdate(progress, findingsSummary, followup, 'IC Team');
     activeTx.productEntries = entries;
     await syncAllocationFlags(entries, activeTx.inquiryId);
     hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
@@ -3106,17 +3166,51 @@ async function createSubTicketFromRows(prefix){
       completedEntries.forEach(e=>{ e.resolved=true; e.subId=subId; });
       activeTx.productEntries = entries;
     } else {
-      result = await gasPost({
-        action:'createSubTicket', parentId:activeTx.inquiryId,
-        completedEntries:JSON.stringify(completedEntries),
-        findings, followUpQuestions:followup,
-      });
-      if(result.error) throw new Error(result.error);
-      completedEntries.forEach(e=>{ e.resolved=true; e.subId=result.subId; });
+      // Compute sub-ticket ID
+      const existingSubs = allTix.filter(t=>t.parentId===activeTx.inquiryId).length;
+      const subSeq = existingSubs + 1;
+      const subId  = activeTx.inquiryId + '-' + String(subSeq).padStart(2,'0');
+      // Mark completed entries
+      completedEntries.forEach(e=>{ e.resolved=true; e.subId=subId; });
+      // Remaining entries on parent
+      const completedCodes = completedEntries.map(e=>e.code);
+      const remainingEntries = entries.filter(e=>completedCodes.indexOf(e.code)<0);
+      const parentStatus = remainingEntries.length===0 ? 'Completed' : (activeTx.progress||'Investigating');
+      // Create sub-ticket in Firestore
+      const subDoc = {
+        inquiryId:subId, division:activeTx.division, contactEmail:activeTx.contactEmail,
+        productCodes:completedEntries.map(e=>e.code).join(', '),
+        productEntries:completedEntries, description:activeTx.description,
+        findings, followUpQuestions:followup, progress:'Completed',
+        timestamp:new Date().toISOString(), updatedAt:new Date().toISOString(),
+        parentId:activeTx.inquiryId, subSeq, archived:true,
+        archivedOn:new Date().toISOString(),
+        inventoryIssue:activeTx.inventoryIssue||'', qualityIssue:activeTx.qualityIssue||'',
+        shippingIssue:activeTx.shippingIssue||'', receivingIssue:activeTx.receivingIssue||'',
+        orderNumber:activeTx.orderNumber||'', qtyPick:activeTx.qtyPick||'',
+        category:activeTx.category||'', allocFlags:[], priority:'',
+      };
+      await fsSaveTicket(subId, subDoc);
+      // Update parent
+      await fsSaveTicket(activeTx.inquiryId, {productEntries:remainingEntries, progress:parentStatus});
+      // Log on parent
+      await fsAddMessage(activeTx.inquiryId, {direction:'outbound', sentBy:'IC Team',
+        body:'Sub-ticket '+subId+' created for: '+completedEntries.map(e=>e.code).join(', '),
+        timestamp:new Date().toISOString()});
+      // Send email
+      const subCodes = completedEntries.map(e=>e.code).join(', ');
+      const stillOpen = remainingEntries.map(e=>e.code).join(', ');
+      gasEmail('sendUpdateEmail', {inquiryId:subId, division:activeTx.division,
+        contactEmail:activeTx.contactEmail, productCodes:subCodes,
+        productEntries:completedEntries, description:activeTx.description,
+        status:'Completed', findings,
+        followUpQuestions:remainingEntries.length>0 ? 'Still investigating: '+stillOpen : 'All items resolved.',
+        shippingIssue:activeTx.shippingIssue||'', receivingIssue:activeTx.receivingIssue||''});
+      result = {success:true, subId, remainingCount:remainingEntries.length, parentStatus};
       activeTx.productEntries = entries;
-      activeTx.progress = result.parentStatus;
+      activeTx.progress = parentStatus;
       const idx = allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
-      if(idx>=0){ allTix[idx].productEntries=entries; allTix[idx].progress=result.parentStatus; }
+      if(idx>=0){ allTix[idx].productEntries=entries; allTix[idx].progress=parentStatus; }
       sessionClear();
     }
     hideLoad();
@@ -3135,9 +3229,16 @@ async function saveManager(){
   const findings = buildFindingsSummary(entries);
   document.getElementById('mSaveBtn').disabled=true; showLoad('Saving & sending…');
   try{
-    const payload = {action:'updateTicket', inquiryId:activeTx.inquiryId, progress, findings, followUpQuestions:followup, updatedBy:'manager', productEntries:JSON.stringify(entries)};
-    if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress,findings,followup,'IC Manager'); }
-    else { await gasPost(payload); _applyUpdate(progress,findings,followup,'IC Manager'); }
+    if(CFG.DEMO_MODE){ await delay(700); }
+    else {
+      await fsSaveTicket(activeTx.inquiryId, {progress, findings, followUpQuestions:followup, productEntries:entries});
+      gasEmail('sendUpdateEmail', {inquiryId:activeTx.inquiryId, division:activeTx.division,
+        contactEmail:activeTx.contactEmail, productCodes:activeTx.productCodes,
+        productEntries:entries, orderNumber:activeTx.orderNumber, qtyPick:activeTx.qtyPick,
+        description:activeTx.description, status:progress, findings, followUpQuestions:followup,
+        shippingIssue:activeTx.shippingIssue, receivingIssue:activeTx.receivingIssue});
+    }
+    _applyUpdate(progress,findings,followup,'IC Manager');
     activeTx.productEntries = entries;
     await syncAllocationFlags(entries, activeTx.inquiryId);
     hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
@@ -3153,9 +3254,15 @@ async function saveDockManager(){
   const findings = buildFindingsSummary(entries);
   document.getElementById('dkSaveBtn').disabled=true; showLoad('Saving & sending…');
   try{
-    const payload = {action:'updateTicket', inquiryId:activeTx.inquiryId, progress, findings, followUpQuestions:followup, updatedBy:'dockmanager', productEntries:JSON.stringify(entries)};
-    if(CFG.DEMO_MODE){ await delay(700); _applyUpdate(progress,findings,followup,'Dock Manager'); }
-    else { await gasPost(payload); _applyUpdate(progress,findings,followup,'Dock Manager'); }
+    if(CFG.DEMO_MODE){ await delay(700); }
+    else {
+      await fsSaveTicket(activeTx.inquiryId, {progress, findings, followUpQuestions:followup, productEntries:entries});
+      gasEmail('sendUpdateEmail', {inquiryId:activeTx.inquiryId, division:activeTx.division,
+        contactEmail:activeTx.contactEmail, productCodes:activeTx.productCodes,
+        productEntries:entries, description:activeTx.description, status:progress, findings,
+        followUpQuestions:followup, shippingIssue:activeTx.shippingIssue, receivingIssue:activeTx.receivingIssue});
+    }
+    _applyUpdate(progress,findings,followup,'Dock Manager');
     activeTx.productEntries = entries;
     hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
   }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
@@ -3187,7 +3294,20 @@ async function sendReply(){
   const msg={direction:isIC?'outbound':'inbound',body,timestamp:new Date().toISOString(),attachments:replyFiles.map(f=>({name:f.name,type:f.type,size:f.size,b64:f.b64,du:f.du})),read:isIC,divRead:!isIC};
   document.getElementById('sendBtn').disabled=true; showLoad('Sending…');
   try {
-    if(!CFG.DEMO_MODE) await gasPost({action:'addReply',inquiryId:activeTx.inquiryId,direction:msg.direction,body:msg.body,attachments:JSON.stringify(msg.attachments.map(a=>({name:a.name,type:a.type,size:a.size,b64:a.b64})))});
+    if(!CFG.DEMO_MODE){
+      await fsAddMessage(activeTx.inquiryId, {direction:msg.direction, body:msg.body, timestamp:msg.timestamp, sentBy:role==='division'?activeTx.division:'IC Team'});
+      if(msg.direction==='outbound'){
+        gasEmail('sendReplyEmail', {inquiryId:activeTx.inquiryId, division:activeTx.division,
+          contactEmail:activeTx.contactEmail, productCodes:activeTx.productCodes,
+          description:activeTx.description, status:activeTx.progress,
+          body:msg.body, sentBy:'IC Team'});
+      } else {
+        gasEmail('sendReplyEmail', {inquiryId:activeTx.inquiryId, division:activeTx.division,
+          contactEmail:'rmendoza@cnfei.com,droyal@cnfei.com',
+          productCodes:activeTx.productCodes, description:activeTx.description,
+          status:activeTx.progress, body:msg.body, sentBy:activeTx.division});
+      }
+    }
     await delay(CFG.DEMO_MODE?400:0);
     activeTx.conversationLog.push(msg);
     renderThread(activeTx.conversationLog);
@@ -3246,10 +3366,8 @@ async function saveTicketEdits(){
   showLoad('Saving edits…');
   try {
     if(!CFG.DEMO_MODE){
-      await gasPost({action:'editTicket', inquiryId:activeTx.inquiryId, ...updates});
-    } else {
-      await delay(600);
-    }
+      await fsSaveTicket(activeTx.inquiryId, updates);
+    } else { await delay(600); }
     // Apply updates locally
     Object.assign(activeTx, updates);
     const idx=allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
@@ -3504,7 +3622,220 @@ function sessionClear(){
   } catch(e){}
 }
 
-// READ — always GET, data is small (filters/IDs only)
+/* ═══════════════════════════════════════════════════════
+   FIRESTORE REST API — replaces GAS for all data ops
+   GAS is now email-only (CFG.GAS_URL)
+   ═══════════════════════════════════════════════════════ */
+const FS_BASE = `https://firestore.googleapis.com/v1/projects/${CFG.FIREBASE_PROJECT}/databases/(default)/documents`;
+const FS_KEY  = `?key=${CFG.FIREBASE_API_KEY}`;
+
+// Low-level Firestore REST helpers
+async function fsGet(path){
+  const r = await fetch(FS_BASE+'/'+path+FS_KEY);
+  if(!r.ok){ const t=await r.text(); throw new Error('FS GET '+r.status+': '+t.substring(0,100)); }
+  return r.json();
+}
+
+async function fsPatch(path, fields){
+  const r = await fetch(FS_BASE+'/'+path+FS_KEY, {
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({fields: toFSFields(fields)}),
+  });
+  if(!r.ok){ const t=await r.text(); throw new Error('FS PATCH '+r.status+': '+t.substring(0,100)); }
+  return r.json();
+}
+
+async function fsQuery(collectionId, filters, orderBy, limit){
+  // Uses Firestore REST runQuery
+  const url = `https://firestore.googleapis.com/v1/projects/${CFG.FIREBASE_PROJECT}/databases/(default)/documents:runQuery${FS_KEY}`;
+  const where = filters && filters.length ? {
+    compositeFilter: {
+      op: 'AND',
+      filters: filters.map(f=>({
+        fieldFilter: {
+          field: { fieldPath: f.field },
+          op: f.op || 'EQUAL',
+          value: toFSValue(f.value),
+        }
+      }))
+    }
+  } : undefined;
+
+  const structuredQuery = {
+    from: [{ collectionId }],
+    limit: limit || 500,
+  };
+  if(where) structuredQuery.where = where;
+  if(orderBy) structuredQuery.orderBy = [{ field:{ fieldPath: orderBy }, direction:'DESCENDING' }];
+
+  const r = await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ structuredQuery }),
+  });
+  if(!r.ok){ const t=await r.text(); throw new Error('FS query '+r.status+': '+t.substring(0,100)); }
+  const docs = await r.json();
+  return (docs||[]).filter(d=>d.document).map(d=>fromFSDoc(d.document));
+}
+
+async function fsDelete(path){
+  const r = await fetch(FS_BASE+'/'+path+FS_KEY, {method:'DELETE'});
+  if(!r.ok && r.status!==404){ const t=await r.text(); throw new Error('FS DELETE '+r.status+': '+t.substring(0,100)); }
+}
+
+// Firestore field type converters
+function toFSValue(v){
+  if(v===null||v===undefined) return {nullValue:null};
+  if(typeof v==='boolean') return {booleanValue:v};
+  if(typeof v==='number') return Number.isInteger(v)?{integerValue:String(v)}:{doubleValue:v};
+  if(typeof v==='string') return {stringValue:v};
+  if(Array.isArray(v)) return {arrayValue:{values:v.map(toFSValue)}};
+  if(typeof v==='object') return {mapValue:{fields:toFSFields(v)}};
+  return {stringValue:String(v)};
+}
+
+function toFSFields(obj){
+  const fields={};
+  Object.keys(obj).forEach(k=>{
+    if(obj[k]!==undefined) fields[k]=toFSValue(obj[k]);
+  });
+  return fields;
+}
+
+function fromFSValue(v){
+  if(!v) return null;
+  if('stringValue'  in v) return v.stringValue;
+  if('integerValue' in v) return parseInt(v.integerValue,10);
+  if('doubleValue'  in v) return v.doubleValue;
+  if('booleanValue' in v) return v.booleanValue;
+  if('nullValue'    in v) return null;
+  if('arrayValue'   in v) return (v.arrayValue.values||[]).map(fromFSValue);
+  if('mapValue'     in v) return fromFSDoc({fields:v.mapValue.fields||{}});
+  if('timestampValue' in v) return v.timestampValue;
+  return null;
+}
+
+function fromFSDoc(doc){
+  const obj={};
+  if(doc.name){
+    const parts=doc.name.split('/');
+    obj._id=parts[parts.length-1];
+  }
+  Object.keys(doc.fields||{}).forEach(k=>{ obj[k]=fromFSValue(doc.fields[k]); });
+  return obj;
+}
+
+// Generate next ticket ID by querying max existing ID
+async function generateTicketId(){
+  // Get all ticket IDs and find max
+  const url = `https://firestore.googleapis.com/v1/projects/${CFG.FIREBASE_PROJECT}/databases/(default)/documents:runQuery${FS_KEY}`;
+  const r = await fetch(url, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({structuredQuery:{
+      from:[{collectionId:'tickets'}],
+      select:{fields:[{fieldPath:'inquiryId'}]},
+      limit:1000,
+    }}),
+  });
+  const docs = await r.json();
+  let max=1000;
+  (docs||[]).forEach(d=>{
+    if(!d.document) return;
+    const id = fromFSValue((d.document.fields||{}).inquiryId);
+    if(id){
+      const m=String(id).match(/^IC-(\d+)/);
+      if(m){ const n=parseInt(m[1],10); if(n>max) max=n; }
+    }
+  });
+  return 'IC-'+String(max+1).padStart(4,'0');
+}
+
+// Load all tickets from Firestore (replaces gasGet getTickets)
+async function fsLoadTickets(){
+  const docs = await fsQuery('tickets', null, 'timestamp', 1000);
+  return docs.map(normalizeTicket);
+}
+
+// Load messages subcollection for a ticket
+async function fsLoadMessages(inquiryId){
+  try {
+    const url = `${FS_BASE}/tickets/${encodeURIComponent(inquiryId)}/messages${FS_KEY}`;
+    const r = await fetch(url);
+    if(!r.ok) return [];
+    const data = await r.json();
+    return (data.documents||[]).map(d=>fromFSDoc(d)).sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  } catch(e){ return []; }
+}
+
+// Save a ticket document to Firestore
+async function fsSaveTicket(inquiryId, fields){
+  fields.updatedAt = new Date().toISOString();
+  await fsPatch(`tickets/${encodeURIComponent(inquiryId)}`, fields);
+}
+
+// Append a message to the ticket's messages subcollection
+async function fsAddMessage(inquiryId, msg){
+  const msgId = inquiryId+'_msg_'+Date.now();
+  await fsPatch(`tickets/${encodeURIComponent(inquiryId)}/messages/${msgId}`, msg);
+  return msgId;
+}
+
+// Normalize a Firestore doc to our ticket shape
+function normalizeTicket(doc){
+  return {
+    inquiryId:         doc.inquiryId         || doc._id || '',
+    timestamp:         doc.timestamp         || '',
+    division:          doc.division          || '',
+    productCodes:      doc.productCodes      || '',
+    inventoryIssue:    doc.inventoryIssue    || '',
+    qualityIssue:      doc.qualityIssue      || '',
+    category:          doc.category          || '',
+    description:       doc.description       || '',
+    findings:          doc.findings          || '',
+    followUpQuestions: doc.followUpQuestions || '',
+    contactEmail:      doc.contactEmail      || '',
+    progress:          doc.progress          || 'Received',
+    orderNumber:       doc.orderNumber       || '',
+    qtyPick:           doc.qtyPick           || '',
+    shippingIssue:     doc.shippingIssue     || '',
+    receivingIssue:    doc.receivingIssue    || '',
+    productEntries:    doc.productEntries    || [],
+    parentId:          doc.parentId          || '',
+    subSeq:            doc.subSeq            || null,
+    allocFlags:        doc.allocFlags        || [],
+    priority:          doc.priority!==undefined&&doc.priority!==null ? String(doc.priority) : '',
+    archived:          doc.archived          || false,
+    messageCount:      doc.messageCount      || 0,
+    conversationLog:   doc.conversationLog   || [],
+  };
+}
+
+// GAS email-only helper (replaces old gasPost for email actions)
+async function gasEmail(action, params){
+  if(CFG.DEMO_MODE) return {ok:true};
+  const p = Object.assign({action}, params);
+  // Compress large fields to stay under URL limit
+  if(p.productEntries){
+    let pe = p.productEntries;
+    if(typeof pe!=='string') pe=JSON.stringify(pe);
+    if(pe.length>1000){
+      try{
+        const arr=JSON.parse(pe);
+        p.productEntries=JSON.stringify(arr.map(e=>({code:e.code,orderNumber:e.orderNumber||'',qty:e.qty||'',qtyLocated:e.qtyLocated||'',binLocated:e.binLocated||'',findings:(e.findings||'').substring(0,80)})));
+      }catch(ex){ p.productEntries=''; }
+    }
+  }
+  if(p.description   && p.description.length   >600) p.description   =p.description.substring(0,600);
+  if(p.findings      && p.findings.length      >600) p.findings      =p.findings.substring(0,600);
+  if(p.followUpQuestions && p.followUpQuestions.length>400) p.followUpQuestions=p.followUpQuestions.substring(0,400);
+  const url = CFG.GAS_URL+'?'+new URLSearchParams(p);
+  try{ const r=await fetch(url); return r.ok?r.json():{ok:true}; }
+  catch(e){ console.warn('gasEmail failed:',e); return {ok:true}; }
+}
+
+// Keep gasGet for getAllocEmails/saveAllocEmails which are still GAS-stored
 async function gasGet(p){
   const url = CFG.GAS_URL+'?'+new URLSearchParams(p);
   const r = await fetch(url);
@@ -3512,38 +3843,13 @@ async function gasGet(p){
   return r.json();
 }
 
-// All writes go through GET — GAS deployed as "Anyone" never has CORS issues
-// on GET requests. POST triggers a 302 redirect that browsers block cross-origin.
-// We keep URLs under ~7500 chars by compressing large text fields.
+// gasPost now only used for saveAllocEmails
 async function gasPost(d){
-  // Deep-copy so we don't mutate the original
-  const safe = Object.assign({}, d);
-  // Compress productEntries — strip investigation fields that don't need persisting in the URL
-  // (they're already written to productEntries col in prior saves)
-  if(safe.productEntries && safe.productEntries.length > 1500){
-    try{
-      let entries = JSON.parse(safe.productEntries);
-      // Keep only the essential fields for URL transmission
-      entries = entries.map(e=>({
-        code:e.code, orderNumber:e.orderNumber||'', shipmentNumber:e.shipmentNumber||'',
-        qty:e.qty||'', qtyLocated:e.qtyLocated||'', binLocated:e.binLocated||'',
-        findings:e.findings||'', allocated:e.allocated||false, resolved:e.resolved||false,
-        subId:e.subId||'',
-      }));
-      safe.productEntries = JSON.stringify(entries);
-    }catch(ex){}
-  }
-  // Truncate free-text fields that can be very long
-  if(safe.findings      && safe.findings.length      > 800) safe.findings      = safe.findings.substring(0,800);
-  if(safe.description   && safe.description.length   > 800) safe.description   = safe.description.substring(0,800);
-  if(safe.followUpQuestions && safe.followUpQuestions.length > 400) safe.followUpQuestions = safe.followUpQuestions.substring(0,400);
-
-  const url = CFG.GAS_URL+'?'+new URLSearchParams(safe);
+  const url = CFG.GAS_URL+'?'+new URLSearchParams(d);
   const r = await fetch(url);
   if(!r.ok) throw new Error('HTTP '+r.status);
   const text = await r.text();
-  try{ return JSON.parse(text); }
-  catch(e){ return {ok:true}; }
+  try{ return JSON.parse(text); } catch(e){ return {ok:true}; }
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
 function fmtDate(ts){if(!ts)return'—';const d=new Date(ts);return isNaN(d)?ts:d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})+' '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});}
