@@ -2559,8 +2559,9 @@ async function loadTrackerTix(){
         allTix=cached;
       } else {
         // Query Firestore for this division's tickets only
-        const tickets = await fsQuery('tickets',[{field:'division',value:currentDiv}],'timestamp',200);
+        const tickets = await fsQuery('tickets',[{field:'division',value:currentDiv}],null,200);
         allTix = tickets.map(normalizeTicket).filter(t=>t.division===currentDiv);
+        allTix.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)); // sort client-side
         sessionSet(cacheKey,allTix);
       }
     }
