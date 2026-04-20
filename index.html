@@ -967,6 +967,19 @@ body.has-banner #app{margin-top:44px}
       <option value="div">Division</option>
       <option value="id">Ticket ID</option>
     </select>
+    <!-- Manager-only controls -->
+    <div id="mgrToolbar" style="display:none;align-items:center;gap:8px;margin-left:auto">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none">
+        <input type="checkbox" id="selectAllTix" onchange="toggleSelectAllTix(this)" style="width:14px;height:14px;accent-color:var(--purple);cursor:pointer">
+        Select All
+      </label>
+      <button class="refresh-btn" id="bulkRetireBtn" onclick="openBulkRetireModal()" style="display:none;background:rgba(107,116,148,.15);border-color:var(--muted);color:var(--muted)">
+        🗄 Retire Selected (<span id="bulkRetireCount">0</span>)
+      </button>
+      <button class="refresh-btn" onclick="runAgeOutManual()" title="Auto-retire all CI tickets in Received status older than 5 days" style="background:rgba(107,116,148,.1);border-color:var(--border);color:var(--muted)">
+        ⏱ Run CI Age-Out
+      </button>
+    </div>
   </div>
   <div class="stats-strip">
     <div class="stat-card sc-blue"><div class="sv" id="sTot">—</div><div class="sl">Open Tickets</div></div>
@@ -1303,6 +1316,34 @@ body.has-banner #app{margin-top:44px}
 
 
 <!-- ═══════════ OPS SCREEN ═══════════ -->
+
+<!-- ═══════════ BULK RETIRE MODAL ═══════════ -->
+<div class="merge-overlay" id="bulkRetireOverlay">
+  <div class="merge-modal" style="max-width:520px">
+    <div class="merge-modal-header">
+      <div class="merge-modal-title">🗄 Bulk Retire Tickets</div>
+      <button class="merge-close-btn" onclick="closeBulkRetireModal()">✕</button>
+    </div>
+    <div style="padding:16px 22px;border-bottom:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Select a reason for retiring <strong id="bulkRetireModalCount" style="color:var(--text)">0</strong> selected ticket(s). No emails will be sent to divisions.</div>
+      <select id="bulkRetireReason" class="retire-reason-sel" style="width:100%;margin-bottom:10px">
+        <option value="">— Select reason —</option>
+        <option>No response from division</option>
+        <option>Issue resolved outside system</option>
+        <option>Duplicate — superseded by another ticket</option>
+        <option>Aged out — no action needed</option>
+        <option>Item no longer in inventory</option>
+        <option>Other</option>
+      </select>
+      <input type="text" id="bulkRetireNote" placeholder="Optional note…" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;background:var(--panel2);color:var(--text)">
+    </div>
+    <div id="bulkRetireList" style="padding:12px 22px;max-height:240px;overflow-y:auto;font-size:12px;color:var(--muted)"></div>
+    <div class="merge-modal-footer">
+      <button class="btn-ghost" onclick="closeBulkRetireModal()">Cancel</button>
+      <button class="btn-primary" style="background:#6b7494" onclick="confirmBulkRetire()">Confirm Retire All</button>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════ MERGE MODAL ═══════════ -->
 <div class="merge-overlay" id="mergeOverlay">
@@ -2778,6 +2819,8 @@ async function loadTix(forceRefresh){
       }
     }
     document.getElementById('dockMgrBanner').style.display=role==='dockmanager'?'':'none';
+    const mgrTb=document.getElementById('mgrToolbar');
+    if(mgrTb) mgrTb.style.display=role==='manager'?'flex':'none';
     renderTix(allTix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired')); updStats(allTix); loadGlobalStats();
     if(role==='icteam'||role==='manager') startBellPoll();
   } catch(e){ toast('Load failed: '+e.message,'error'); console.error('loadTix:',e); }
@@ -2814,10 +2857,11 @@ function filterTix(){
 function renderTix(tix){
   const a=document.getElementById('tblArea');
   if(!tix.length){a.innerHTML=`<div class="empty-state"><span class="ei">📋</span><p>No tickets found</p></div>`;return;}
-  // IC/Manager always see tickets sorted by priority first
   const sorted = (role==='icteam'||role==='manager'||role==='dockmanager') ? sortByPriority(tix) : tix;
   const hasUnread=t=>(t.conversationLog||[]).some(m=>m.direction==='inbound'&&!m.read);
-  a.innerHTML=`<table class="tbl"><thead><tr><th>Pri</th><th>Inquiry ID</th><th>Division</th><th>Product Code(s)</th><th>Status</th><th>Days Open</th><th>Messages</th><th>Submitted</th></tr></thead><tbody>${
+  const isMgr = role==='manager';
+  const chkHeader = isMgr ? '<th style="width:32px;padding:8px 4px 8px 12px"></th>' : '';
+  a.innerHTML=`<table class="tbl"><thead><tr>${chkHeader}<th>Pri</th><th>Inquiry ID</th><th>Division</th><th>Product Code(s)</th><th>Status</th><th>Days Open</th><th>Messages</th><th>Submitted</th></tr></thead><tbody>${
     sorted.map(t=>{
       const days=daysSince(t.timestamp);
       const daysColor=t.progress==='Completed'?'var(--muted)':days>=7?'var(--red)':days>=3?'var(--orange)':'var(--muted)';
@@ -2830,7 +2874,8 @@ function renderTix(tix){
       const rowBg = pri===0?'background:rgba(248,113,113,.13)':pri===1?'background:rgba(251,146,60,.08)':pri===2?'background:rgba(245,158,11,.07)':'';
       const rowClass = t.progress==='Allocation Unlocked' ? 'row-unlocked' : '';
       const idCellStyle = pri===0?'color:var(--accent);font-weight:500;border-left:3px solid #f87171;padding-left:11px':pri===1?'color:var(--accent);font-weight:500;border-left:3px solid rgba(251,146,60,.6);padding-left:11px':pri===2?'color:var(--accent);font-weight:500;border-left:3px solid rgba(245,158,11,.5);padding-left:11px':t.progress==='Allocation Unlocked'?'color:var(--accent);font-weight:500;border-left:3px solid #4f83f5;padding-left:11px':'color:var(--accent);font-weight:500';
-      return `<tr onclick="openTicket('${t.inquiryId}')" class="${rowClass}" style="${rowBg}">${priCell}<td class="mono" style="${idCellStyle}">${t.inquiryId}${hasUnread(t)?'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:6px;vertical-align:middle"></span>':''}</td><td><span class="mono">${t.division}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[t.division]||''}</span></td><td>${esc(t.productCodes)}</td><td>${badge(t.progress)}</td><td class="mono" style="color:${daysColor};font-size:12px">${days===0?'Today':days+'d'}</td><td class="mono" style="color:var(--muted)">${(t.conversationLog||[]).length}</td><td class="mono" style="color:var(--muted);font-size:11px">${fmtDateShort(t.timestamp)}</td></tr>`;
+      const chkCell = isMgr ? `<td style="padding:8px 4px 8px 12px" onclick="event.stopPropagation()"><input type="checkbox" class="tix-row-chk" data-id="${t.inquiryId}" onchange="onTixRowCheck()" style="width:14px;height:14px;accent-color:var(--purple);cursor:pointer"></td>` : '';
+      return `<tr onclick="openTicket('${t.inquiryId}')" class="${rowClass}" style="${rowBg};cursor:pointer">${chkCell}${priCell}<td class="mono" style="${idCellStyle}">${t.inquiryId}${hasUnread(t)?'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:6px;vertical-align:middle"></span>':''}</td><td><span class="mono">${t.division}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[t.division]||''}</span></td><td>${esc(t.productCodes)}</td><td>${badge(t.progress)}</td><td class="mono" style="color:${daysColor};font-size:12px">${days===0?'Today':days+'d'}</td><td class="mono" style="color:var(--muted)">${(t.conversationLog||[]).length}</td><td class="mono" style="color:var(--muted);font-size:11px">${fmtDateShort(t.timestamp)}</td></tr>`;
     }).join('')
   }</tbody></table>`;
 }
@@ -3197,6 +3242,119 @@ async function confirmRetire(prefix){
     hideLoad();
     toast('Retire failed: '+e.message,'error');
   }
+}
+
+/* ═══════════════════════════════════════════════════════
+   BULK RETIRE
+   ═══════════════════════════════════════════════════════ */
+function toggleSelectAllTix(chk){
+  document.querySelectorAll('.tix-row-chk').forEach(c=>{ c.checked=chk.checked; });
+  onTixRowCheck();
+}
+
+function onTixRowCheck(){
+  const checked=[...document.querySelectorAll('.tix-row-chk:checked')];
+  const btn=document.getElementById('bulkRetireBtn');
+  const countEl=document.getElementById('bulkRetireCount');
+  if(btn){ btn.style.display=checked.length>0?'':'none'; }
+  if(countEl) countEl.textContent=checked.length;
+  // Sync select-all state
+  const all=document.querySelectorAll('.tix-row-chk');
+  const selectAll=document.getElementById('selectAllTix');
+  if(selectAll) selectAll.checked=all.length>0&&checked.length===all.length;
+}
+
+function openBulkRetireModal(){
+  const ids=[...document.querySelectorAll('.tix-row-chk:checked')].map(c=>c.dataset.id);
+  if(!ids.length){ toast('Select at least one ticket','error'); return; }
+  document.getElementById('bulkRetireModalCount').textContent=ids.length;
+  document.getElementById('bulkRetireReason').value='';
+  document.getElementById('bulkRetireNote').value='';
+  const list=document.getElementById('bulkRetireList');
+  list.innerHTML=ids.map(id=>{
+    const t=allTix.find(x=>x.inquiryId===id);
+    return `<div style="display:flex;gap:10px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">
+      <span style="font-family:var(--mono);color:var(--accent);font-size:12px;font-weight:600">${id}</span>
+      <span style="color:var(--muted);font-size:11px">${t?t.division:''} · ${t?esc(t.productCodes):''}</span>
+      <span style="margin-left:auto">${t?badge(t.progress):''}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('bulkRetireOverlay').style.display='flex';
+}
+
+function closeBulkRetireModal(){
+  document.getElementById('bulkRetireOverlay').style.display='none';
+}
+
+async function confirmBulkRetire(){
+  const reason=document.getElementById('bulkRetireReason').value;
+  const note=document.getElementById('bulkRetireNote').value.trim();
+  if(!reason){ toast('Select a reason first','error'); return; }
+  const ids=[...document.querySelectorAll('.tix-row-chk:checked')].map(c=>c.dataset.id);
+  if(!ids.length){ closeBulkRetireModal(); return; }
+
+  closeBulkRetireModal();
+  showLoad(`Retiring ${ids.length} ticket(s)…`);
+  let done=0, failed=0;
+  for(const id of ids){
+    try{
+      if(!CFG.DEMO_MODE){
+        const retireMsg='Ticket retired by IC Manager.\nReason: '+reason+(note?'\nNote: '+note:'');
+        await fsSaveTicket(id,{progress:'Retired',archived:true,archivedOn:new Date().toISOString()});
+        await fsAddMessage(id,{direction:'outbound',sentBy:'IC Manager',body:retireMsg,timestamp:new Date().toISOString()});
+      }
+      const idx=allTix.findIndex(t=>t.inquiryId===id);
+      if(idx>=0) allTix[idx].progress='Retired';
+      done++;
+    }catch(e){ console.error('Bulk retire failed for '+id,e); failed++; }
+  }
+  hideLoad();
+  // Reset checkboxes
+  document.querySelectorAll('.tix-row-chk').forEach(c=>c.checked=false);
+  const selectAll=document.getElementById('selectAllTix');
+  if(selectAll) selectAll.checked=false;
+  onTixRowCheck();
+  renderTix(allTix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired'));
+  updStats(allTix);
+  const msg=failed>0?`${done} retired, ${failed} failed`:`${done} ticket(s) retired ✓`;
+  toast(msg, failed>0?'error':'success');
+}
+
+/* ═══════════════════════════════════════════════════════
+   MANUAL CI AGE-OUT (manager dashboard)
+   ═══════════════════════════════════════════════════════ */
+async function runAgeOutManual(){
+  const AGE_DAYS=5;
+  const cutoff=new Date(Date.now()-AGE_DAYS*24*60*60*1000);
+  const candidates=allTix.filter(t=>
+    t.division==='CI' &&
+    t.progress==='Received' &&
+    t.timestamp && new Date(t.timestamp)<cutoff
+  );
+  if(!candidates.length){
+    toast('No CI tickets eligible for age-out (none in Received status older than '+AGE_DAYS+' days)','success');
+    return;
+  }
+  if(!confirm(`Age out ${candidates.length} CI ticket(s) in "Received" status older than ${AGE_DAYS} days?\n\nTickets: ${candidates.map(t=>t.inquiryId).join(', ')}\n\nNo emails will be sent.`)) return;
+
+  showLoad(`Running age-out on ${candidates.length} CI ticket(s)…`);
+  let done=0, failed=0;
+  for(const t of candidates){
+    try{
+      if(!CFG.DEMO_MODE){
+        const msg=`Ticket auto-retired by system — no IC action taken within ${AGE_DAYS} days of submission (Received status).`;
+        await fsSaveTicket(t.inquiryId,{progress:'Retired',archived:true,archivedOn:new Date().toISOString()});
+        await fsAddMessage(t.inquiryId,{direction:'outbound',sentBy:'System',body:msg,timestamp:new Date().toISOString()});
+      }
+      const idx=allTix.findIndex(x=>x.inquiryId===t.inquiryId);
+      if(idx>=0) allTix[idx].progress='Retired';
+      done++;
+    }catch(e){ console.error('Age-out failed for '+t.inquiryId,e); failed++; }
+  }
+  hideLoad();
+  renderTix(allTix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired'));
+  updStats(allTix);
+  toast(`Age-out complete: ${done} retired${failed>0?', '+failed+' failed':''}`, failed>0?'error':'success');
 }
 
 async function saveICTeam(){
