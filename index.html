@@ -293,6 +293,10 @@ body.has-banner #app{margin-top:44px}
 .stat-card .sl{font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:.03em}
 .sc-blue .sv{color:var(--accent)}.sc-yellow .sv{color:var(--yellow)}.sc-orange .sv{color:var(--orange)}.sc-green .sv{color:var(--green)}
 .table-wrap{flex:1;overflow:auto;padding:0 20px 28px}
+.div-tabs{display:none;flex-wrap:nowrap;gap:0;border-bottom:2px solid var(--border);padding:0 20px;background:var(--surface);flex-shrink:0}
+.div-tab{padding:9px 18px;font-size:12px;font-weight:600;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-2px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.div-tab:hover{color:var(--text)}
+.div-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .tbl{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
 .tbl th{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;padding:10px 14px;text-align:left;white-space:nowrap;background:var(--panel);border-bottom:1px solid var(--border)}
 .tbl td{padding:11px 14px;border-bottom:1px solid var(--border);font-size:12px;vertical-align:middle}
@@ -991,6 +995,12 @@ body.has-banner #app{margin-top:44px}
     <div class="stat-card" style="border-color:rgba(107,116,148,.3);background:var(--panel)"><div class="sv" id="sRetired" style="color:var(--muted)">—</div><div class="sl" style="color:var(--muted)">🗄 Retired</div></div>
     <div class="stat-card" style="border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.08)"><div class="sv" id="sAlloc" style="color:var(--orange)">—</div><div class="sl" style="color:var(--orange)">🔒 Allocated</div></div>
   </div>
+  <!-- Division tabs -->
+  <div class="div-tabs" id="divTabs">
+    <button class="div-tab active" data-tab="external" onclick="switchDivTab('external')">Divisions</button>
+    <button class="div-tab" data-tab="internal" onclick="switchDivTab('internal')">815 Internal (CI &amp; KA)</button>
+    <button class="div-tab" data-tab="retired" onclick="switchDivTab('retired')">🗄 Retired</button>
+  </div>
   <div class="table-wrap"><div id="tblArea"></div></div>
 </div>
 
@@ -1356,6 +1366,7 @@ body.has-banner #app{margin-top:44px}
       <div style="font-size:12px;color:var(--muted);background:var(--panel);border-radius:8px;padding:10px 12px;line-height:1.6">
         <strong>How merge works:</strong> Select the <span style="color:var(--green);font-weight:600">Primary ticket</span> (kept open, receives all items) and one or more <span style="color:var(--orange);font-weight:600">Secondary tickets</span> (archived). All product entries, descriptions, and notes from secondary tickets are combined into the primary. The division receives one consolidated email.
       </div>
+      <div id="mergeWarning"></div>
       <div id="mergeTicketList" style="display:flex;flex-direction:column;gap:10px"></div>
     </div>
     <div class="merge-modal-footer">
@@ -1937,12 +1948,39 @@ function openMergeModal(ids){
     return t && t.progress!=='Completed' && t.progress!=='Retired';
   });
   if(openIds.length<2){ toast('Need at least 2 open tickets to merge','error'); return; }
+
+  // Compute all unique product codes across all tickets
+  const allCodes = {};
+  openIds.forEach(id=>{
+    const t = allTix.find(x=>x.inquiryId===id);
+    if(!t) return;
+    const entries = Array.isArray(t.productEntries) ? t.productEntries :
+      (typeof t.productEntries==='string' ? (()=>{try{return JSON.parse(t.productEntries);}catch(e){return [];}})() : []);
+    const codes = entries.length ? entries.map(e=>e.code).filter(Boolean) :
+      (t.productCodes||'').split(/[,\s]+/).map(s=>s.trim()).filter(Boolean);
+    codes.forEach(c=>{ allCodes[c]=(allCodes[c]||[]); allCodes[c].push(id); });
+  });
+
+  // Find codes that appear in some but not all tickets (mismatch warning)
+  const mismatchedCodes = Object.keys(allCodes).filter(c=>allCodes[c].length < openIds.length);
+  const warningHtml = mismatchedCodes.length ? `
+    <div style="background:rgba(251,146,60,.12);border:1.5px solid rgba(251,146,60,.3);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:var(--orange)">
+      ⚠ <strong>Item mismatch detected.</strong> The following product code(s) don't appear on all tickets:
+      <span style="font-family:var(--mono);font-weight:600"> ${mismatchedCodes.join(', ')}</span><br>
+      <span style="color:var(--muted);font-size:11px">All items will be merged into the primary ticket. No items will be lost.</span>
+    </div>` : `
+    <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;color:var(--green)">
+      ✓ All tickets share the same product codes. Clean merge.
+    </div>`;
+
+  // Inject warning above the ticket list
+  const warningEl = document.getElementById('mergeWarning');
+  if(warningEl) warningEl.innerHTML = warningHtml;
+
   list.innerHTML = openIds.map(id=>{
     const t = allTix.find(x=>x.inquiryId===id);
     if(!t) return '';
     const days = daysSince(t.timestamp);
-
-    // Parse product entries for display
     let entries = [];
     if(t.productEntries){
       if(Array.isArray(t.productEntries)) entries=t.productEntries;
@@ -1951,7 +1989,6 @@ function openMergeModal(ids){
     const productDisplay = entries.length
       ? entries.map(e=>e.code).filter(Boolean).join(', ')
       : (t.productCodes||'—');
-
     return `<div class="merge-ticket-card" id="mcard-${esc(id)}" onclick="selectMergeRole('${esc(id)}')">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <span style="font-family:var(--mono);font-weight:700;color:var(--accent);font-size:13px">${esc(id)}</span>
@@ -2821,7 +2858,15 @@ async function loadTix(forceRefresh){
     document.getElementById('dockMgrBanner').style.display=role==='dockmanager'?'':'none';
     const mgrTb=document.getElementById('mgrToolbar');
     if(mgrTb) mgrTb.style.display=role==='manager'?'flex':'none';
-    renderTix(allTix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired')); updStats(allTix); loadGlobalStats();
+    // Show division tabs for IC and manager roles
+    if(role==='manager'||role==='icteam'){
+      showDivTabs();
+      applyDivTab();
+    } else {
+      hideDivTabs();
+      renderTix(allTix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired'));
+    }
+    updStats(allTix); loadGlobalStats();
     if(role==='icteam'||role==='manager') startBellPoll();
   } catch(e){ toast('Load failed: '+e.message,'error'); console.error('loadTix:',e); }
   hideLoad(); document.getElementById('refreshBtn').classList.remove('spinning');
@@ -2833,11 +2878,13 @@ const _refreshBtn = document.getElementById('refreshBtn');
 if(_refreshBtn) _refreshBtn.addEventListener('click', ()=>loadTix(true));
 
 function filterTix(){
+  // IC/manager use the tab system
+  if(role==='manager'||role==='icteam'||role==='dockmanager'){
+    applyDivTab(); return;
+  }
   const q=document.getElementById('searchIn').value.toLowerCase();
   const st=document.getElementById('stFilter').value;
   const dv=document.getElementById('dvFilter').value;
-  const sortSel=document.getElementById('icSortSel');
-  const sort=sortSel?sortSel.value:'pri';
   let tix=allTix.filter(t=>{
     const mq=!q||[t.inquiryId,t.division,t.productCodes,t.description,t.orderNumber||''].join(' ').toLowerCase().includes(q);
     const stMatch=st ? t.progress===st : (t.progress!=='Completed' && t.progress!=='Retired');
@@ -2845,12 +2892,6 @@ function filterTix(){
     const dockMatch=role!=='dockmanager'||isDockTicket(t);
     return mq&&stMatch&&dvMatch&&dockMatch;
   });
-  if(sort==='pri')       tix=sortByPriority(tix);
-  else if(sort==='date-desc') tix.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-  else if(sort==='date-asc')  tix.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-  else if(sort==='product')   tix.sort((a,b)=>(a.productCodes||'').localeCompare(b.productCodes||''));
-  else if(sort==='div')       tix.sort((a,b)=>(a.division||'').localeCompare(b.division||''));
-  else if(sort==='id')        tix.sort((a,b)=>a.inquiryId.localeCompare(b.inquiryId));
   renderTix(tix);
 }
 
@@ -3355,6 +3396,112 @@ async function runAgeOutManual(){
   renderTix(allTix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired'));
   updStats(allTix);
   toast(`Age-out complete: ${done} retired${failed>0?', '+failed+' failed':''}`, failed>0?'error':'success');
+}
+
+/* ═══════════════════════════════════════════════════════
+   DIVISION TABS — separates external divisions from CI/KA
+   and adds a dedicated Retired search tab
+   ═══════════════════════════════════════════════════════ */
+const INTERNAL_DIVS = ['CI','KA'];
+const EXTERNAL_DIVS = ['GT','NH','FS','EE','BC','VP','TP'];
+let activeDivTab = 'external';
+
+function showDivTabs(){
+  const tabs = document.getElementById('divTabs');
+  if(tabs) tabs.style.display='flex';
+}
+function hideDivTabs(){
+  const tabs = document.getElementById('divTabs');
+  if(tabs) tabs.style.display='none';
+}
+
+function switchDivTab(tab){
+  activeDivTab = tab;
+  document.querySelectorAll('.div-tab').forEach(el=>{
+    el.classList.toggle('active', el.dataset.tab===tab);
+  });
+  applyDivTab();
+}
+
+function applyDivTab(){
+  const q  = (document.getElementById('searchIn')?.value||'').toLowerCase();
+  const st = document.getElementById('stFilter')?.value||'';
+  const sortSel = document.getElementById('icSortSel');
+  const sort = sortSel ? sortSel.value : 'pri';
+
+  let tix;
+  if(activeDivTab==='retired'){
+    // Retired tab: always show retired, searchable
+    tix = allTix.filter(t=>t.progress==='Retired');
+  } else {
+    const divSet = activeDivTab==='internal' ? INTERNAL_DIVS : EXTERNAL_DIVS;
+    tix = allTix.filter(t=>{
+      const stMatch = st ? t.progress===st : (t.progress!=='Completed'&&t.progress!=='Retired');
+      const divMatch = divSet.includes(t.division);
+      const dockMatch = role!=='dockmanager'||isDockTicket(t);
+      return stMatch && divMatch && dockMatch;
+    });
+  }
+
+  if(q) tix = tix.filter(t=>[t.inquiryId,t.division,t.productCodes,t.description||'',t.orderNumber||''].join(' ').toLowerCase().includes(q));
+
+  if(sort==='pri')            tix = sortByPriority(tix);
+  else if(sort==='date-desc') tix.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  else if(sort==='date-asc')  tix.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  else if(sort==='product')   tix.sort((a,b)=>(a.productCodes||'').localeCompare(b.productCodes||''));
+  else if(sort==='div')       tix.sort((a,b)=>(a.division||'').localeCompare(b.division||''));
+  else if(sort==='id')        tix.sort((a,b)=>a.inquiryId.localeCompare(b.inquiryId));
+
+  if(activeDivTab==='retired'){
+    renderRetiredTix(tix);
+  } else {
+    renderTix(tix);
+  }
+}
+
+function renderRetiredTix(tix){
+  const a = document.getElementById('tblArea');
+  if(!tix.length){
+    a.innerHTML=`<div class="empty-state"><span class="ei">🗄</span><p>No retired tickets</p></div>`;
+    return;
+  }
+  const isMgr = role==='manager';
+  const chkHeader = isMgr ? '<th style="width:32px;padding:8px 4px 8px 12px"></th>' : '';
+  a.innerHTML=`<table class="tbl"><thead><tr>${chkHeader}<th>Inquiry ID</th><th>Division</th><th>Product Code(s)</th><th>Reason / Notes</th><th>Retired On</th><th></th></tr></thead><tbody>${
+    tix.map(t=>{
+      // Find retirement message for reason
+      const retireMsg = (t.conversationLog||[]).slice().reverse().find(m=>m.body&&(m.body.includes('retired')&&m.sentBy!=='System'||m.sentBy==='System'));
+      const reason = retireMsg ? retireMsg.body.replace(/^Ticket retired[^.]*\.\s*/i,'').replace(/^Reason:\s*/i,'').substring(0,80) : '—';
+      const retiredOn = t.archivedOn ? fmtDateShort(t.archivedOn) : '—';
+      const chkCell = isMgr ? `<td style="padding:8px 4px 8px 12px" onclick="event.stopPropagation()"><input type="checkbox" class="tix-row-chk" data-id="${t.inquiryId}" onchange="onTixRowCheck()" style="width:14px;height:14px;accent-color:var(--purple);cursor:pointer"></td>` : '';
+      return `<tr style="cursor:pointer;opacity:.85" onclick="openTicket('${t.inquiryId}')">${chkCell}
+        <td class="mono" style="color:var(--accent);font-weight:500">${t.inquiryId}</td>
+        <td><span class="mono">${t.division}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[t.division]||''}</span></td>
+        <td class="mono" style="font-size:12px">${esc(t.productCodes)}</td>
+        <td style="font-size:11px;color:var(--muted);max-width:220px">${esc(reason)}</td>
+        <td class="mono" style="color:var(--muted);font-size:11px">${retiredOn}</td>
+        <td onclick="event.stopPropagation()">${isMgr?`<button onclick="reactivateTicket('${t.inquiryId}')" style="padding:4px 10px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">↩ Reactivate</button>`:''}</td>
+      </tr>`;
+    }).join('')
+  }</tbody></table>`;
+}
+
+async function reactivateTicket(id){
+  const t = allTix.find(x=>x.inquiryId===id);
+  if(!t) return;
+  if(!confirm(`Reactivate ticket ${id}?\n\nThis will set it back to "Received" status and make it visible on the active dashboard.`)) return;
+  showLoad('Reactivating…');
+  try{
+    if(!CFG.DEMO_MODE){
+      await fsSaveTicket(id,{progress:'Received', archived:false, archivedOn:null});
+      await fsAddMessage(id,{direction:'outbound',sentBy:role,body:'Ticket reactivated by IC Manager — returned to Received status.',timestamp:new Date().toISOString()});
+    }
+    t.progress='Received'; t.archived=false;
+    hideLoad();
+    toast(`${id} reactivated ✓`,'success');
+    applyDivTab();
+    updStats(allTix);
+  }catch(e){ hideLoad(); toast('Reactivate failed: '+e.message,'error'); }
 }
 
 async function saveICTeam(){
