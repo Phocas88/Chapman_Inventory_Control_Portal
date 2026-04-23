@@ -2078,22 +2078,27 @@ async function confirmMerge(){
       // Local demo merge — combine product codes on primary, remove secondaries from allTix
       const primary = allTix.find(t=>t.inquiryId===mergePrimaryId);
       if(primary){
+        // Build entry map from primary
+        const entryMap = {};
+        (Array.isArray(primary.productEntries)?primary.productEntries:[]).forEach(e=>{ if(e.code) entryMap[e.code]={...e}; });
         mergeSecondaryIds.forEach(sid=>{
           const sec = allTix.find(t=>t.inquiryId===sid);
           if(!sec) return;
-          // Merge product codes
-          const existing = (primary.productCodes||'').split(/[,\s]+/).filter(Boolean);
-          const adding   = (sec.productCodes||'').split(/[,\s]+/).filter(Boolean);
-          adding.forEach(c=>{ if(!existing.includes(c)) existing.push(c); });
-          primary.productCodes = existing.join(', ');
-          // Merge description
+          (Array.isArray(sec.productEntries)?sec.productEntries:[]).forEach(e=>{
+            if(!e.code) return;
+            if(entryMap[e.code]){
+              if(e.findings  && !entryMap[e.code].findings)  entryMap[e.code].findings  = e.findings;
+              if(e.binLocated && !entryMap[e.code].binLocated) entryMap[e.code].binLocated = e.binLocated;
+              if(e.qtyLocated && !entryMap[e.code].qtyLocated) entryMap[e.code].qtyLocated = e.qtyLocated;
+            } else { entryMap[e.code] = {...e}; }
+          });
           if(sec.description && sec.description!==primary.description)
             primary.description += '\n\n[Merged from '+sid+']: '+sec.description;
+          sec.progress='Merged'; sec.archived=true; sec.mergedInto=mergePrimaryId;
         });
-        mergeSecondaryIds.forEach(sid=>{
-          const sec=allTix.find(t=>t.inquiryId===sid);
-          if(sec){ sec.progress='Merged'; sec.archived=true; sec.mergedInto=mergePrimaryId; }
-        });
+        const finalEntries = Object.values(entryMap);
+        primary.productCodes = finalEntries.map(e=>e.code).filter(Boolean).join(', ');
+        primary.productEntries = finalEntries;
       }
       hideLoad();
       toast('Merged '+mergeSecondaryIds.join(', ')+' into '+mergePrimaryId+' ✓','success');
@@ -2105,28 +2110,65 @@ async function confirmMerge(){
     // Merge in Firestore
     const primary = allTix.find(t=>t.inquiryId===mergePrimaryId);
     if(!primary) throw new Error('Primary ticket not found');
+
+    // Build a map of entries keyed by product code — start with primary's entries
     let primEntries = Array.isArray(primary.productEntries) ? [...primary.productEntries] : [];
-    const mergedCodes = primEntries.map(e=>e.code);
+    const entryMap = {};
+    primEntries.forEach(e=>{ if(e.code) entryMap[e.code] = {...e}; });
+
     let mergedDesc = primary.description || '';
+
     for(const secId of mergeSecondaryIds){
       const sec = allTix.find(t=>t.inquiryId===secId);
       if(!sec) continue;
       const secEntries = Array.isArray(sec.productEntries) ? sec.productEntries : [];
-      secEntries.forEach(e=>{ if(mergedCodes.indexOf(e.code)<0){ primEntries.push(e); mergedCodes.push(e.code); }});
-      if(sec.description && sec.description!==mergedDesc) mergedDesc += '\n\n[Merged from '+secId+']: '+sec.description;
-      // Archive secondaries
+
+      secEntries.forEach(e=>{
+        if(!e.code) return;
+        if(entryMap[e.code]){
+          // Code already exists — merge fields, keeping the most recent/populated value
+          const existing = entryMap[e.code];
+          // Use secondary's findings/notes if they're more recent or primary's are empty
+          if(e.findings && (!existing.findings || (e.updatedAt && existing.updatedAt && e.updatedAt > existing.updatedAt)))
+            existing.findings = e.findings;
+          if(e.qualityNotes && !existing.qualityNotes) existing.qualityNotes = e.qualityNotes;
+          if(e.binLocated  && !existing.binLocated)  existing.binLocated  = e.binLocated;
+          if(e.qtyLocated  && !existing.qtyLocated)  existing.qtyLocated  = e.qtyLocated;
+          // Keep resolved state if either has it
+          if(e.resolved) existing.resolved = true;
+        } else {
+          // New code not on primary — add it
+          entryMap[e.code] = {...e};
+        }
+      });
+
+      if(sec.description && sec.description!==mergedDesc)
+        mergedDesc += '\n\n[Merged from '+secId+']: '+sec.description;
+
       await fsSaveTicket(secId, {progress:'Merged', archived:true, archivedOn:new Date().toISOString(), mergedInto:mergePrimaryId});
       await fsAddMessage(secId, {direction:'outbound', sentBy:'IC Team', body:'Ticket merged into '+mergePrimaryId+'. View primary ticket for combined details.', timestamp:new Date().toISOString()});
     }
-    const newCodes = mergedCodes.join(', ');
-    await fsSaveTicket(mergePrimaryId, {productCodes:newCodes, productEntries:primEntries, description:mergedDesc});
-    await fsAddMessage(mergePrimaryId, {direction:'outbound', sentBy:'IC Team', body:'Tickets '+mergeSecondaryIds.join(', ')+' merged into this ticket. Combined codes: '+newCodes, timestamp:new Date().toISOString()});
+
+    // Rebuild entries array from map — preserving primary's original order, appending new codes
+    const finalEntries = [];
+    // First pass: primary's codes in order
+    primEntries.forEach(e=>{ if(e.code && entryMap[e.code]) finalEntries.push(entryMap[e.code]); });
+    // Second pass: any codes that came only from secondaries
+    Object.keys(entryMap).forEach(code=>{
+      if(!primEntries.find(e=>e.code===code)) finalEntries.push(entryMap[code]);
+    });
+
+    const newCodes = finalEntries.map(e=>e.code).filter(Boolean).join(', ');
+    await fsSaveTicket(mergePrimaryId, {productCodes:newCodes, productEntries:finalEntries, description:mergedDesc});
+    await fsAddMessage(mergePrimaryId, {direction:'outbound', sentBy:'IC Team',
+      body:'Tickets '+mergeSecondaryIds.join(', ')+' merged into this ticket.\nCombined codes: '+newCodes,
+      timestamp:new Date().toISOString()});
     gasEmail('sendUpdateEmail', {inquiryId:mergePrimaryId, division:primary.division,
       contactEmail:primary.contactEmail, productCodes:newCodes,
-      productEntries:primEntries, description:mergedDesc,
+      productEntries:finalEntries, description:mergedDesc,
       status:primary.progress||'Investigating', findings:'',
       shippingIssue:primary.shippingIssue||'', receivingIssue:primary.receivingIssue||''});
-    primary.productCodes = newCodes; primary.productEntries = primEntries;
+    primary.productCodes = newCodes; primary.productEntries = finalEntries;
     // Keep merged secondaries in allTix with 'Merged' status (visible in Merged tab)
     mergeSecondaryIds.forEach(sid=>{
       const sec=allTix.find(t=>t.inquiryId===sid);
