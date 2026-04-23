@@ -415,6 +415,7 @@ body.has-banner #app{margin-top:44px}
 .b-allocated{color:#fb923c;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.3)}
 .b-unlocked{color:#4f83f5;background:rgba(79,131,245,.18);border:1px solid rgba(79,131,245,.4)}
 .b-retired{color:var(--muted);background:var(--panel);border:1px solid var(--border);opacity:.7}
+.b-merged{color:#a78bfa;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3)}
 /* Retire panel */
 .retire-panel{background:rgba(107,116,148,.1);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:10px}
 .retire-panel-title{font-size:11px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
@@ -950,7 +951,7 @@ body.has-banner #app{margin-top:44px}
     </div>
     <select class="filter-sel" id="stFilter" onchange="filterTix()">
       <option value="">All Statuses</option>
-      <option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated / Waiting OPS</option><option>Allocation Unlocked</option><option>Completed</option><option>Retired</option>
+      <option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated / Waiting OPS</option><option>Allocation Unlocked</option><option>Completed</option><option>Retired</option><option>Merged</option>
     </select>
     <select class="filter-sel" id="dvFilter" onchange="filterTix()">
       <option value="">All Divisions</option>
@@ -999,6 +1000,7 @@ body.has-banner #app{margin-top:44px}
   <div class="div-tabs" id="divTabs">
     <button class="div-tab active" data-tab="external" onclick="switchDivTab('external')">Divisions</button>
     <button class="div-tab" data-tab="internal" onclick="switchDivTab('internal')">815 Internal (CI &amp; KA)</button>
+    <button class="div-tab" data-tab="merged" onclick="switchDivTab('merged')">🔀 Merged</button>
     <button class="div-tab" data-tab="retired" onclick="switchDivTab('retired')">🗄 Retired</button>
   </div>
   <div class="table-wrap"><div id="tblArea"></div></div>
@@ -1731,10 +1733,13 @@ async function loadOpsAlerts(forceRefresh){
         allocFlags: JSON.stringify([{code:'NPH88010',notes:'Allocated to open pick wave PW-4421',allocated:true,confirmed:false}]),
       }];
     } else {
-      // Query Firestore for tickets with allocated/unconfirmed items
-      const allTixLocal = allTix.length ? allTix : await fsLoadTickets();
-      opsAlerts = allTixLocal.filter(t=>{
-        const flags = Array.isArray(t.allocFlags) ? t.allocFlags : [];
+      // Always fetch fresh from Firestore — allTix may be empty if Ops logged in directly
+      showLoad('Loading allocation alerts…');
+      const tickets = await fsLoadTickets();
+      hideLoad();
+      opsAlerts = tickets.filter(t=>{
+        const flags = Array.isArray(t.allocFlags) ? t.allocFlags :
+          (()=>{ try{ return JSON.parse(t.allocFlags||'[]'); }catch(e){ return []; }})();
         return flags.some(f=>f.allocated && !f.confirmed);
       }).map(t=>({
         inquiryId: t.inquiryId, division: t.division, productCodes: t.productCodes,
@@ -1753,11 +1758,17 @@ function renderOpsAlerts(){
   const el = document.getElementById('opsAlertArea');
   if(!el) return;
 
+  function parseField(v){
+    if(Array.isArray(v)) return v;
+    if(typeof v==='string' && v.trim().startsWith('[')){ try{ return JSON.parse(v); }catch(e){ return []; } }
+    return [];
+  }
+
   // Compute stats across all alerts
   const today = new Date().toDateString();
   let totalAlloc=0, pendingCount=0, releasedToday=0;
   opsAlerts.forEach(a=>{
-    let flags=[]; try{flags=JSON.parse(a.allocFlags||'[]');}catch(e){}
+    const flags = parseField(a.allocFlags);
     flags.forEach(f=>{
       if(!f.allocated) return;
       totalAlloc++;
@@ -1765,7 +1776,6 @@ function renderOpsAlerts(){
       else if(f.confirmedAt && new Date(f.confirmedAt).toDateString()===today) releasedToday++;
     });
   });
-  // Update ops ticker
   const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
   set('osTotal',   totalAlloc);
   set('osPending', pendingCount);
@@ -1777,13 +1787,10 @@ function renderOpsAlerts(){
     return;
   }
   el.innerHTML = opsAlerts.map(a=>{
-    let flags = [];
-    try{ flags = JSON.parse(a.allocFlags||'[]'); }catch(e){}
+    const flags   = parseField(a.allocFlags);
+    const entries = parseField(a.productEntries);
     const pending = flags.filter(f=>f.allocated && !f.confirmed);
     if(!pending.length) return '';
-
-    let entries = [];
-    try{ entries = JSON.parse(a.productEntries||'[]'); }catch(e){}
 
     const rows = pending.map(f=>{
       const pe = entries.find(e=>e.code===f.code)||{};
@@ -1840,15 +1847,15 @@ async function confirmOpsRelease(inquiryId, code, btn){
     // Update local state
     const a = opsAlerts.find(x=>x.inquiryId===inquiryId);
     if(a){
-      let flags = [];
-      try{ flags = JSON.parse(a.allocFlags||'[]'); }catch(e){}
+      let flags = Array.isArray(a.allocFlags) ? [...a.allocFlags] :
+        (()=>{ try{ return JSON.parse(a.allocFlags||'[]'); }catch(e){ return []; }})();
       flags = flags.map(f=>f.code===code ? {...f, confirmed:true, confirmedAt:new Date().toISOString()} : f);
-      a.allocFlags = JSON.stringify(flags);
+      a.allocFlags = flags; // keep as array — parseField handles both
       const anyStillLocked = flags.some(f=>f.allocated && !f.confirmed);
       const t = allTix.find(x=>x.inquiryId===inquiryId);
       if(t){
+        t.allocFlags = flags;
         t.progress = anyStillLocked ? 'Allocated / Waiting OPS' : 'Allocation Unlocked';
-        // Re-render IC dashboard immediately so blue pulse row appears
         if(document.getElementById('dashScreen').classList.contains('active')) renderTix(allTix);
       }
     }
@@ -1913,6 +1920,9 @@ async function syncAllocationFlags(entries, inquiryId){
         contactEmail:'ngonzalez@cnfei.com', productCodes:'', allocEntries:JSON.stringify(allocEntries),
         description:(allTix.find(t=>t.inquiryId===inquiryId)||{}).description||''});
     }
+    // Update local allTix so Ops screen reflects immediately
+    const idx = allTix.findIndex(t=>t.inquiryId===inquiryId);
+    if(idx>=0) allTix[idx].allocFlags = allocEntries;
   } catch(e){ console.warn('Alloc sync failed:',e); }
 }
 
@@ -2080,13 +2090,15 @@ async function confirmMerge(){
           if(sec.description && sec.description!==primary.description)
             primary.description += '\n\n[Merged from '+sid+']: '+sec.description;
         });
-        // Remove secondaries from allTix
-        allTix = allTix.filter(t=>!mergeSecondaryIds.includes(t.inquiryId));
+        mergeSecondaryIds.forEach(sid=>{
+          const sec=allTix.find(t=>t.inquiryId===sid);
+          if(sec){ sec.progress='Merged'; sec.archived=true; sec.mergedInto=mergePrimaryId; }
+        });
       }
       hideLoad();
       toast('Merged '+mergeSecondaryIds.join(', ')+' into '+mergePrimaryId+' ✓','success');
       closeMergeModal();
-      renderGroupedDash();
+      applyDivTab();
       return;
     }
 
@@ -2103,8 +2115,8 @@ async function confirmMerge(){
       secEntries.forEach(e=>{ if(mergedCodes.indexOf(e.code)<0){ primEntries.push(e); mergedCodes.push(e.code); }});
       if(sec.description && sec.description!==mergedDesc) mergedDesc += '\n\n[Merged from '+secId+']: '+sec.description;
       // Archive secondaries
-      await fsSaveTicket(secId, {progress:'Retired', archived:true, archivedOn:new Date().toISOString(), description:'Merged into '+mergePrimaryId});
-      await fsAddMessage(secId, {direction:'outbound', sentBy:'IC Team', body:'Ticket merged into '+mergePrimaryId+'. Archived.', timestamp:new Date().toISOString()});
+      await fsSaveTicket(secId, {progress:'Merged', archived:true, archivedOn:new Date().toISOString(), mergedInto:mergePrimaryId});
+      await fsAddMessage(secId, {direction:'outbound', sentBy:'IC Team', body:'Ticket merged into '+mergePrimaryId+'. View primary ticket for combined details.', timestamp:new Date().toISOString()});
     }
     const newCodes = mergedCodes.join(', ');
     await fsSaveTicket(mergePrimaryId, {productCodes:newCodes, productEntries:primEntries, description:mergedDesc});
@@ -2115,13 +2127,17 @@ async function confirmMerge(){
       status:primary.progress||'Investigating', findings:'',
       shippingIssue:primary.shippingIssue||'', receivingIssue:primary.receivingIssue||''});
     primary.productCodes = newCodes; primary.productEntries = primEntries;
-    allTix = allTix.filter(t=>!mergeSecondaryIds.includes(t.inquiryId));
+    // Keep merged secondaries in allTix with 'Merged' status (visible in Merged tab)
+    mergeSecondaryIds.forEach(sid=>{
+      const sec=allTix.find(t=>t.inquiryId===sid);
+      if(sec){ sec.progress='Merged'; sec.archived=true; sec.mergedInto=mergePrimaryId; }
+    });
     sessionClear();
 
     hideLoad();
     toast('Merged '+mergeSecondaryIds.join(', ')+' into '+mergePrimaryId+' ✓','success');
     closeMergeModal();
-    renderGroupedDash();
+    applyDivTab();
   } catch(e){
     hideLoad();
     toast('Merge failed: '+e.message,'error');
@@ -2887,7 +2903,7 @@ function filterTix(){
   const dv=document.getElementById('dvFilter').value;
   let tix=allTix.filter(t=>{
     const mq=!q||[t.inquiryId,t.division,t.productCodes,t.description,t.orderNumber||''].join(' ').toLowerCase().includes(q);
-    const stMatch=st ? t.progress===st : (t.progress!=='Completed' && t.progress!=='Retired');
+    const stMatch=st ? t.progress===st : (t.progress!=='Completed' && t.progress!=='Retired' && t.progress!=='Merged');
     const dvMatch=!dv||t.division===dv;
     const dockMatch=role!=='dockmanager'||isDockTicket(t);
     return mq&&stMatch&&dvMatch&&dockMatch;
@@ -2923,7 +2939,7 @@ function renderTix(tix){
 
 function updStats(tix){
   const today=new Date().toDateString();
-  document.getElementById('sTot').textContent  = tix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired').length;
+  document.getElementById('sTot').textContent  = tix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired'&&t.progress!=='Merged').length;
   document.getElementById('sRcv').textContent  = tix.filter(t=>t.progress==='Received').length;
   document.getElementById('sInv').textContent  = tix.filter(t=>t.progress==='Investigating').length;
   document.getElementById('sFup').textContent  = tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
@@ -2937,8 +2953,8 @@ function updStats(tix){
 }
 
 function badge(s){
-  const m={'Received':'b-received','Investigating':'b-investigating','Need More Info':'b-followup','Waiting on Info':'b-waiting','Completed':'b-completed','Allocated / Waiting OPS':'b-allocated','Allocation Unlocked':'b-unlocked','Retired':'b-retired'};
-  const icon = s==='Allocated / Waiting OPS' ? '🔒 ' : s==='Allocation Unlocked' ? '🔓 ' : s==='Retired' ? '🗄 ' : '';
+  const m={'Received':'b-received','Investigating':'b-investigating','Need More Info':'b-followup','Waiting on Info':'b-waiting','Completed':'b-completed','Allocated / Waiting OPS':'b-allocated','Allocation Unlocked':'b-unlocked','Retired':'b-retired','Merged':'b-merged'};
+  const icon = s==='Allocated / Waiting OPS' ? '🔒 ' : s==='Allocation Unlocked' ? '🔓 ' : s==='Retired' ? '🗄 ' : s==='Merged' ? '🔀 ' : '';
   return`<span class="badge ${m[s]||'b-other'}">${icon}${s||'Unknown'}</span>`;
 }
 
@@ -3227,11 +3243,16 @@ async function saveAllocationOnly(prefix){
         contactEmail:'ngonzalez@cnfei.com', productCodes:activeTx.productCodes, allocEntries:JSON.stringify(allocEntries),
         description:activeTx.description});
     }
-    // Update local entries and set status to Allocated
+    // Update local entries, allocFlags, and status
     activeTx.productEntries = entries;
+    activeTx.allocFlags = allocEntries;
     activeTx.progress = 'Allocated / Waiting OPS';
     const idx = allTix.findIndex(t=>t.inquiryId===activeTx.inquiryId);
-    if(idx>=0){ allTix[idx].productEntries = entries; allTix[idx].progress = 'Allocated / Waiting OPS'; }
+    if(idx>=0){
+      allTix[idx].productEntries = entries;
+      allTix[idx].allocFlags = allocEntries;
+      allTix[idx].progress = 'Allocated / Waiting OPS';
+    }
     // Update the progress dropdown in whichever panel is showing
     const progIds = {ic:'qProgress', mg:'mProg', dk:'dkProg'};
     const progEl  = document.getElementById(progIds[prefix]);
@@ -3430,13 +3451,14 @@ function applyDivTab(){
   const sort = sortSel ? sortSel.value : 'pri';
 
   let tix;
-  if(activeDivTab==='retired'){
-    // Retired tab: always show retired, searchable
+  if(activeDivTab==='merged'){
+    tix = allTix.filter(t=>t.progress==='Merged');
+  } else if(activeDivTab==='retired'){
     tix = allTix.filter(t=>t.progress==='Retired');
   } else {
     const divSet = activeDivTab==='internal' ? INTERNAL_DIVS : EXTERNAL_DIVS;
     tix = allTix.filter(t=>{
-      const stMatch = st ? t.progress===st : (t.progress!=='Completed'&&t.progress!=='Retired');
+      const stMatch = st ? t.progress===st : (t.progress!=='Completed'&&t.progress!=='Retired'&&t.progress!=='Merged');
       const divMatch = divSet.includes(t.division);
       const dockMatch = role!=='dockmanager'||isDockTicket(t);
       return stMatch && divMatch && dockMatch;
@@ -3452,7 +3474,9 @@ function applyDivTab(){
   else if(sort==='div')       tix.sort((a,b)=>(a.division||'').localeCompare(b.division||''));
   else if(sort==='id')        tix.sort((a,b)=>a.inquiryId.localeCompare(b.inquiryId));
 
-  if(activeDivTab==='retired'){
+  if(activeDivTab==='merged'){
+    renderMergedTix(tix);
+  } else if(activeDivTab==='retired'){
     renderRetiredTix(tix);
   } else {
     renderTix(tix);
@@ -3481,6 +3505,34 @@ function renderRetiredTix(tix){
         <td style="font-size:11px;color:var(--muted);max-width:220px">${esc(reason)}</td>
         <td class="mono" style="color:var(--muted);font-size:11px">${retiredOn}</td>
         <td onclick="event.stopPropagation()">${isMgr?`<button onclick="reactivateTicket('${t.inquiryId}')" style="padding:4px 10px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">↩ Reactivate</button>`:''}</td>
+      </tr>`;
+    }).join('')
+  }</tbody></table>`;
+}
+
+
+function renderMergedTix(tix){
+  const a = document.getElementById('tblArea');
+  if(!tix.length){
+    a.innerHTML=`<div class="empty-state"><span class="ei">🔀</span><p>No merged tickets</p></div>`;
+    return;
+  }
+  const isMgr = role==='manager';
+  const chkHeader = isMgr ? '<th style="width:32px;padding:8px 4px 8px 12px"></th>' : '';
+  a.innerHTML=`<table class="tbl"><thead><tr>${chkHeader}<th>Inquiry ID</th><th>Division</th><th>Product Code(s)</th><th>Merged Into</th><th>Merged On</th><th></th></tr></thead><tbody>${
+    tix.map(t=>{
+      const mergedOn = t.archivedOn ? fmtDateShort(t.archivedOn) : '—';
+      const mergedInto = t.mergedInto || '—';
+      const chkCell = isMgr ? `<td style="padding:8px 4px 8px 12px" onclick="event.stopPropagation()"><input type="checkbox" class="tix-row-chk" data-id="${t.inquiryId}" onchange="onTixRowCheck()" style="width:14px;height:14px;accent-color:var(--purple);cursor:pointer"></td>` : '';
+      const primaryBtn = mergedInto!=='—' ? `<button onclick="event.stopPropagation();openTicket('${mergedInto}')" style="padding:4px 10px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">→ View Primary</button>` : '';
+      const reactivateBtn = isMgr ? `<button onclick="event.stopPropagation();reactivateTicket('${t.inquiryId}')" style="padding:4px 10px;background:var(--panel2);color:var(--muted);border:1px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;margin-left:4px">↩ Restore</button>` : '';
+      return `<tr style="cursor:pointer;opacity:.8" onclick="openTicket('${t.inquiryId}')">${chkCell}
+        <td class="mono" style="color:var(--accent);font-weight:500">${t.inquiryId}</td>
+        <td><span class="mono">${t.division}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[t.division]||''}</span></td>
+        <td class="mono" style="font-size:12px">${esc(t.productCodes)}</td>
+        <td class="mono" style="color:#a78bfa;font-weight:600">${esc(mergedInto)}</td>
+        <td class="mono" style="color:var(--muted);font-size:11px">${mergedOn}</td>
+        <td onclick="event.stopPropagation()" style="white-space:nowrap">${primaryBtn}${reactivateBtn}</td>
       </tr>`;
     }).join('')
   }</tbody></table>`;
