@@ -416,6 +416,50 @@ body.has-banner #app{margin-top:44px}
 .b-unlocked{color:#4f83f5;background:rgba(79,131,245,.18);border:1px solid rgba(79,131,245,.4)}
 .b-retired{color:var(--muted);background:var(--panel);border:1px solid var(--border);opacity:.7}
 .b-merged{color:#a78bfa;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3)}
+/* ── SHORTAGE SCREEN ── */
+#shortageScreen{flex-direction:column;overflow:hidden}
+.shortage-form-panel{background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.shortage-form-header{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border)}
+.shortage-form-body{padding:14px 20px 16px;display:flex;flex-direction:column;gap:10px}
+.sf-row{display:flex;gap:10px;flex-wrap:wrap}
+.sf-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}
+.sf-field label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.04em}
+.sf-field input,.sf-field select{border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;background:var(--panel2);color:var(--text);outline:none;transition:border-color .15s}
+.sf-field input:focus,.sf-field select:focus{border-color:var(--accent)}
+.req{color:var(--red)}
+.radio-opt{display:flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid var(--border);border-radius:7px;cursor:pointer;font-size:13px;color:var(--text);transition:all .15s}
+.radio-opt:hover{border-color:var(--accent)}
+.shortage-row{background:var(--panel);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;position:relative}
+.shortage-row.located{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.05)}
+.shortage-row.not-located{border-color:rgba(248,113,113,.25);background:rgba(248,113,113,.04)}
+.shortage-row.pending-loc{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.05)}
+.shortage-row.exported{opacity:.55}
+.sr-codes{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--accent)}
+.sr-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.sr-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.sr-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.sr-badge.located{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.3)}
+.sr-badge.not-located{background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.3)}
+.sr-badge.pending{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.sr-badge.exported{background:rgba(107,116,148,.15);color:var(--muted);border:1px solid var(--border)}
+.sr-badge.div{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
+.locate-btn{margin-top:8px;padding:5px 12px;background:var(--panel2);border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+.locate-btn:hover{border-color:var(--green);color:var(--green)}
+.locate-inline{margin-top:8px;background:rgba(16,185,129,.07);border:1.5px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.export-chk{width:15px;height:15px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+/* Stats */
+.stats-section-title{font-size:10px;font-family:var(--mono);font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin:18px 0 8px}
+.shortage-stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:10px}
+.shortage-stat-card{background:var(--panel);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;text-align:center}
+.shortage-stat-num{font-size:24px;font-weight:700;color:var(--text);font-family:var(--mono)}
+.shortage-stat-lbl{font-size:10px;color:var(--muted);margin-top:3px}
+@media print{
+  .shortage-form-panel,.shortage-form-header,.sf-row,.shortage-filter-bar,.btn-primary,.refresh-btn,.locate-btn,.locate-inline,.export-chk,#shortageListWrap,.div-tabs,.dash-toolbar,.global-stats,.topbar{display:none!important}
+  #shortageStatsWrap{display:block!important;padding:0}
+  .shortage-stat-card{border:1px solid #ccc;background:#fff;color:#000}
+  .shortage-stat-num{color:#000}
+  .shortage-stat-lbl{color:#666}
+}
 /* Retire panel */
 .retire-panel{background:rgba(107,116,148,.1);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:10px}
 .retire-panel-title{font-size:11px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
@@ -701,6 +745,9 @@ body.has-banner #app{margin-top:44px}
       </button>
       <button class="ic-login-btn ops" onclick="goPin('ops')">
         <div><div class="ib-title">Operations Manager</div><div class="ib-sub">View &amp; release allocated items</div></div>
+      </button>
+      <button class="ic-login-btn" style="grid-column:1/-1" onclick="goPin('clerk')">
+        <div><div class="ib-title">Outbound Clerk</div><div class="ib-sub">Shortage entry &amp; location tracking</div></div>
       </button>
     </div>
   </div>
@@ -1101,6 +1148,138 @@ body.has-banner #app{margin-top:44px}
     </div>
   </div>
 </div>
+<!-- ═══════════ SHORTAGE SCREEN ═══════════ -->
+<div class="screen" id="shortageScreen">
+  <!-- Entry form panel -->
+  <div class="shortage-form-panel" id="shortageFormWrap">
+    <div class="shortage-form-header">
+      <div>
+        <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px">Outbound</div>
+        <div style="font-size:17px;font-weight:700;color:var(--text)">Shortage Entry</div>
+      </div>
+      <button class="refresh-btn" onclick="switchShortageView('stats')" id="btnShowStats" style="margin-left:auto">📊 Stats</button>
+      <button class="refresh-btn" onclick="switchShortageView('list')" id="btnShowList">📋 All Shortages</button>
+    </div>
+
+    <div class="shortage-form-body">
+      <!-- Row 1 -->
+      <div class="sf-row">
+        <div class="sf-field">
+          <label>Date &amp; Time</label>
+          <input type="text" id="sfDateTime" readonly style="color:var(--muted);background:var(--panel)">
+        </div>
+        <div class="sf-field">
+          <label>Your Name <span class="req">*</span></label>
+          <input type="text" id="sfName" placeholder="First Last" autocomplete="name">
+        </div>
+        <div class="sf-field">
+          <label>Division <span class="req">*</span></label>
+          <select id="sfDivision">
+            <option value="">— Select —</option>
+            <option>GT</option><option>NH</option><option>BC</option><option>FS</option>
+            <option>EE</option><option>VP</option><option>TP</option><option>CI</option><option>KA</option>
+          </select>
+        </div>
+        <div class="sf-field">
+          <label>Picker <span class="req">*</span></label>
+          <input type="text" id="sfPicker" placeholder="Picker name">
+        </div>
+      </div>
+      <!-- Row 2 -->
+      <div class="sf-row">
+        <div class="sf-field">
+          <label>Order Number <span class="req">*</span></label>
+          <input type="text" id="sfOrderNum" placeholder="e.g. 123456">
+        </div>
+        <div class="sf-field">
+          <label>Bin Location Shorted <span class="req">*</span></label>
+          <input type="text" id="sfBinShorted" placeholder="e.g. A-01-01" style="text-transform:uppercase">
+        </div>
+        <div class="sf-field">
+          <label>Product Code <span class="req">*</span></label>
+          <input type="text" id="sfProductCode" placeholder="e.g. 123456" style="text-transform:uppercase">
+        </div>
+      </div>
+      <!-- Row 3 -->
+      <div class="sf-row">
+        <div class="sf-field">
+          <label>Qty Shorted <span class="req">*</span></label>
+          <input type="number" id="sfQtyShorted" placeholder="0" min="1" style="max-width:120px">
+        </div>
+        <div class="sf-field">
+          <label>Unit of Measure <span class="req">*</span></label>
+          <select id="sfUOM" style="max-width:160px">
+            <option value="">— Select —</option>
+            <option>EA</option><option>CS</option><option>PK</option><option>BX</option>
+            <option>BG</option><option>PR</option><option>SET</option><option>DZ</option><option>OTH</option>
+          </select>
+        </div>
+        <div class="sf-field">
+          <label>Was Item Located? <span class="req">*</span></label>
+          <div style="display:flex;gap:10px;margin-top:4px">
+            <label class="radio-opt" onclick="toggleLocated(true)"><input type="radio" name="sfLocated" value="Y" id="sfLocY"> Yes</label>
+            <label class="radio-opt" onclick="toggleLocated(false)"><input type="radio" name="sfLocated" value="N" id="sfLocN"> No</label>
+          </div>
+        </div>
+      </div>
+      <!-- Located fields (shown if Yes) -->
+      <div id="sfLocatedFields" style="display:none;background:rgba(16,185,129,.07);border:1.5px solid rgba(16,185,129,.2);border-radius:10px;padding:14px 16px;margin-top:4px">
+        <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--green);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Secondary Location Found</div>
+        <div class="sf-row" style="margin-bottom:0">
+          <div class="sf-field">
+            <label>Found In Bin</label>
+            <input type="text" id="sfFoundBin" placeholder="e.g. B-03-02" style="text-transform:uppercase">
+          </div>
+          <div class="sf-field">
+            <label>Qty Located &amp; Picked</label>
+            <input type="number" id="sfQtyLocated" placeholder="0" min="1">
+          </div>
+          <div class="sf-field" style="flex:2">
+            <label>Location Notes</label>
+            <input type="text" id="sfLocNotes" placeholder="Any additional notes about where found">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:12px">
+        <button class="btn-primary" onclick="submitShortage()" style="padding:10px 28px;font-size:13px">+ Log Shortage</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- List view -->
+  <div id="shortageListWrap" style="flex:1;overflow:auto;padding:16px 20px 28px">
+    <!-- toolbar -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+      <input type="text" id="shortageSearch" placeholder="Search by product, order, picker, division…" oninput="renderShortageList()" class="tracker-search-inp" style="flex:1;min-width:200px">
+      <select id="shortageFilterDiv" onchange="renderShortageList()" class="tracker-sort-sel"><option value="">All Divisions</option><option>GT</option><option>NH</option><option>BC</option><option>FS</option><option>EE</option><option>VP</option><option>TP</option><option>CI</option><option>KA</option></select>
+      <select id="shortageFilterLoc" onchange="renderShortageList()" class="tracker-sort-sel"><option value="">All</option><option value="Y">Located</option><option value="N">Not Located</option><option value="pending">Pending</option></select>
+      <select id="shortageSort" onchange="renderShortageList()" class="tracker-sort-sel">
+        <option value="date-desc">Newest First</option>
+        <option value="date-asc">Oldest First</option>
+        <option value="product">Product Code</option>
+        <option value="division">Division</option>
+        <option value="order">Order #</option>
+      </select>
+      <button class="refresh-btn" onclick="generateAppriseExport()" id="btnExport" style="background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:var(--green)">⬇ Apprise Export</button>
+    </div>
+    <div id="shortageListArea"></div>
+  </div>
+
+  <!-- Stats view -->
+  <div id="shortageStatsWrap" style="display:none;flex:1;overflow:auto;padding:16px 20px 28px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      <input type="date" id="statsDateFrom" onchange="renderShortageStats()" class="tracker-search-inp" style="max-width:160px">
+      <span style="color:var(--muted);font-size:12px">to</span>
+      <input type="date" id="statsDateTo" onchange="renderShortageStats()" class="tracker-search-inp" style="max-width:160px">
+      <select id="statsFilterDiv" onchange="renderShortageStats()" class="tracker-sort-sel"><option value="">All Divisions</option><option>GT</option><option>NH</option><option>BC</option><option>FS</option><option>EE</option><option>VP</option><option>TP</option><option>CI</option><option>KA</option></select>
+      <select id="statsFilterShift" onchange="renderShortageStats()" class="tracker-sort-sel"><option value="">All Shifts</option><option value="1">1st Shift (6A–3:30P)</option><option value="2">2nd Shift (3:30P–12A)</option></select>
+      <button class="refresh-btn" onclick="window.print()" style="margin-left:auto">🖨 Print</button>
+    </div>
+    <div id="shortageStatsArea" class="printable"></div>
+  </div>
+</div>
+
 </div><!-- #app -->
 
 <!-- ═══════════ STATS SCREEN ═══════════ -->
@@ -1414,6 +1593,7 @@ const CFG = {
   PIN_MANAGER:    '1988',
   PIN_DOCK_MGR:   '2244',   // Christian Prater — Inbound Dock Manager
   PIN_OPS:        '1122',   // Operations — views allocation alerts
+  PIN_CLERK:      '3366',   // Outbound Clerk — shortage entry screen
   DIV_PINS: { GT:'4411',NH:'4422',FS:'4433',EE:'4444',BC:'4455',VP:'4466',TP:'4477',CI:'4488',KA:'5000' },
   MAX_FILES: 5, MAX_MB: 10,
 };
@@ -1481,8 +1661,11 @@ function goPin(target){
     b.textContent='⚙️ Operations';
     b.style.cssText='background:var(--purple-l);color:var(--purple);border:1.5px solid rgba(124,58,237,.2)';
     document.getElementById('pinSub').textContent='Enter your Operations PIN';
+  } else if(target==='clerk'){
+    b.textContent='📋 Outbound Clerk';
+    b.style.cssText='background:var(--panel2);color:var(--text);border:1.5px solid var(--border)';
+    document.getElementById('pinSub').textContent='Enter your Clerk PIN';
   } else {
-    b.textContent='⚙️ IC Manager';
     b.style.cssText='background:var(--accent-l);color:var(--accent);border:1.5px solid rgba(37,99,235,.2)';
     document.getElementById('pinSub').textContent='Enter your Manager PIN';
   }
@@ -1521,6 +1704,7 @@ function chkPin(){
   else if(pinTarget==='icteam')     exp=CFG.PIN_ICTEAM;
   else if(pinTarget==='dockmanager')exp=CFG.PIN_DOCK_MGR;
   else if(pinTarget==='ops')        exp=CFG.PIN_OPS;
+  else if(pinTarget==='clerk')      exp=CFG.PIN_CLERK;
   else                              exp=CFG.PIN_MANAGER;
   if(pinBuf!==exp){ pinShake('Incorrect PIN'); return; }
   doLogin(pinTarget);
@@ -1565,7 +1749,16 @@ function doLogin(target){
     setNav('none','none','none','none','');
     document.getElementById('globalStats').classList.remove('show');
     loadBanner(); saveSession(target);
-    showScreen('ops'); // show immediately — loadOpsAlerts fires inside showScreen
+    showScreen('ops');
+  } else if(target==='clerk'){
+    role='clerk'; currentDiv='';
+    allTix=[];
+    setChip('📋 Outbound Clerk','clerk');
+    setNav('none','none','none','none','none');
+    document.getElementById('globalStats').classList.remove('show');
+    loadBanner(); saveSession(target);
+    loadShortageScreen();
+    showScreen('shortageScreen');
   } else {
     role='manager'; currentDiv='';
     allTix=[];
@@ -3596,6 +3789,367 @@ async function reactivateTicket(id){
     applyDivTab();
     updStats(allTix);
   }catch(e){ hideLoad(); toast('Reactivate failed: '+e.message,'error'); }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SHORTAGE TRACKING
+   Storage: Firestore collection 'shortages'
+   ═══════════════════════════════════════════════════════ */
+let shortageData = [];   // loaded from Firestore
+let shortageView = 'list'; // 'list' | 'stats'
+
+function loadShortageScreen(){
+  // Auto-fill date/time
+  updateShortageDateTime();
+  setInterval(updateShortageDateTime, 30000);
+  // Load from Firestore (or localStorage in demo)
+  fetchShortages();
+  // Set default date range for stats (last 30 days)
+  const now = new Date();
+  const from = new Date(now); from.setDate(from.getDate()-30);
+  const toEl = document.getElementById('statsDateTo');
+  const frEl = document.getElementById('statsDateFrom');
+  if(toEl) toEl.value = now.toISOString().slice(0,10);
+  if(frEl) frEl.value = from.toISOString().slice(0,10);
+}
+
+function updateShortageDateTime(){
+  const el = document.getElementById('sfDateTime');
+  if(el) el.value = new Date().toLocaleString('en-US',{month:'2-digit',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function toggleLocated(yes){
+  document.getElementById('sfLocatedFields').style.display = yes ? '' : 'none';
+  if(yes){ document.getElementById('sfLocY').checked=true; }
+  else    { document.getElementById('sfLocN').checked=true; }
+}
+
+function switchShortageView(v){
+  shortageView = v;
+  document.getElementById('shortageListWrap').style.display  = v==='list'  ? 'block':'none';
+  document.getElementById('shortageStatsWrap').style.display = v==='stats' ? 'block':'none';
+  if(v==='stats') renderShortageStats();
+  if(v==='list')  renderShortageList();
+}
+
+function getShift(dateStr){
+  const h = new Date(dateStr).getHours();
+  // 6am-3:30pm = shift 1; 3:30pm-12am = shift 2; midnight-6am = shift 2 (overnight)
+  if(h>=6 && (h<15||(h===15&&new Date(dateStr).getMinutes()<30))) return 1;
+  return 2;
+}
+
+// ── Firestore persistence ────────────────────────────────
+async function fetchShortages(){
+  try{
+    if(CFG.DEMO_MODE){
+      const saved = localStorage.getItem('shortages_demo');
+      shortageData = saved ? JSON.parse(saved) : [];
+    } else {
+      const docs = await fsQuery('shortages', null, 'timestamp', 2000);
+      shortageData = docs.map(d=>({
+        id:          d._id || d.id || '',
+        timestamp:   d.timestamp || '',
+        name:        d.name || '',
+        division:    d.division || '',
+        picker:      d.picker || '',
+        orderNumber: d.orderNumber || '',
+        binShorted:  d.binShorted || '',
+        productCode: d.productCode || '',
+        qtyShorted:  typeof d.qtyShorted === 'number' ? d.qtyShorted : parseInt(d.qtyShorted||0),
+        uom:         d.uom || '',
+        located:     d.located || 'pending',  // 'Y','N','pending'
+        foundBin:    d.foundBin || '',
+        qtyLocated:  typeof d.qtyLocated === 'number' ? d.qtyLocated : parseInt(d.qtyLocated||0),
+        locNotes:    d.locNotes || '',
+        exported:    d.exported || false,
+        shift:       d.shift || getShift(d.timestamp||''),
+      }));
+    }
+    renderShortageList();
+  }catch(e){ toast('Could not load shortages: '+e.message,'error'); }
+}
+
+async function submitShortage(){
+  const name     = document.getElementById('sfName').value.trim();
+  const division = document.getElementById('sfDivision').value;
+  const picker   = document.getElementById('sfPicker').value.trim();
+  const orderNum = document.getElementById('sfOrderNum').value.trim();
+  const bin      = document.getElementById('sfBinShorted').value.trim().toUpperCase();
+  const code     = document.getElementById('sfProductCode').value.trim().toUpperCase();
+  const qty      = parseInt(document.getElementById('sfQtyShorted').value||'0');
+  const uom      = document.getElementById('sfUOM').value;
+  const locY     = document.getElementById('sfLocY').checked;
+  const locN     = document.getElementById('sfLocN').checked;
+  const located  = locY?'Y':locN?'N':'pending';
+  const foundBin = document.getElementById('sfFoundBin').value.trim().toUpperCase();
+  const qtyLoc   = parseInt(document.getElementById('sfQtyLocated').value||'0');
+  const locNotes = document.getElementById('sfLocNotes').value.trim();
+
+  if(!name)     { toast('Enter your name','error'); return; }
+  if(!division) { toast('Select a division','error'); return; }
+  if(!picker)   { toast('Enter the picker name','error'); return; }
+  if(!orderNum) { toast('Enter the order number','error'); return; }
+  if(!bin)      { toast('Enter the bin location shorted','error'); return; }
+  if(!code)     { toast('Enter the product code','error'); return; }
+  if(!qty||qty<1){ toast('Enter quantity shorted','error'); return; }
+  if(!uom)      { toast('Select unit of measure','error'); return; }
+  if(!locY&&!locN){ toast('Was the item located? Select Yes or No','error'); return; }
+  if(locY&&!foundBin){ toast('Enter the bin where item was found','error'); return; }
+  if(locY&&(!qtyLoc||qtyLoc<1)){ toast('Enter the qty located and picked','error'); return; }
+
+  const now  = new Date();
+  const rec  = {
+    id:          'SH-'+Date.now(),
+    timestamp:   now.toISOString(),
+    name, division, picker, orderNumber:orderNum,
+    binShorted:  bin, productCode:code, qtyShorted:qty, uom,
+    located, foundBin: locY?foundBin:'', qtyLocated: locY?qtyLoc:0,
+    locNotes: locY?locNotes:'', exported:false,
+    shift: getShift(now.toISOString()),
+  };
+
+  try{
+    if(!CFG.DEMO_MODE){
+      await fsPatch('shortages/'+rec.id, rec);
+    } else {
+      const saved=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+      saved.unshift(rec);
+      localStorage.setItem('shortages_demo',JSON.stringify(saved));
+    }
+    shortageData.unshift(rec);
+    toast('Shortage logged ✓','success');
+    // Clear form fields (keep name/division/picker)
+    ['sfOrderNum','sfBinShorted','sfProductCode','sfQtyShorted','sfFoundBin','sfQtyLocated','sfLocNotes'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.value='';
+    });
+    document.getElementById('sfUOM').value='';
+    document.getElementById('sfLocY').checked=false;
+    document.getElementById('sfLocN').checked=false;
+    document.getElementById('sfLocatedFields').style.display='none';
+    updateShortageDateTime();
+    renderShortageList();
+  }catch(e){ toast('Save failed: '+e.message,'error'); }
+}
+
+// Inline "locate" update after the fact
+async function markLocated(id){
+  const bin   = document.getElementById('il-bin-'+id)?.value.trim().toUpperCase();
+  const qty   = parseInt(document.getElementById('il-qty-'+id)?.value||'0');
+  const notes = document.getElementById('il-notes-'+id)?.value.trim();
+  if(!bin) { toast('Enter the bin where item was found','error'); return; }
+  if(!qty||qty<1) { toast('Enter qty located','error'); return; }
+  try{
+    const upd = {located:'Y', foundBin:bin, qtyLocated:qty, locNotes:notes||''};
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    const rec = shortageData.find(r=>r.id===id);
+    if(rec) Object.assign(rec, upd);
+    else {
+      const saved=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+      const i=saved.findIndex(r=>r.id===id);
+      if(i>=0){ Object.assign(saved[i],upd); localStorage.setItem('shortages_demo',JSON.stringify(saved)); }
+    }
+    toast('Location updated ✓','success');
+    renderShortageList();
+  }catch(e){ toast('Update failed: '+e.message,'error'); }
+}
+
+async function toggleExported(id, checked){
+  try{
+    const upd = {exported: checked};
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    const rec = shortageData.find(r=>r.id===id);
+    if(rec) rec.exported=checked;
+    else {
+      const saved=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+      const i=saved.findIndex(r=>r.id===id);
+      if(i>=0){ saved[i].exported=checked; localStorage.setItem('shortages_demo',JSON.stringify(saved)); }
+    }
+  }catch(e){ toast('Could not update export flag','error'); }
+}
+
+// ── Render list ──────────────────────────────────────────
+function renderShortageList(){
+  const q      = (document.getElementById('shortageSearch')?.value||'').toLowerCase();
+  const divF   = document.getElementById('shortageFilterDiv')?.value||'';
+  const locF   = document.getElementById('shortageFilterLoc')?.value||'';
+  const sort   = document.getElementById('shortageSort')?.value||'date-desc';
+
+  let data = [...shortageData];
+  if(q)    data=data.filter(r=>[r.productCode,r.orderNumber,r.picker,r.division,r.name,r.binShorted].join(' ').toLowerCase().includes(q));
+  if(divF) data=data.filter(r=>r.division===divF);
+  if(locF) data=data.filter(r=>r.located===locF||(locF==='pending'&&r.located==='pending'));
+
+  if(sort==='date-desc') data.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  else if(sort==='date-asc')   data.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  else if(sort==='product')    data.sort((a,b)=>a.productCode.localeCompare(b.productCode));
+  else if(sort==='division')   data.sort((a,b)=>a.division.localeCompare(b.division));
+  else if(sort==='order')      data.sort((a,b)=>(a.orderNumber||'').localeCompare(b.orderNumber||''));
+
+  const el = document.getElementById('shortageListArea');
+  if(!data.length){ el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">No shortages found</div>'; return; }
+
+  el.innerHTML = data.map(r=>{
+    const locClass = r.located==='Y'?'located':r.located==='N'?'not-located':'pending-loc';
+    const locBadge = r.located==='Y'
+      ? `<span class="sr-badge located">✓ Located</span>`
+      : r.located==='N'
+        ? `<span class="sr-badge not-located">✗ Not Located</span>`
+        : `<span class="sr-badge pending">⏳ Pending</span>`;
+    const expBadge = r.exported ? `<span class="sr-badge exported">✓ Exported</span>` : '';
+    const shiftLbl = `Shift ${r.shift||getShift(r.timestamp)}`;
+    const locDetails = r.located==='Y' && r.foundBin
+      ? `<div style="margin-top:6px;font-size:12px;color:var(--green)">Found: <span style="font-family:var(--mono);font-weight:600">${esc(r.foundBin)}</span> · Picked: <strong>${r.qtyLocated}</strong> ${esc(r.uom)}${r.locNotes?` · ${esc(r.locNotes)}`:''}</div>`
+      : '';
+    const locateBtn = r.located==='pending'
+      ? `<button class="locate-btn" onclick="showInlineLocate('${r.id}')">📍 Update Location</button>
+         <div class="locate-inline" id="il-${r.id}" style="display:none">
+           <div class="sf-field" style="min-width:120px"><label>Found In Bin</label><input id="il-bin-${r.id}" type="text" style="text-transform:uppercase" placeholder="Bin"></div>
+           <div class="sf-field" style="min-width:80px"><label>Qty Picked</label><input id="il-qty-${r.id}" type="number" min="1" placeholder="0"></div>
+           <div class="sf-field" style="flex:2;min-width:150px"><label>Notes</label><input id="il-notes-${r.id}" type="text" placeholder="Optional"></div>
+           <button onclick="markLocated('${r.id}')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;white-space:nowrap">Save</button>
+           <button onclick="markNotLocated('${r.id}')" style="padding:6px 12px;background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.3);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;white-space:nowrap">✗ Not Found</button>
+         </div>`
+      : '';
+    const exportChk = (role==='manager'||role==='clerk') && r.located==='Y'
+      ? `<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);cursor:pointer;margin-top:6px">
+           <input type="checkbox" class="export-chk" ${r.exported?'checked':''} onchange="toggleExported('${r.id}',this.checked)"> Included in Apprise Export
+         </label>`
+      : '';
+    return `<div class="shortage-row ${locClass} ${r.exported?'exported':''}">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="sr-codes">${esc(r.productCode)}</span>
+            <span class="sr-badge div">${esc(r.division)}</span>
+            ${locBadge}${expBadge}
+            <span style="font-size:11px;color:var(--muted);margin-left:auto">${shiftLbl} · ${new Date(r.timestamp).toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+          </div>
+          <div class="sr-meta">Order: <strong>${esc(r.orderNumber)}</strong> · Bin Shorted: <span style="font-family:var(--mono)">${esc(r.binShorted)}</span> · Qty: <strong>${r.qtyShorted} ${esc(r.uom)}</strong> · Picker: ${esc(r.picker)} · By: ${esc(r.name)}</div>
+          ${locDetails}
+          ${locateBtn}
+          ${exportChk}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function showInlineLocate(id){
+  const el = document.getElementById('il-'+id);
+  if(el) el.style.display = el.style.display==='none' ? '' : 'none';
+}
+
+async function markNotLocated(id){
+  try{
+    const upd = {located:'N'};
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    const rec = shortageData.find(r=>r.id===id);
+    if(rec) rec.located='N';
+    toast('Marked as not found','success');
+    renderShortageList();
+  }catch(e){ toast('Update failed: '+e.message,'error'); }
+}
+
+// ── Apprise Export ───────────────────────────────────────
+function generateAppriseExport(){
+  const located = shortageData.filter(r=>r.located==='Y' && !r.exported);
+  if(!located.length){ toast('No un-exported located items found','error'); return; }
+
+  // Build CSV
+  // A:Product Code B:Location Prefix(division) C:Bin D:Blank E:Blank F:UOM G:Qty H:Adj Code I:Notes J:Blank
+  const rows = [['Product Code','Location Prefix','Bin','','','UOM','Quantity Adjusted','Adjustment Code','Notes','']];
+  located.forEach(r=>{
+    rows.push([r.productCode, r.division, r.foundBin, '', '', r.uom, r.qtyLocated, 'GenQtyAdj', 'Secondary Pick Location', '']);
+  });
+
+  const csv = rows.map(row=>row.map(c=>{
+    const s=String(c||'');
+    return s.includes(',')||s.includes('"')||s.includes('\n') ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }).join(',')).join('\r\n');
+
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download='Apprise_Adjustment_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.click(); URL.revokeObjectURL(url);
+  toast('Exported '+located.length+' rows — mark them as exported below','success');
+}
+
+// ── Stats ────────────────────────────────────────────────
+function renderShortageStats(){
+  const fromStr = document.getElementById('statsDateFrom')?.value;
+  const toStr   = document.getElementById('statsDateTo')?.value;
+  const divF    = document.getElementById('statsFilterDiv')?.value||'';
+  const shiftF  = document.getElementById('statsFilterShift')?.value||'';
+
+  const from = fromStr ? new Date(fromStr+'T00:00:00') : new Date(0);
+  const to   = toStr   ? new Date(toStr  +'T23:59:59') : new Date();
+
+  let data = shortageData.filter(r=>{
+    const d = new Date(r.timestamp);
+    return d>=from && d<=to
+      && (!divF   || r.division===divF)
+      && (!shiftF || String(r.shift||getShift(r.timestamp))===shiftF);
+  });
+
+  const total     = data.length;
+  const located   = data.filter(r=>r.located==='Y').length;
+  const notLoc    = data.filter(r=>r.located==='N').length;
+  const pending   = data.filter(r=>r.located==='pending').length;
+  const exported  = data.filter(r=>r.exported).length;
+  const shift1    = data.filter(r=>(r.shift||getShift(r.timestamp))===1).length;
+  const shift2    = data.filter(r=>(r.shift||getShift(r.timestamp))===2).length;
+  const locPct    = total ? Math.round(located/total*100) : 0;
+
+  // By division
+  const byDiv={};
+  data.forEach(r=>{ if(!byDiv[r.division]) byDiv[r.division]={total:0,located:0,notLoc:0}; byDiv[r.division].total++; if(r.located==='Y') byDiv[r.division].located++; if(r.located==='N') byDiv[r.division].notLoc++; });
+
+  // By day
+  const byDay={};
+  data.forEach(r=>{ const d=new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit'}); if(!byDay[d]) byDay[d]={total:0,located:0,s1:0,s2:0}; byDay[d].total++; if(r.located==='Y') byDay[d].located++; const sh=r.shift||getShift(r.timestamp); if(sh===1) byDay[d].s1++; else byDay[d].s2++; });
+
+  const el = document.getElementById('shortageStatsArea');
+  el.innerHTML = `
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">Shortage Statistics${divF?' — '+divF:''}${shiftF?' — Shift '+shiftF:''}</div>
+
+    <div class="shortage-stat-grid">
+      <div class="shortage-stat-card"><div class="shortage-stat-num">${total}</div><div class="shortage-stat-lbl">Total Shortages</div></div>
+      <div class="shortage-stat-card" style="border-color:rgba(16,185,129,.3)"><div class="shortage-stat-num" style="color:var(--green)">${located}</div><div class="shortage-stat-lbl">Located (2nd Loc)</div></div>
+      <div class="shortage-stat-card" style="border-color:rgba(248,113,113,.3)"><div class="shortage-stat-num" style="color:var(--red)">${notLoc}</div><div class="shortage-stat-lbl">Not Located</div></div>
+      <div class="shortage-stat-card" style="border-color:rgba(245,158,11,.3)"><div class="shortage-stat-num" style="color:#f59e0b">${pending}</div><div class="shortage-stat-lbl">Pending</div></div>
+      <div class="shortage-stat-card"><div class="shortage-stat-num" style="color:var(--accent)">${locPct}%</div><div class="shortage-stat-lbl">Located Rate</div></div>
+      <div class="shortage-stat-card"><div class="shortage-stat-num">${shift1}</div><div class="shortage-stat-lbl">1st Shift</div></div>
+      <div class="shortage-stat-card"><div class="shortage-stat-num">${shift2}</div><div class="shortage-stat-lbl">2nd Shift</div></div>
+      <div class="shortage-stat-card" style="border-color:rgba(16,185,129,.2)"><div class="shortage-stat-num" style="color:var(--green)">${exported}</div><div class="shortage-stat-lbl">Apprise Exported</div></div>
+    </div>
+
+    <div class="stats-section-title">By Division</div>
+    <table class="tbl" style="margin-bottom:20px">
+      <thead><tr><th>Division</th><th>Total</th><th style="color:var(--green)">Located</th><th style="color:var(--red)">Not Located</th><th>Located Rate</th></tr></thead>
+      <tbody>${Object.keys(byDiv).sort().map(d=>`<tr>
+        <td><span class="mono" style="font-weight:700">${d}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[d]||''}</span></td>
+        <td class="mono">${byDiv[d].total}</td>
+        <td class="mono" style="color:var(--green)">${byDiv[d].located}</td>
+        <td class="mono" style="color:var(--red)">${byDiv[d].notLoc}</td>
+        <td class="mono">${byDiv[d].total?Math.round(byDiv[d].located/byDiv[d].total*100):0}%</td>
+      </tr>`).join('')}</tbody>
+    </table>
+
+    <div class="stats-section-title">By Day</div>
+    <table class="tbl">
+      <thead><tr><th>Date</th><th>Total</th><th>1st Shift</th><th>2nd Shift</th><th style="color:var(--green)">Located</th><th>Located Rate</th></tr></thead>
+      <tbody>${Object.keys(byDay).sort((a,b)=>new Date(a)-new Date(b)).map(d=>`<tr>
+        <td class="mono">${d}</td>
+        <td class="mono">${byDay[d].total}</td>
+        <td class="mono">${byDay[d].s1}</td>
+        <td class="mono">${byDay[d].s2}</td>
+        <td class="mono" style="color:var(--green)">${byDay[d].located}</td>
+        <td class="mono">${byDay[d].total?Math.round(byDay[d].located/byDay[d].total*100):0}%</td>
+      </tr>`).join('')}
+      </tbody>
+    </table>`;
 }
 
 async function saveICTeam(){
