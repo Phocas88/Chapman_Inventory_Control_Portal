@@ -3925,8 +3925,8 @@ async function submitShortage(){
     timestamp:   now.toISOString(),
     name, division, picker, orderNumber:orderNum,
     binShorted:  bin, productCode:code, qtyShorted:qty, uom,
-    located, foundBin: locY?foundBin:'', qtyLocated: locY?qtyLoc:0,
-    locNotes: locY?locNotes:'', exported:false,
+    located, foundBin: '', qtyLocated: 0,
+    locNotes: '', exported:false,
     shift: getShift(now.toISOString()),
   };
 
