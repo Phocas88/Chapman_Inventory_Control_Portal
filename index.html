@@ -1212,29 +1212,14 @@ body.has-banner #app{margin-top:44px}
             <option value="EA">Each</option>
           </select>
         </div>
-        <div class="sf-field">
-          <label>Was Item Located? <span class="req">*</span></label>
-          <div style="display:flex;gap:10px;margin-top:4px">
-            <label class="radio-opt" onclick="toggleLocated(true)"><input type="radio" name="sfLocated" value="Y" id="sfLocY"> Yes</label>
-            <label class="radio-opt" onclick="toggleLocated(false)"><input type="radio" name="sfLocated" value="N" id="sfLocN"> No</label>
-          </div>
-        </div>
-      </div>
-      <!-- Located fields (shown if Yes) -->
-      <div id="sfLocatedFields" style="display:none;background:rgba(16,185,129,.07);border:1.5px solid rgba(16,185,129,.2);border-radius:10px;padding:14px 16px;margin-top:4px">
-        <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--green);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">Secondary Location Found</div>
-        <div class="sf-row" style="margin-bottom:0">
-          <div class="sf-field">
-            <label>Found In Bin</label>
-            <input type="text" id="sfFoundBin" placeholder="e.g. B-03-02" style="text-transform:uppercase">
-          </div>
-          <div class="sf-field">
-            <label>Qty Located &amp; Picked</label>
-            <input type="number" id="sfQtyLocated" placeholder="0" min="1">
-          </div>
-          <div class="sf-field" style="flex:2">
-            <label>Location Notes</label>
-            <input type="text" id="sfLocNotes" placeholder="Any additional notes about where found">
+        <div class="sf-field" style="flex:0;min-width:180px">
+          <label>Status</label>
+          <div style="margin-top:6px;display:flex;align-items:center;gap:8px;background:rgba(248,113,113,.1);border:1.5px solid rgba(248,113,113,.25);border-radius:8px;padding:8px 12px">
+            <span style="font-size:14px">⏳</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#f87171">Not Located</div>
+              <div style="font-size:10px;color:var(--muted)">Update after picker returns</div>
+            </div>
           </div>
         </div>
       </div>
@@ -3816,12 +3801,6 @@ function updateShortageDateTime(){
   if(el) el.value = new Date().toLocaleString('en-US',{month:'2-digit',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
-function toggleLocated(yes){
-  document.getElementById('sfLocatedFields').style.display = yes ? '' : 'none';
-  if(yes){ document.getElementById('sfLocY').checked=true; }
-  else    { document.getElementById('sfLocN').checked=true; }
-}
-
 function switchShortageView(v){
   shortageView = v;
   document.getElementById('shortageListWrap').style.display  = v==='list'  ? 'block':'none';
@@ -3877,12 +3856,10 @@ async function submitShortage(){
   const code     = document.getElementById('sfProductCode').value.trim().toUpperCase();
   const qty      = parseInt(document.getElementById('sfQtyShorted').value||'0');
   const uom      = document.getElementById('sfUOM').value;
-  const locY     = document.getElementById('sfLocY').checked;
-  const locN     = document.getElementById('sfLocN').checked;
-  const located  = locY?'Y':locN?'N':'pending';
-  const foundBin = document.getElementById('sfFoundBin').value.trim().toUpperCase();
-  const qtyLoc   = parseInt(document.getElementById('sfQtyLocated').value||'0');
-  const locNotes = document.getElementById('sfLocNotes').value.trim();
+  const located  = 'N';   // always starts Not Located — clerk updates after picker returns
+  const foundBin = '';
+  const qtyLoc   = 0;
+  const locNotes = '';
 
   if(!name)     { toast('Enter your name','error'); return; }
   if(!division) { toast('Select a division','error'); return; }
@@ -3892,9 +3869,6 @@ async function submitShortage(){
   if(!code)     { toast('Enter the product code','error'); return; }
   if(!qty||qty<1){ toast('Enter quantity shorted','error'); return; }
   if(!uom)      { toast('Select unit of measure','error'); return; }
-  if(!locY&&!locN){ toast('Was the item located? Select Yes or No','error'); return; }
-  if(locY&&!foundBin){ toast('Enter the bin where item was found','error'); return; }
-  if(locY&&(!qtyLoc||qtyLoc<1)){ toast('Enter the qty located and picked','error'); return; }
 
   const now  = new Date();
   const rec  = {
@@ -3918,13 +3892,10 @@ async function submitShortage(){
     shortageData.unshift(rec);
     toast('Shortage logged ✓','success');
     // Clear form fields (keep name/division/picker)
-    ['sfOrderNum','sfBinShorted','sfProductCode','sfQtyShorted','sfFoundBin','sfQtyLocated','sfLocNotes'].forEach(id=>{
+    ['sfOrderNum','sfBinShorted','sfProductCode','sfQtyShorted'].forEach(id=>{
       const el=document.getElementById(id); if(el) el.value='';
     });
-    document.getElementById('sfUOM').value='';
-    document.getElementById('sfLocY').checked=false;
-    document.getElementById('sfLocN').checked=false;
-    document.getElementById('sfLocatedFields').style.display='none';
+    document.getElementById('sfUOM').value='EA';
     updateShortageDateTime();
     renderShortageList();
   }catch(e){ toast('Save failed: '+e.message,'error'); }
@@ -3999,14 +3970,14 @@ function renderShortageList(){
     const locDetails = r.located==='Y' && r.foundBin
       ? `<div style="margin-top:6px;font-size:12px;color:var(--green)">Found: <span style="font-family:var(--mono);font-weight:600">${esc(r.foundBin)}</span> · Picked: <strong>${r.qtyLocated}</strong> ${esc(r.uom)}${r.locNotes?` · ${esc(r.locNotes)}`:''}</div>`
       : '';
-    const locateBtn = r.located==='pending'
-      ? `<button class="locate-btn" onclick="showInlineLocate('${r.id}')">📍 Update Location</button>
+    const locateBtn = (r.located==='pending' || r.located==='N')
+      ? `<button class="locate-btn" onclick="showInlineLocate('${r.id}')">📍 Mark as Located</button>
          <div class="locate-inline" id="il-${r.id}" style="display:none">
            <div class="sf-field" style="min-width:120px"><label>Found In Bin</label><input id="il-bin-${r.id}" type="text" style="text-transform:uppercase" placeholder="Bin"></div>
            <div class="sf-field" style="min-width:80px"><label>Qty Picked</label><input id="il-qty-${r.id}" type="number" min="1" placeholder="0"></div>
            <div class="sf-field" style="flex:2;min-width:150px"><label>Notes</label><input id="il-notes-${r.id}" type="text" placeholder="Optional"></div>
            <button onclick="markLocated('${r.id}')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;white-space:nowrap">Save</button>
-           <button onclick="markNotLocated('${r.id}')" style="padding:6px 12px;background:rgba(248,113,113,.15);color:var(--red);border:1px solid rgba(248,113,113,.3);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;white-space:nowrap">✗ Not Found</button>
+
          </div>`
       : '';
     const exportChk = (role==='manager'||role==='clerk') && r.located==='Y'
