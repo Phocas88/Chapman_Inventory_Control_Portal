@@ -22,6 +22,25 @@
   --shadow-lg:0 8px 32px rgba(0,0,0,.5);
   --radius:8px;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
 }
+/* ── Light theme ── */
+body.light-mode{
+  --bg:#f0f2f7;--surface:#ffffff;--panel:#f8f9fc;--panel2:#eef0f6;
+  --border:#d4d9e8;--border2:#bcc4d8;
+  --text:#1a2038;--muted:#5a6480;--subtle:#8892ac;
+  --accent:#2563eb;--accent-l:rgba(37,99,235,.1);
+  --green:#059669;--green-l:rgba(5,150,105,.1);
+  --yellow:#d97706;--yellow-l:rgba(217,119,6,.1);
+  --red:#dc2626;--red-l:rgba(220,38,38,.1);
+  --orange:#ea580c;--orange-l:rgba(234,88,12,.1);
+  --purple:#7c3aed;--purple-l:rgba(124,58,237,.1);
+  --shadow:0 1px 4px rgba(0,0,0,.1),0 4px 16px rgba(0,0,0,.08);
+  --shadow-lg:0 8px 24px rgba(0,0,0,.15);
+}
+body.light-mode select option{background:#f8f9fc;color:#1a2038}
+body.light-mode .tbl thead th{background:#eef0f6}
+body.light-mode .modal{box-shadow:0 8px 32px rgba(0,0,0,.18)}
+body.light-mode .retire-reason-sel{background:#f8f9fc;color:#1a2038}
+body.light-mode input,body.light-mode select,body.light-mode textarea{background:var(--panel);color:var(--text)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 select option{background:#242840;color:#dde2f0}
 html{font-size:14px}
@@ -695,6 +714,7 @@ body.has-banner #app{margin-top:44px}
     <button class="nav-btn" onclick="showScreen('stats')"   id="navStats"   style="display:none">📊 Stats</button>
     <button class="nav-btn" onclick="if(role==='ops'||role==='icteam'||role==='manager')showScreen('ops')" id="navOps" style="display:none">⚙️ Ops</button>
     <button id="allocBell" class="alloc-bell" onclick="showScreen('ops')" style="display:none" title="Allocation confirmed by Ops — click to view">🔔 <span id="allocBellCount">0</span></button>
+    <button class="nav-btn" id="themeToggle" onclick="toggleTheme()" title="Switch light/dark mode" style="padding:4px 8px;font-size:14px;line-height:1">🌙</button>
     <button class="nav-btn lock" onclick="logout()">← Lock</button>
   </nav>
 </header>
@@ -704,6 +724,7 @@ body.has-banner #app{margin-top:44px}
   <div class="gs-inner">
     <div class="gs-title">Inquiry Statistics</div>
     <div class="gs-grid" id="gsGrid"></div>
+    <div style="margin-left:auto;flex-shrink:0;font-size:10px;color:var(--muted);font-family:var(--mono);opacity:.6;white-space:nowrap">Built by Ruben Mendoza</div>
   </div>
 </div>
 
@@ -1850,6 +1871,34 @@ function showScreen(id){
 /* ═══════════════════════════════════════════════════════
    SYSTEM BANNER
    ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════
+   LIGHT / DARK THEME TOGGLE
+   ═══════════════════════════════════════════════════════ */
+function applyTheme(mode){
+  if(mode==='light'){
+    document.body.classList.add('light-mode');
+    const btn=document.getElementById('themeToggle');
+    if(btn) btn.textContent='☀️';
+  } else {
+    document.body.classList.remove('light-mode');
+    const btn=document.getElementById('themeToggle');
+    if(btn) btn.textContent='🌙';
+  }
+}
+function toggleTheme(){
+  const isLight=document.body.classList.contains('light-mode');
+  const next=isLight?'dark':'light';
+  applyTheme(next);
+  try{ localStorage.setItem('icTheme',next); }catch(e){}
+}
+// Apply saved theme immediately on load
+(function(){
+  try{
+    const saved=localStorage.getItem('icTheme');
+    if(saved) applyTheme(saved);
+  }catch(e){}
+})();
+
 function loadBanner(){
   try {
     const b=JSON.parse(localStorage.getItem('sysBanner')||'null');
@@ -4025,19 +4074,37 @@ function generateAppriseExport(){
   const located = shortageData.filter(r=>r.located==='Y' && !r.exported);
   if(!located.length){ toast('No un-exported located items found','error'); return; }
 
-  // Build CSV
-  // A:Product Code B:Location Prefix(division) C:Bin D:Blank E:Blank F:UOM G:Qty H:Adj Code I:Notes J:Blank
+  // A:Product Code B:Location Prefix C:Bin D:Blank E:Blank F:UOM G:Qty H:Adj Code I:Notes J:Blank
+  // Columns A, B, C, G are wrapped in ="..." so Excel treats them as text, not dates/numbers
+  function textCell(v){ return '="'+String(v||'').replace(/"/g,'""')+'"'; }
+
   const rows = [['Product Code','Location Prefix','Bin','','','UOM','Quantity Adjusted','Adjustment Code','Notes','']];
   located.forEach(r=>{
-    rows.push([r.productCode, r.division, r.foundBin, '', '', r.uom, r.qtyLocated, 'GenQtyAdj', 'Secondary Pick Location', '']);
+    rows.push([
+      textCell(r.productCode),   // A — force text
+      textCell(r.division),      // B — force text
+      textCell(r.foundBin),      // C — bin numbers like A-01-01 would be read as dates otherwise
+      '', '',                    // D, E — blank
+      r.uom,                     // F — UOM
+      r.qtyLocated,              // G — numeric qty (leave as number for Apprise)
+      'GenQtyAdj',               // H
+      'Secondary Pick Location', // I
+      '',                        // J
+    ]);
   });
 
-  const csv = rows.map(row=>row.map(c=>{
-    const s=String(c||'');
+  // Prepend UTF-8 BOM so Excel opens it correctly
+  const csv = '\uFEFF' + rows.map(row=>row.map((c,i)=>{
+    const s = String(c==null?'':c);
+    // textCell values are already ="..." formatted — pass through as-is
+    if(s.startsWith('="')) return s;
+    // Numeric columns — no quoting needed
+    if(typeof c === 'number') return s;
+    // Standard CSV quoting for everything else
     return s.includes(',')||s.includes('"')||s.includes('\n') ? '"'+s.replace(/"/g,'""')+'"' : s;
   }).join(',')).join('\r\n');
 
-  const blob = new Blob([csv], {type:'text/csv'});
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href=url; a.download='Apprise_Adjustment_'+new Date().toISOString().slice(0,10)+'.csv';
