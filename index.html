@@ -417,7 +417,7 @@ body.has-banner #app{margin-top:44px}
 .b-retired{color:var(--muted);background:var(--panel);border:1px solid var(--border);opacity:.7}
 .b-merged{color:#a78bfa;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3)}
 /* ── SHORTAGE SCREEN ── */
-#shortageScreen{flex-direction:column;overflow:hidden}
+#shortageScreen{overflow:hidden}
 .shortage-form-panel{background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
 .shortage-form-header{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--border)}
 .shortage-form-body{padding:14px 20px 16px;display:flex;flex-direction:column;gap:10px}
@@ -1248,7 +1248,7 @@ body.has-banner #app{margin-top:44px}
   </div>
 
   <!-- List view -->
-  <div id="shortageListWrap" style="flex:1;overflow:auto;padding:16px 20px 28px">
+  <div id="shortageListWrap" style="flex:1;overflow:auto;padding:16px 20px 28px;display:block">
     <!-- toolbar -->
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
       <input type="text" id="shortageSearch" placeholder="Search by product, order, picker, division…" oninput="renderShortageList()" class="tracker-search-inp" style="flex:1;min-width:200px">
@@ -1758,7 +1758,7 @@ function doLogin(target){
     document.getElementById('globalStats').classList.remove('show');
     loadBanner(); saveSession(target);
     loadShortageScreen();
-    showScreen('shortageScreen');
+    showScreen('shortage');
   } else {
     role='manager'; currentDiv='';
     allTix=[];
@@ -1789,7 +1789,7 @@ function restoreSession(){
     // Session valid for 8 hours
     if(!target || Date.now() - ts > 8 * 60 * 60 * 1000){ clearSession(); return false; }
     // Validate target is still a known role/division
-    const valid = CFG.DIV_PINS[target] || target==='icteam' || target==='manager' || target==='dockmanager' || target==='ops';
+    const valid = CFG.DIV_PINS[target] || target==='icteam' || target==='manager' || target==='dockmanager' || target==='ops' || target==='clerk';
     if(!valid){ clearSession(); return false; }
     pinTarget = target;
     doLogin(target);
