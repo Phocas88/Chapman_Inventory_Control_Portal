@@ -1735,7 +1735,7 @@ function doLogin(target){
     document.getElementById('navDash').style.display=dash;
     document.getElementById('navStats').style.display=stats;
     document.getElementById('navOps').style.display=ops;
-    const ns=document.getElementById('navShortage'); if(ns) ns.style.display=shortage||'none';
+    const ns=document.getElementById('navShortage'); if(ns) ns.style.display=shortage!==undefined?shortage:'none';
   }
   const isDiv=!!CFG.DIV_PINS[target];
   if(isDiv){
