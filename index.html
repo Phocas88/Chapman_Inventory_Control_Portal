@@ -1266,6 +1266,17 @@ body.has-banner #app{margin-top:44px}
         <option value="order">Order #</option>
       </select>
       <button class="refresh-btn" onclick="generateAppriseExport()" id="btnExport" style="background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:var(--green)">⬇ Apprise Export</button>
+      <div id="shortageClearControls" style="display:none;gap:6px;align-items:center">
+        <button class="refresh-btn" onclick="clearExportedShortages()" style="background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.3);color:var(--red)" title="Remove all rows already marked as exported to Apprise">🗑 Clear Exported</button>
+        <button class="refresh-btn" onclick="clearSelectedShortages()" id="btnClearSelected" style="display:none;background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.3);color:var(--red)">🗑 Clear Selected (<span id="clearSelCount">0</span>)</button>
+      </div>
+    </div>
+    <div id="shortageSelRow" style="display:none;margin-bottom:8px;align-items:center;gap:10px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none">
+        <input type="checkbox" id="selectAllShortages" onchange="toggleSelectAllShortages(this)" style="width:14px;height:14px;accent-color:var(--red);cursor:pointer">
+        Select All
+      </label>
+      <span id="shortageSelCount" style="font-size:11px;color:var(--muted)"></span>
     </div>
     <div id="shortageListArea"></div>
   </div>
@@ -3834,6 +3845,7 @@ function loadShortageScreen(){
   // Auto-fill date/time
   updateShortageDateTime();
   setInterval(updateShortageDateTime, 30000);
+  showShortageClearControls();
   // Load from Firestore (or localStorage in demo)
   fetchShortages();
   // Set default date range for stats (last 30 days)
@@ -3866,6 +3878,87 @@ function getShift(dateStr){
 }
 
 // ── Firestore persistence ────────────────────────────────
+/* ═══════════════════════════════════════════════════════
+   SHORTAGE CLEAR / DELETE
+   ═══════════════════════════════════════════════════════ */
+function showShortageClearControls(){
+  const ctrl = document.getElementById('shortageClearControls');
+  const selRow = document.getElementById('shortageSelRow');
+  if(role==='icteam'||role==='manager'){
+    if(ctrl) ctrl.style.display='flex';
+    if(selRow) selRow.style.display='flex';
+  }
+}
+
+function toggleSelectAllShortages(chk){
+  document.querySelectorAll('.shortage-row-chk').forEach(c=>{ c.checked=chk.checked; });
+  onShortageRowCheck();
+}
+
+function onShortageRowCheck(){
+  const checked=[...document.querySelectorAll('.shortage-row-chk:checked')];
+  const btn=document.getElementById('btnClearSelected');
+  const countEl=document.getElementById('clearSelCount');
+  const selCount=document.getElementById('shortageSelCount');
+  if(btn) btn.style.display=checked.length>0?'':'none';
+  if(countEl) countEl.textContent=checked.length;
+  if(selCount) selCount.textContent=checked.length>0?checked.length+' selected':'';
+  const all=document.querySelectorAll('.shortage-row-chk');
+  const sa=document.getElementById('selectAllShortages');
+  if(sa) sa.checked=all.length>0&&checked.length===all.length;
+}
+
+async function deleteShortageRow(id){
+  try{
+    if(!CFG.DEMO_MODE){ await fsDelete('shortages/'+id); }
+    else {
+      const saved=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+      localStorage.setItem('shortages_demo',JSON.stringify(saved.filter(r=>r.id!==id)));
+    }
+    shortageData=shortageData.filter(r=>r.id!==id);
+    renderShortageList();
+  }catch(e){ toast('Delete failed: '+e.message,'error'); }
+}
+
+async function clearSelectedShortages(){
+  const ids=[...document.querySelectorAll('.shortage-row-chk:checked')].map(c=>c.dataset.id);
+  if(!ids.length) return;
+  if(!confirm(`Delete ${ids.length} selected shortage record(s)? This cannot be undone.`)) return;
+  showLoad('Clearing…');
+  let done=0;
+  for(const id of ids){
+    try{
+      if(!CFG.DEMO_MODE){ await fsDelete('shortages/'+id); }
+      shortageData=shortageData.filter(r=>r.id!==id);
+      done++;
+    }catch(e){ console.error('Delete failed for '+id,e); }
+  }
+  hideLoad();
+  toast(done+' record(s) cleared ✓','success');
+  renderShortageList();
+}
+
+async function clearExportedShortages(){
+  const toDelete=shortageData.filter(r=>r.exported);
+  if(!toDelete.length){ toast('No exported records to clear','error'); return; }
+  if(!confirm(`Clear ${toDelete.length} exported shortage record(s)? This cannot be undone.`)) return;
+  showLoad('Clearing exported records…');
+  let done=0;
+  for(const r of toDelete){
+    try{
+      if(!CFG.DEMO_MODE){ await fsDelete('shortages/'+r.id); }
+      done++;
+    }catch(e){ console.error('Delete failed for '+r.id,e); }
+  }
+  shortageData=shortageData.filter(r=>!r.exported);
+  if(CFG.DEMO_MODE){
+    localStorage.setItem('shortages_demo',JSON.stringify(shortageData));
+  }
+  hideLoad();
+  toast(done+' exported record(s) cleared ✓','success');
+  renderShortageList();
+}
+
 async function fetchShortages(){
   try{
     if(CFG.DEMO_MODE){
@@ -4034,8 +4127,16 @@ function renderShortageList(){
            <input type="checkbox" class="export-chk" ${r.exported?'checked':''} onchange="toggleExported('${r.id}',this.checked)"> Included in Apprise Export
          </label>`
       : '';
+    const canClear = role==='icteam'||role==='manager';
+    const rowChk = canClear
+      ? `<input type="checkbox" class="shortage-row-chk" data-id="${r.id}" onchange="onShortageRowCheck()" style="width:14px;height:14px;accent-color:var(--red);cursor:pointer;flex-shrink:0;margin-top:2px">`
+      : '';
+    const deleteBtn = canClear
+      ? `<button onclick="if(confirm('Delete this record?')) deleteShortageRow('${r.id}')" style="padding:3px 8px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:5px;font-size:11px;color:var(--red);cursor:pointer;flex-shrink:0" title="Delete record">🗑</button>`
+      : '';
     return `<div class="shortage-row ${locClass} ${r.exported?'exported':''}">
-      <div style="display:flex;align-items:flex-start;gap:10px">
+      <div style="display:flex;align-items:flex-start;gap:8px">
+        ${rowChk}
         <div style="flex:1">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
             <span class="sr-codes">${esc(r.productCode)}</span>
@@ -4047,6 +4148,7 @@ function renderShortageList(){
           ${locDetails}
           ${locateBtn}
           ${exportChk}
+          ${deleteBtn}
         </div>
       </div>
     </div>`;
