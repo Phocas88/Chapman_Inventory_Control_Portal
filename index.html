@@ -462,7 +462,8 @@ body.has-banner #app{margin-top:44px}
 .sr-badge.pending{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
 .sr-badge.exported{background:rgba(107,116,148,.15);color:var(--muted);border:1px solid var(--border)}
 .sr-badge.div{background:var(--panel2);color:var(--text);border:1px solid var(--border)}
-.locate-btn{margin-top:8px;padding:5px 12px;background:var(--panel2);border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
+.sf-product-line{background:var(--panel);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px}
+.sf-product-line:last-child{margin-bottom:0}background:var(--panel2);border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s}
 .locate-btn:hover{border-color:var(--green);color:var(--green)}
 .locate-inline{margin-top:8px;background:rgba(16,185,129,.07);border:1.5px solid rgba(16,185,129,.2);border-radius:8px;padding:10px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
 .export-chk{width:15px;height:15px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
@@ -1184,15 +1185,11 @@ body.has-banner #app{margin-top:44px}
     </div>
 
     <div class="shortage-form-body">
-      <!-- Row 1 -->
+      <!-- Header fields: Division, Picker, Order, Shift override -->
       <div class="sf-row">
         <div class="sf-field">
           <label>Date &amp; Time</label>
           <input type="text" id="sfDateTime" readonly style="color:var(--muted);background:var(--panel)">
-        </div>
-        <div class="sf-field">
-          <label>Your Name <span class="req">*</span></label>
-          <input type="text" id="sfName" placeholder="First Last" autocomplete="name">
         </div>
         <div class="sf-field">
           <label>Division <span class="req">*</span></label>
@@ -1206,48 +1203,34 @@ body.has-banner #app{margin-top:44px}
           <label>Picker <span class="req">*</span></label>
           <input type="text" id="sfPicker" placeholder="Picker name">
         </div>
-      </div>
-      <!-- Row 2 -->
-      <div class="sf-row">
         <div class="sf-field">
           <label>Order Number <span class="req">*</span></label>
           <input type="text" id="sfOrderNum" placeholder="e.g. 123456">
         </div>
-        <div class="sf-field">
-          <label>Bin Location Shorted <span class="req">*</span></label>
-          <input type="text" id="sfBinShorted" placeholder="e.g. A-01-01" style="text-transform:uppercase">
-        </div>
-        <div class="sf-field">
-          <label>Product Code <span class="req">*</span></label>
-          <input type="text" id="sfProductCode" placeholder="e.g. 123456" style="text-transform:uppercase">
-        </div>
-      </div>
-      <!-- Row 3 -->
-      <div class="sf-row">
-        <div class="sf-field">
-          <label>Qty Shorted <span class="req">*</span></label>
-          <input type="number" id="sfQtyShorted" placeholder="0" min="1" style="max-width:120px">
-        </div>
-        <div class="sf-field">
-          <label>Unit of Measure</label>
-          <select id="sfUOM" style="max-width:160px">
-            <option value="EA">Each</option>
+        <div class="sf-field" style="max-width:200px">
+          <label>Shift Override</label>
+          <select id="sfShiftOverride">
+            <option value="">Auto (use current time)</option>
+            <option value="1">1st Shift (6am–3:30pm)</option>
+            <option value="2">2nd Shift (3:30pm–12am)</option>
           </select>
-        </div>
-        <div class="sf-field" style="flex:0;min-width:180px">
-          <label>Status</label>
-          <div style="margin-top:6px;display:flex;align-items:center;gap:8px;background:rgba(248,113,113,.1);border:1.5px solid rgba(248,113,113,.25);border-radius:8px;padding:8px 12px">
-            <span style="font-size:14px">⏳</span>
-            <div>
-              <div style="font-size:12px;font-weight:600;color:#f87171">Not Located</div>
-              <div style="font-size:10px;color:var(--muted)">Update after picker returns</div>
-            </div>
-          </div>
         </div>
       </div>
 
-      <div style="display:flex;justify-content:flex-end;margin-top:12px">
-        <button class="btn-primary" onclick="submitShortage()" style="padding:10px 28px;font-size:13px">+ Log Shortage</button>
+      <!-- Product lines table -->
+      <div style="margin-top:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.04em">PRODUCT LINES <span class="req">*</span></label>
+          <button onclick="addProductLine()" style="padding:3px 12px;background:var(--accent-l);border:1.5px solid var(--accent);border-radius:6px;font-size:11px;font-weight:600;color:var(--accent);cursor:pointer">+ Add Line</button>
+        </div>
+        <div id="sfProductLines">
+          <!-- product lines rendered here by addProductLine() -->
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+        <button class="btn-ghost" onclick="resetShortageForm()">Clear Form</button>
+        <button class="btn-primary" onclick="submitShortage()" style="padding:10px 28px;font-size:13px">+ Log All Shortages</button>
       </div>
     </div>
   </div>
@@ -3851,6 +3834,8 @@ function loadShortageScreen(){
   const formPanel = document.getElementById('shortageFormWrap');
   if(formPanel) formPanel.style.display = (role==='clerk') ? '' : 'none';
   showShortageClearControls();
+  // Auto-add first product line for clerk
+  if(role==='clerk') addProductLine();
   // Load from Firestore (or localStorage in demo)
   fetchShortages();
   // Set default date range for stats (last 30 days)
@@ -3994,58 +3979,127 @@ async function fetchShortages(){
   }catch(e){ toast('Could not load shortages: '+e.message,'error'); }
 }
 
-async function submitShortage(){
-  const name     = document.getElementById('sfName').value.trim();
-  const division = document.getElementById('sfDivision').value;
-  const picker   = document.getElementById('sfPicker').value.trim();
-  const orderNum = document.getElementById('sfOrderNum').value.trim();
-  const bin      = document.getElementById('sfBinShorted').value.trim().toUpperCase();
-  const code     = document.getElementById('sfProductCode').value.trim().toUpperCase();
-  const qty      = parseInt(document.getElementById('sfQtyShorted').value||'0');
-  const uom      = document.getElementById('sfUOM').value;
-  const located  = 'N';   // always starts Not Located — clerk updates after picker returns
-  const foundBin = '';
-  const qtyLoc   = 0;
-  const locNotes = '';
+let sfLineCount = 0;
 
-  if(!name)     { toast('Enter your name','error'); return; }
+function addProductLine(){
+  sfLineCount++;
+  const id = sfLineCount;
+  const div = document.createElement('div');
+  div.className = 'sf-product-line';
+  div.id = 'sfLine-'+id;
+  div.innerHTML = `
+    <div class="sf-row" style="align-items:flex-end;margin-bottom:0">
+      <div class="sf-field" style="flex:1.5;min-width:130px">
+        <label>Product Code <span class="req">*</span></label>
+        <input type="text" id="sfCode-${id}" placeholder="e.g. 123456" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="sf-field" style="min-width:90px;max-width:110px">
+        <label>Qty <span class="req">*</span></label>
+        <input type="number" id="sfQty-${id}" placeholder="0" min="1">
+      </div>
+      <div class="sf-field" style="flex:1.5;min-width:130px">
+        <label>Bin Shorted <span class="req">*</span></label>
+        <input type="text" id="sfBin-${id}" placeholder="e.g. A-01-01" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <button onclick="removeProductLine(${id})" style="padding:7px 10px;background:rgba(248,113,113,.12);border:1.5px solid rgba(248,113,113,.3);border-radius:7px;color:var(--red);cursor:pointer;font-size:13px;flex-shrink:0;align-self:flex-end;margin-bottom:1px" title="Remove line">✕</button>
+    </div>`;
+  document.getElementById('sfProductLines').appendChild(div);
+  // Auto-focus product code field
+  document.getElementById('sfCode-'+id).focus();
+}
+
+function removeProductLine(id){
+  const el = document.getElementById('sfLine-'+id);
+  if(el) el.remove();
+}
+
+function resetShortageForm(){
+  document.getElementById('sfDivision').value='';
+  document.getElementById('sfPicker').value='';
+  document.getElementById('sfOrderNum').value='';
+  document.getElementById('sfShiftOverride').value='';
+  document.getElementById('sfProductLines').innerHTML='';
+  sfLineCount=0;
+  updateShortageDateTime();
+}
+
+async function submitShortage(){
+  const division   = document.getElementById('sfDivision').value;
+  const picker     = document.getElementById('sfPicker').value.trim();
+  const orderNum   = document.getElementById('sfOrderNum').value.trim();
+  const shiftOver  = document.getElementById('sfShiftOverride').value;
+
   if(!division) { toast('Select a division','error'); return; }
   if(!picker)   { toast('Enter the picker name','error'); return; }
   if(!orderNum) { toast('Enter the order number','error'); return; }
-  if(!bin)      { toast('Enter the bin location shorted','error'); return; }
-  if(!code)     { toast('Enter the product code','error'); return; }
-  if(!qty||qty<1){ toast('Enter quantity shorted','error'); return; }
-  if(!uom)      { toast('Select unit of measure','error'); return; }
 
-  const now  = new Date();
-  const rec  = {
-    id:          'SH-'+Date.now(),
-    timestamp:   now.toISOString(),
-    name, division, picker, orderNumber:orderNum,
-    binShorted:  bin, productCode:code, qtyShorted:qty, uom,
-    located, foundBin: '', qtyLocated: 0,
-    locNotes: '', exported:false,
-    shift: getShift(now.toISOString()),
-  };
+  // Collect all product lines
+  const lines = document.getElementById('sfProductLines').querySelectorAll('.sf-product-line');
+  if(!lines.length){ toast('Add at least one product line','error'); return; }
 
-  try{
-    if(!CFG.DEMO_MODE){
-      await fsPatch('shortages/'+rec.id, rec);
-    } else {
-      const saved=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
-      saved.unshift(rec);
-      localStorage.setItem('shortages_demo',JSON.stringify(saved));
-    }
-    shortageData.unshift(rec);
-    toast('Shortage logged ✓','success');
-    // Clear form fields (keep name/division/picker)
-    ['sfOrderNum','sfBinShorted','sfProductCode','sfQtyShorted'].forEach(id=>{
-      const el=document.getElementById(id); if(el) el.value='';
-    });
-    document.getElementById('sfUOM').value='EA';
+  const entries = [];
+  let hasError = false;
+  lines.forEach(line=>{
+    const lineId = line.id.replace('sfLine-','');
+    const code = (document.getElementById('sfCode-'+lineId)?.value||'').trim().toUpperCase();
+    const qty  = parseInt(document.getElementById('sfQty-'+lineId)?.value||'0');
+    const bin  = (document.getElementById('sfBin-'+lineId)?.value||'').trim().toUpperCase();
+    if(!code){ toast('Enter product code on all lines','error'); hasError=true; return; }
+    if(!qty||qty<1){ toast('Enter qty on all lines','error'); hasError=true; return; }
+    if(!bin){ toast('Enter bin location on all lines','error'); hasError=true; return; }
+    entries.push({code, qty, bin});
+  });
+  if(hasError) return;
+
+  const now = new Date();
+  const shift = shiftOver ? parseInt(shiftOver) : getShift(now.toISOString());
+
+  showLoad(`Logging ${entries.length} shortage(s)…`);
+  let saved = 0;
+  for(const e of entries){
+    const rec = {
+      id:          'SH-'+Date.now()+'-'+Math.random().toString(36).slice(2,6),
+      timestamp:   now.toISOString(),
+      name:        'Outbound Clerk',
+      division, picker,
+      orderNumber: orderNum,
+      binShorted:  e.bin,
+      productCode: e.code,
+      qtyShorted:  e.qty,
+      uom:         'EA',
+      located:     'N',
+      foundBin:    '', qtyLocated:0, locNotes:'',
+      exported:    false,
+      shift,
+      // Store shift override flag so stats show correctly
+      shiftOverride: !!shiftOver,
+    };
+    try{
+      if(!CFG.DEMO_MODE){
+        await fsPatch('shortages/'+rec.id, rec);
+      } else {
+        const s=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+        s.unshift(rec);
+        localStorage.setItem('shortages_demo',JSON.stringify(s));
+      }
+      shortageData.unshift(rec);
+      saved++;
+    }catch(e){ console.error('Save failed for '+rec.id, e); }
+    // Tiny delay to ensure unique IDs
+    await new Promise(r=>setTimeout(r,5));
+  }
+  hideLoad();
+
+  if(saved>0){
+    toast(saved+' shortage(s) logged ✓','success');
+    // Clear product lines only — keep division/picker/order for fast re-entry
+    document.getElementById('sfProductLines').innerHTML='';
+    sfLineCount=0;
     updateShortageDateTime();
     renderShortageList();
-  }catch(e){ toast('Save failed: '+e.message,'error'); }
+  } else {
+    toast('Save failed — check connection','error');
+  }
 }
 
 // Inline "locate" update after the fact
