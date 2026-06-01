@@ -1279,6 +1279,91 @@ body.has-banner #app{margin-top:44px}
   </div>
 </div>
 
+<!-- ═══════════ SHORTAGE EDIT MODAL ═══════════ -->
+<div class="merge-overlay" id="shortageEditOverlay" style="display:none">
+  <div class="merge-modal" style="max-width:500px">
+    <div class="merge-modal-header">
+      <div class="merge-modal-title">✏️ Edit Shortage Record</div>
+      <button class="merge-close-btn" onclick="closeShortageEdit()">✕</button>
+    </div>
+    <div style="padding:16px 22px;display:flex;flex-direction:column;gap:12px">
+      <input type="hidden" id="seId">
+      <div class="sf-row">
+        <div class="sf-field">
+          <label>Division</label>
+          <select id="seDivision">
+            <option value="">— Select —</option>
+            <option>GT</option><option>NH</option><option>BC</option><option>FS</option>
+            <option>EE</option><option>VP</option><option>TP</option><option>CI</option><option>KA</option>
+          </select>
+        </div>
+        <div class="sf-field">
+          <label>Picker</label>
+          <input type="text" id="sePicker" placeholder="Picker name">
+        </div>
+      </div>
+      <div class="sf-row">
+        <div class="sf-field">
+          <label>Order Number</label>
+          <input type="text" id="seOrderNum" placeholder="Order #">
+        </div>
+        <div class="sf-field">
+          <label>Product Code</label>
+          <input type="text" id="seProductCode" style="text-transform:uppercase">
+        </div>
+      </div>
+      <div class="sf-row">
+        <div class="sf-field">
+          <label>Bin Shorted</label>
+          <input type="text" id="seBinShorted" style="text-transform:uppercase">
+        </div>
+        <div class="sf-field" style="max-width:100px">
+          <label>Qty Shorted</label>
+          <input type="number" id="seQtyShorted" min="1">
+        </div>
+      </div>
+      <div class="sf-row">
+        <div class="sf-field">
+          <label>Shift</label>
+          <select id="seShift">
+            <option value="1">1st Shift (6am–3:30pm)</option>
+            <option value="2">2nd Shift (3:30pm–12am)</option>
+          </select>
+        </div>
+        <div class="sf-field">
+          <label>Date &amp; Time</label>
+          <input type="datetime-local" id="seTimestamp">
+        </div>
+      </div>
+      <div class="sf-row">
+        <div class="sf-field">
+          <label>Located?</label>
+          <select id="seLocated" onchange="toggleEditLocatedFields()">
+            <option value="N">Not Located</option>
+            <option value="Y">Located</option>
+          </select>
+        </div>
+        <div class="sf-field" id="seFoundBinWrap">
+          <label>Found In Bin</label>
+          <input type="text" id="seFoundBin" style="text-transform:uppercase">
+        </div>
+        <div class="sf-field" id="seQtyLocWrap" style="max-width:100px">
+          <label>Qty Located</label>
+          <input type="number" id="seQtyLocated" min="0">
+        </div>
+      </div>
+      <div class="sf-field">
+        <label>Location Notes</label>
+        <input type="text" id="seLocNotes" placeholder="Optional">
+      </div>
+    </div>
+    <div class="merge-modal-footer">
+      <button class="btn-ghost" onclick="closeShortageEdit()">Cancel</button>
+      <button class="btn-primary" onclick="saveShortageEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 </div><!-- #app -->
 
 <!-- ═══════════ STATS SCREEN ═══════════ -->
@@ -3949,6 +4034,81 @@ async function clearExportedShortages(){
   renderShortageList();
 }
 
+function openShortageEdit(id){
+  const r = shortageData.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('seId').value          = id;
+  document.getElementById('seDivision').value    = r.division||'';
+  document.getElementById('sePicker').value      = r.picker||'';
+  document.getElementById('seOrderNum').value    = r.orderNumber||'';
+  document.getElementById('seProductCode').value = r.productCode||'';
+  document.getElementById('seBinShorted').value  = r.binShorted||'';
+  document.getElementById('seQtyShorted').value  = r.qtyShorted||'';
+  document.getElementById('seShift').value       = String(r.shift||getShift(r.timestamp));
+  document.getElementById('seLocated').value     = r.located||'N';
+  document.getElementById('seFoundBin').value    = r.foundBin||'';
+  document.getElementById('seQtyLocated').value  = r.qtyLocated||0;
+  document.getElementById('seLocNotes').value    = r.locNotes||'';
+  // Format timestamp for datetime-local input
+  if(r.timestamp){
+    const d = new Date(r.timestamp);
+    const local = new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    document.getElementById('seTimestamp').value = local;
+  }
+  toggleEditLocatedFields();
+  document.getElementById('shortageEditOverlay').style.display='flex';
+}
+
+function toggleEditLocatedFields(){
+  const located = document.getElementById('seLocated').value;
+  const show = located==='Y';
+  document.getElementById('seFoundBinWrap').style.opacity = show?'1':'.4';
+  document.getElementById('seQtyLocWrap').style.opacity   = show?'1':'.4';
+}
+
+function closeShortageEdit(){
+  document.getElementById('shortageEditOverlay').style.display='none';
+}
+
+async function saveShortageEdit(){
+  const id = document.getElementById('seId').value;
+  if(!id) return;
+  const tsRaw = document.getElementById('seTimestamp').value;
+  const ts    = tsRaw ? new Date(tsRaw).toISOString() : null;
+  const shift = parseInt(document.getElementById('seShift').value);
+  const upd = {
+    division:    document.getElementById('seDivision').value,
+    picker:      document.getElementById('sePicker').value.trim(),
+    orderNumber: document.getElementById('seOrderNum').value.trim(),
+    productCode: document.getElementById('seProductCode').value.trim().toUpperCase(),
+    binShorted:  document.getElementById('seBinShorted').value.trim().toUpperCase(),
+    qtyShorted:  parseInt(document.getElementById('seQtyShorted').value||'0'),
+    shift,
+    shiftOverride: true,
+    located:     document.getElementById('seLocated').value,
+    foundBin:    document.getElementById('seFoundBin').value.trim().toUpperCase(),
+    qtyLocated:  parseInt(document.getElementById('seQtyLocated').value||'0'),
+    locNotes:    document.getElementById('seLocNotes').value.trim(),
+  };
+  if(ts) upd.timestamp = ts;
+  showLoad('Saving…');
+  try{
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    else {
+      const saved=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+      const i=saved.findIndex(r=>r.id===id);
+      if(i>=0) Object.assign(saved[i],upd);
+      localStorage.setItem('shortages_demo',JSON.stringify(saved));
+    }
+    const rec = shortageData.find(r=>r.id===id);
+    if(rec) Object.assign(rec, upd);
+    hideLoad();
+    closeShortageEdit();
+    toast('Record updated ✓','success');
+    renderShortageList();
+  }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
+}
+
 async function fetchShortages(){
   try{
     if(CFG.DEMO_MODE){
@@ -4036,6 +4196,16 @@ async function submitShortage(){
   // Collect all product lines
   const lines = document.getElementById('sfProductLines').querySelectorAll('.sf-product-line');
   if(!lines.length){ toast('Add at least one product line','error'); return; }
+  // Ensure at least one line has actual data filled in
+  let hasAnyContent = false;
+  lines.forEach(line=>{
+    const lineId = line.id.replace('sfLine-','');
+    const code = (document.getElementById('sfCode-'+lineId)?.value||'').trim();
+    const qty  = document.getElementById('sfQty-'+lineId)?.value||'';
+    const bin  = (document.getElementById('sfBin-'+lineId)?.value||'').trim();
+    if(code||qty||bin) hasAnyContent=true;
+  });
+  if(!hasAnyContent){ toast('Fill in at least one product line before logging','error'); return; }
 
   const entries = [];
   let hasError = false;
@@ -4092,10 +4262,15 @@ async function submitShortage(){
 
   if(saved>0){
     toast(saved+' shortage(s) logged ✓','success');
-    // Clear product lines only — keep division/picker/order for fast re-entry
+    // Clear everything — prevent accidental double-entry
+    document.getElementById('sfDivision').value='';
+    document.getElementById('sfPicker').value='';
+    document.getElementById('sfOrderNum').value='';
+    document.getElementById('sfShiftOverride').value='';
     document.getElementById('sfProductLines').innerHTML='';
     sfLineCount=0;
     updateShortageDateTime();
+    addProductLine(); // start fresh with one blank line
     renderShortageList();
   } else {
     toast('Save failed — check connection','error');
@@ -4193,6 +4368,9 @@ function renderShortageList(){
     const deleteBtn = canClear
       ? `<button onclick="if(confirm('Delete this record?')) deleteShortageRow('${r.id}')" style="padding:3px 8px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:5px;font-size:11px;color:var(--red);cursor:pointer;flex-shrink:0" title="Delete record">🗑</button>`
       : '';
+    const editBtn = role==='manager'
+      ? `<button onclick="openShortageEdit('${r.id}')" style="padding:3px 8px;background:var(--accent-l);border:1px solid rgba(79,131,245,.3);border-radius:5px;font-size:11px;color:var(--accent);cursor:pointer;flex-shrink:0" title="Edit record">✏️ Edit</button>`
+      : '';
     return `<div class="shortage-row ${locClass} ${r.exported?'exported':''}">
       <div style="display:flex;align-items:flex-start;gap:8px">
         ${rowChk}
@@ -4207,7 +4385,7 @@ function renderShortageList(){
           ${locDetails}
           ${locateBtn}
           ${exportChk}
-          ${deleteBtn}
+          <div style="display:flex;gap:6px;margin-top:6px">${deleteBtn}${editBtn}</div>
         </div>
       </div>
     </div>`;
