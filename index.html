@@ -1295,6 +1295,7 @@ body.has-banner #app{margin-top:44px}
       <select id="statsFilterShift" onchange="renderShortageStats()" class="tracker-sort-sel"><option value="">All Shifts</option><option value="1">1st Shift (6A–3:30P)</option><option value="2">2nd Shift (3:30P–12A)</option></select>
       <button class="refresh-btn" onclick="printShortageReport()" style="margin-left:auto">🖨 Print Report</button>
       <button class="refresh-btn" onclick="printICCheckSheet()" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#f59e0b">📋 IC Check Sheet</button>
+      <button class="refresh-btn" onclick="openPickerManager()" id="btnPickerMgr" style="display:none;background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.4);color:var(--purple)">👤 Manage Pickers</button>
     </div>
     <div id="shortageStatsArea" class="printable"></div>
   </div>
@@ -1304,6 +1305,34 @@ body.has-banner #app{margin-top:44px}
 
 <!-- Print report wrapper — populated by printShortageReport(), must be outside #app -->
 <div id="printReportWrap" style="display:none"></div>
+<!-- ═══════════ PICKER MANAGER MODAL ═══════════ -->
+<div class="merge-overlay" id="pickerMgrOverlay" style="display:none">
+  <div class="merge-modal" style="max-width:520px">
+    <div class="merge-modal-header">
+      <div class="merge-modal-title">👤 Picker Name Manager</div>
+      <button class="merge-close-btn" onclick="closePickerManager()">✕</button>
+    </div>
+    <div style="padding:12px 22px;border-bottom:1px solid var(--border)">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Click any picker name to rename all instances across the entire shortage log.</div>
+      <input type="text" id="pickerMgrSearch" placeholder="Search pickers…" oninput="renderPickerMgrList()" class="tracker-search-inp" style="width:100%;box-sizing:border-box">
+    </div>
+    <div id="pickerMgrList" style="max-height:340px;overflow-y:auto;padding:8px 22px"></div>
+    <div id="pickerRenamePanel" style="display:none;padding:14px 22px;border-top:1px solid var(--border);background:var(--panel)">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px">Rename Picker</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:10px">Renaming: <strong id="pickerRenameFrom" style="color:var(--red)"></strong></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="pickerRenameTo" placeholder="New name (e.g. J. Smith)" class="tracker-search-inp" style="flex:1" onkeydown="if(event.key==='Enter') confirmPickerRename()">
+        <button class="btn-primary" onclick="confirmPickerRename()" style="white-space:nowrap">Rename All</button>
+        <button class="btn-ghost" onclick="closePickerRenamePanel()">Cancel</button>
+      </div>
+      <div id="pickerRenameCount" style="font-size:11px;color:var(--muted);margin-top:6px"></div>
+    </div>
+    <div class="merge-modal-footer">
+      <button class="btn-ghost" onclick="closePickerManager()">Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="merge-overlay" id="shortageEditOverlay" style="display:none">
   <div class="merge-modal" style="max-width:500px">
     <div class="merge-modal-header">
@@ -3946,6 +3975,8 @@ function loadShortageScreen(){
   // Hide entry form for IC/manager — they only review, not submit
   const formPanel = document.getElementById('shortageFormWrap');
   if(formPanel) formPanel.style.display = (role==='clerk') ? '' : 'none';
+  const pickerMgrBtn = document.getElementById('btnPickerMgr');
+  if(pickerMgrBtn) pickerMgrBtn.style.display = role==='manager' ? '' : 'none';
   showShortageClearControls();
   // Auto-add first product line for clerk
   if(role==='clerk') addProductLine();
@@ -4359,6 +4390,107 @@ function onPickerKey(e){
 }
 
 /* ── Replenished toggle ──────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   PICKER NAME MANAGER
+   ═══════════════════════════════════════════════════════ */
+let _pickerRenameTarget = null;
+
+function openPickerManager(){
+  document.getElementById('pickerMgrSearch').value='';
+  closePickerRenamePanel();
+  renderPickerMgrList();
+  document.getElementById('pickerMgrOverlay').style.display='flex';
+}
+
+function closePickerManager(){
+  document.getElementById('pickerMgrOverlay').style.display='none';
+}
+
+function closePickerRenamePanel(){
+  _pickerRenameTarget=null;
+  document.getElementById('pickerRenamePanel').style.display='none';
+  document.getElementById('pickerRenameTo').value='';
+  document.getElementById('pickerRenameCount').textContent='';
+}
+
+function renderPickerMgrList(){
+  const q=(document.getElementById('pickerMgrSearch')?.value||'').toLowerCase();
+
+  // Build unique picker list with counts from all shortageData
+  const map={};
+  shortageData.forEach(r=>{
+    const p=(r.picker||'').trim();
+    if(!p) return;
+    if(!map[p]) map[p]={count:0,divisions:new Set(),lastSeen:''};
+    map[p].count++;
+    if(r.division) map[p].divisions.add(r.division);
+    if(!map[p].lastSeen||r.timestamp>map[p].lastSeen) map[p].lastSeen=r.timestamp;
+  });
+
+  let pickers=Object.entries(map).sort((a,b)=>b[1].count-a[1].count);
+  if(q) pickers=pickers.filter(([name])=>name.toLowerCase().includes(q));
+
+  const el=document.getElementById('pickerMgrList');
+  if(!pickers.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">No pickers found</div>';
+    return;
+  }
+
+  el.innerHTML=pickers.map(([name,info])=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="selectPickerToRename('${esc(name)}')" title="Click to rename">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${esc(name)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${info.count} shortage${info.count!==1?'s':''} · Divisions: ${[...info.divisions].sort().join(', ')||'—'} · Last: ${info.lastSeen?new Date(info.lastSeen).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'}):'—'}</div>
+      </div>
+      <button style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--accent-l);border:1px solid var(--accent);border-radius:6px;color:var(--accent);cursor:pointer;flex-shrink:0">✏️ Rename</button>
+    </div>`).join('');
+}
+
+function selectPickerToRename(name){
+  _pickerRenameTarget=name;
+  const count=shortageData.filter(r=>(r.picker||'').trim()===name).length;
+  document.getElementById('pickerRenameFrom').textContent=name;
+  document.getElementById('pickerRenameTo').value='';
+  document.getElementById('pickerRenameCount').textContent=count+' record(s) will be updated.';
+  document.getElementById('pickerRenamePanel').style.display='';
+  setTimeout(()=>document.getElementById('pickerRenameTo').focus(),50);
+}
+
+async function confirmPickerRename(){
+  const from=_pickerRenameTarget;
+  const to=document.getElementById('pickerRenameTo').value.trim();
+  if(!from||!to){ toast('Enter a new name','error'); return; }
+  if(to===from){ toast('Name is the same — no change made','error'); return; }
+
+  const toUpdate=shortageData.filter(r=>(r.picker||'').trim()===from);
+  if(!toUpdate.length){ toast('No records found for that picker','error'); return; }
+
+  if(!confirm(`Rename "${from}" → "${to}" across ${toUpdate.length} record(s)?\n\nThis cannot be undone.`)) return;
+
+  showLoad(`Renaming ${toUpdate.length} record(s)…`);
+  let done=0, failed=0;
+  for(const r of toUpdate){
+    try{
+      if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+r.id,{picker:to}); }
+      r.picker=to; // update in memory
+      done++;
+    }catch(e){ console.error('Rename failed for '+r.id,e); failed++; }
+  }
+
+  // Also update demo localStorage
+  if(CFG.DEMO_MODE){
+    const s=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+    s.forEach(r=>{ if((r.picker||'').trim()===from) r.picker=to; });
+    localStorage.setItem('shortages_demo',JSON.stringify(s));
+  }
+
+  hideLoad();
+  closePickerRenamePanel();
+  renderPickerMgrList();
+  renderShortageList();
+  toast(`"${from}" renamed to "${to}" across ${done} record(s)${failed?' ('+failed+' failed)':''}  ✓`,'success');
+}
+
 async function toggleReplenished(id, checked){
   try{
     const upd={binReplenished: checked};
