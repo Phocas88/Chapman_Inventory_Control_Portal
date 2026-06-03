@@ -474,41 +474,19 @@ body.has-banner #app{margin-top:44px}
 .shortage-stat-num{font-size:24px;font-weight:700;color:var(--text);font-family:var(--mono)}
 .shortage-stat-lbl{font-size:10px;color:var(--muted);margin-top:3px}
 @media print{
-  /* Hide all app chrome */
-  body *{visibility:hidden}
-  #printReportWrap,#printReportWrap *{visibility:visible}
-  #printReportWrap{
-    position:fixed;top:0;left:0;right:0;bottom:0;
-    overflow:visible;background:#fff;
-  }
+  /* Hide the entire app — only the pre-built report shows */
+  #app{ display:none!important; }
+  #printReportWrap{ display:block!important; }
+
   /* Page setup */
-  @page{size:letter portrait;margin:.7in .65in .7in .65in}
-  html,body{background:#fff!important;color:#111!important;font-family:'Segoe UI',Arial,sans-serif!important;font-size:10pt!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-
-  /* Stat cards */
-  .shortage-stat-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:8pt!important;margin-bottom:14pt!important}
-  .shortage-stat-card{border:1pt solid #d1d5db!important;border-radius:4pt!important;padding:8pt 10pt!important;background:#f9fafb!important;text-align:center!important;break-inside:avoid!important}
-  .shortage-stat-num{font-size:20pt!important;font-weight:700!important;color:#1a2038!important;font-family:'Segoe UI',Arial,sans-serif!important;line-height:1.2!important}
-  .shortage-stat-lbl{font-size:7pt!important;color:#6b7280!important;margin-top:3pt!important;text-transform:uppercase!important;letter-spacing:.06em!important}
-
-  /* Section titles */
-  .stats-section-title{font-size:8pt!important;font-weight:700!important;color:#374151!important;letter-spacing:.1em!important;text-transform:uppercase!important;border-bottom:1.5pt solid #e5e7eb!important;padding-bottom:4pt!important;margin:14pt 0 8pt!important;font-family:'Segoe UI',Arial,sans-serif!important}
-
-  /* Tables */
-  .pr-tbl{width:100%!important;border-collapse:collapse!important;font-size:9pt!important;margin-bottom:12pt!important;break-inside:avoid!important}
-  .pr-tbl thead th{background:#1a2038!important;color:#fff!important;padding:5pt 8pt!important;text-align:left!important;font-size:8pt!important;font-weight:600!important;letter-spacing:.04em!important}
-  .pr-tbl tbody tr:nth-child(even){background:#f3f4f6!important}
-  .pr-tbl tbody tr:nth-child(odd){background:#fff!important}
-  .pr-tbl tbody td{padding:4pt 8pt!important;border-bottom:.5pt solid #e5e7eb!important;color:#111!important;font-size:8.5pt!important}
-  .pr-tbl tbody tr.dup-row{background:#fff5f5!important}
-
-  /* Typography overrides */
-  .mono{font-family:'Courier New',monospace!important}
-  .pr-green{color:#047857!important;font-weight:600!important}
-  .pr-red{color:#b91c1c!important;font-weight:600!important}
-  .pr-amber{color:#92400e!important;font-weight:600!important}
-  .pr-blue{color:#1d4ed8!important;font-weight:600!important}
-  .pr-muted{color:#6b7280!important}
+  @page{ size:letter portrait; margin:.7in .65in .7in .65in }
+  html,body{
+    background:#fff!important;color:#111!important;
+    font-family:'Segoe UI',Arial,sans-serif!important;
+    font-size:10pt!important;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact;
+    margin:0!important;padding:0!important;
+  }
 
   /* Page breaks */
   .print-page-break{page-break-before:always!important}
@@ -1313,10 +1291,10 @@ body.has-banner #app{margin-top:44px}
   </div>
 </div>
 
-<!-- Print report wrapper — populated by printShortageReport() -->
-<div id="printReportWrap" style="display:none"></div>
-
 </div><!-- #app -->
+
+<!-- Print report wrapper — populated by printShortageReport(), must be outside #app -->
+<div id="printReportWrap" style="display:none"></div>
 <div class="merge-overlay" id="shortageEditOverlay" style="display:none">
   <div class="merge-modal" style="max-width:500px">
     <div class="merge-modal-header">
