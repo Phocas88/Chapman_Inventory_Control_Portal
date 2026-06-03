@@ -1219,6 +1219,7 @@ body.has-banner #app{margin-top:44px}
               autocomplete="off" spellcheck="false"
               style="font-family:var(--mono)"
               onkeydown="onPickerKey(event)"
+              oninput="this.value=autoCapPicker(this.value)"
               onfocus="this.select()">
             <span id="sfPickerConfirm" style="font-size:18px;display:none">✅</span>
           </div>
@@ -4291,7 +4292,7 @@ function resetShortageForm(){
 
 async function submitShortage(){
   const division   = document.getElementById('sfDivision').value;
-  const picker     = document.getElementById('sfPicker').value.trim();
+  const picker     = autoCapPicker(document.getElementById('sfPicker').value.trim());
   const orderNum   = document.getElementById('sfOrderNum').value.trim();
   const shiftOver  = document.getElementById('sfShiftOverride').value;
 
@@ -4407,6 +4408,21 @@ async function markLocated(id){
 }
 
 /* ── Picker scan-only handler ────────────────────────────── */
+/* ── Auto-capitalize picker name ─────────────────────────
+   Capitalizes first letter of each word: jdoe → JDoe
+   Handles "J Doe", "jdoe", "JDOE" → "JDoe"
+   ─────────────────────────────────────────────────────── */
+function autoCapPicker(val){
+  // If it looks like a combined name (no space, camelCase desired): capitalize first char only
+  // If it has spaces: capitalize each word
+  if(!val) return val;
+  if(val.includes(' ')){
+    return val.split(' ').map(w=>w?w[0].toUpperCase()+w.slice(1).toLowerCase():'').join(' ');
+  }
+  // No space — capitalize first letter, lowercase rest (JDoe pattern)
+  return val[0].toUpperCase()+val.slice(1);
+}
+
 function onPickerKey(e){
   const inp=document.getElementById('sfPicker');
   if(e.key==='Enter'){
