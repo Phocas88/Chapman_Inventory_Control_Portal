@@ -3969,9 +3969,12 @@ let shortageData = [];   // loaded from Firestore
 let shortageView = 'list'; // 'list' | 'stats'
 
 function loadShortageScreen(){
-  // Auto-fill date/time
-  updateShortageDateTime();
-  setInterval(updateShortageDateTime, 30000);
+  // Prevent duplicate intervals
+  if(!window._shortageTimerRunning){
+    updateShortageDateTime();
+    setInterval(updateShortageDateTime, 30000);
+    window._shortageTimerRunning = true;
+  }
   // Hide entry form for IC/manager — they only review, not submit
   const formPanel = document.getElementById('shortageFormWrap');
   if(formPanel) formPanel.style.display = (role==='clerk') ? '' : 'none';
@@ -3980,15 +3983,22 @@ function loadShortageScreen(){
   showShortageClearControls();
   // Auto-add first product line for clerk
   if(role==='clerk') addProductLine();
-  // Load from Firestore (or localStorage in demo)
-  fetchShortages();
   // Set default date range for stats (last 30 days)
   const now = new Date();
-  const from = new Date(now); from.setDate(from.getDate()-30);
+  const from30 = new Date(now); from30.setDate(from30.getDate()-30);
   const toEl = document.getElementById('statsDateTo');
   const frEl = document.getElementById('statsDateFrom');
-  if(toEl) toEl.value = now.toISOString().slice(0,10);
-  if(frEl) frEl.value = from.toISOString().slice(0,10);
+  if(toEl && !toEl.value) toEl.value = now.toISOString().slice(0,10);
+  if(frEl && !frEl.value) frEl.value = from30.toISOString().slice(0,10);
+  // Load data then show appropriate default view
+  fetchShortages().then(()=>{
+    if(role==='manager' || role==='icteam'){
+      // IC/manager land on stats by default
+      switchShortageView('stats');
+    } else {
+      switchShortageView('list');
+    }
+  });
 }
 
 function updateShortageDateTime(){
