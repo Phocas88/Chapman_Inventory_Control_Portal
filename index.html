@@ -4651,32 +4651,39 @@ function renderShortageList(){
 
   el.innerHTML = data.map(r=>{
     const locClass = r.located==='Y'?'located':r.located==='N'?'not-located':'pending-loc';
-    const locBadge = r.located==='Y' && r.foundInShortedBin
-      ? `<span class="sr-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">⚠ Found in Shorted Bin</span>`
-      : r.located==='Y'
-        ? `<span class="sr-badge located">✓ Located (2nd Location)</span>`
-        : r.located==='N'
-          ? `<span class="sr-badge not-located">✗ Not Located</span>`
-          : `<span class="sr-badge pending">⏳ Pending</span>`;
+    const locBadge = (()=>{
+      let badges='';
+      if(r.located==='Y') badges+=`<span class="sr-badge located">✓ 2nd Location Found</span>`;
+      else if(r.located==='N') badges+=`<span class="sr-badge not-located">✗ Not Located</span>`;
+      else badges+=`<span class="sr-badge pending">⏳ Pending</span>`;
+      if(r.foundInShortedBin) badges+=` <span class="sr-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">⚠ Also in Shorted Bin</span>`;
+      return badges;
+    })();
     const expBadge = r.exported ? `<span class="sr-badge exported">✓ Exported</span>` : '';
     const shiftLbl = `Shift ${r.shift||getShift(r.timestamp)}`;
-    const locDetails = r.located==='Y'
-      ? r.foundInShortedBin
-        ? `<div style="margin-top:6px;font-size:12px;color:#f59e0b">⚠ Found in original shorted bin <span style="font-family:var(--mono);font-weight:600">${esc(r.binShorted)}</span> — erroneous short${r.locNotes?' · '+esc(r.locNotes):''}</div>`
-        : `<div style="margin-top:6px;font-size:12px;color:var(--green)">Found: <span style="font-family:var(--mono);font-weight:600">${esc(r.foundBin)}</span> · Picked: <strong>${r.qtyLocated}</strong> ${esc(r.uom)}${r.locNotes?` · ${esc(r.locNotes)}`:''}</div>`
-      : '';
-    const locateBtn = (r.located==='pending' || r.located==='N')
-      ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-           <button class="locate-btn" onclick="showInlineLocate('${r.id}')">📍 Mark as Located</button>
-           <button class="locate-btn" onclick="markFoundInShortedBin('${r.id}')" style="border-color:rgba(245,158,11,.4);color:#f59e0b" title="Item was found in the original shorted bin — erroneous short">⚠ Found in Shorted Bin</button>
-         </div>
-         <div class="locate-inline" id="il-${r.id}" style="display:none">
-           <div class="sf-field" style="min-width:120px"><label>Found In Bin</label><input id="il-bin-${r.id}" type="text" style="text-transform:uppercase" placeholder="Bin"></div>
-           <div class="sf-field" style="min-width:80px"><label>Qty Picked</label><input id="il-qty-${r.id}" type="number" min="1" placeholder="0"></div>
-           <div class="sf-field" style="flex:2;min-width:150px"><label>Notes</label><input id="il-notes-${r.id}" type="text" placeholder="Optional"></div>
-           <button onclick="markLocated('${r.id}')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;white-space:nowrap">Save</button>
-         </div>`
-      : '';
+    const locDetails = (()=>{
+      let d='';
+      if(r.located==='Y' && r.foundBin)
+        d+=`<div style="margin-top:6px;font-size:12px;color:var(--green)">✓ 2nd Location: <span style="font-family:var(--mono);font-weight:600">${esc(r.foundBin)}</span> · Picked: <strong>${r.qtyLocated}</strong> ${esc(r.uom)}${r.locNotes?' · '+esc(r.locNotes):''}</div>`;
+      if(r.foundInShortedBin)
+        d+=`<div style="margin-top:4px;font-size:12px;color:#f59e0b">⚠ Also found in original shorted bin <span style="font-family:var(--mono);font-weight:600">${esc(r.binShorted)}</span> — stock was present in both locations</div>`;
+      return d;
+    })();
+    const locateBtn = (()=>{
+      const showMarkLocated = r.located!=='Y';
+      const showFoundInBin  = !r.foundInShortedBin; // show until flagged
+      if(!showMarkLocated && !showFoundInBin) return '';
+      return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+        ${showMarkLocated ? `<button class="locate-btn" onclick="showInlineLocate('${r.id}')">📍 Mark as Located</button>` : ''}
+        ${showFoundInBin  ? `<button class="locate-btn" onclick="markFoundInShortedBin('${r.id}')" style="border-color:rgba(245,158,11,.4);color:#f59e0b" title="Item was also found in the original shorted bin">⚠ Found in Shorted Bin</button>` : ''}
+      </div>
+      <div class="locate-inline" id="il-${r.id}" style="display:none">
+        <div class="sf-field" style="min-width:120px"><label>Found In Bin</label><input id="il-bin-${r.id}" type="text" style="text-transform:uppercase" placeholder="Bin"></div>
+        <div class="sf-field" style="min-width:80px"><label>Qty Picked</label><input id="il-qty-${r.id}" type="number" min="1" placeholder="0"></div>
+        <div class="sf-field" style="flex:2;min-width:150px"><label>Notes</label><input id="il-notes-${r.id}" type="text" placeholder="Optional"></div>
+        <button onclick="markLocated('${r.id}')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;white-space:nowrap">Save</button>
+      </div>`;
+    })();
     const exportChk = (role==='manager'||role==='clerk') && r.located==='Y'
       ? `<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);cursor:pointer;margin-top:6px">
            <input type="checkbox" class="export-chk" ${r.exported?'checked':''} onchange="toggleExported('${r.id}',this.checked)"> Included in Apprise Export
@@ -4721,7 +4728,8 @@ function renderShortageList(){
 async function markFoundInShortedBin(id){
   if(!confirm('Mark as found in the original shorted bin?\n\nThis means the item WAS in the bin but the picker missed it — an erroneous short.')) return;
   try{
-    const upd={located:'Y', foundInShortedBin:true, foundBin:'', qtyLocated:0, locNotes:'Erroneous short — found in shorted bin'};
+    // Only set foundInShortedBin flag — preserve existing located/2nd-location status
+    const upd={foundInShortedBin:true};
     if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
     const rec=shortageData.find(r=>r.id===id);
     if(rec) Object.assign(rec,upd);
@@ -4814,9 +4822,9 @@ function printShortageReport(){
 
   // ── Compute all stats ─────────────────────────────────
   const total      = data.length;
-  const located2nd = data.filter(r=>r.located==='Y'&&!r.foundInShortedBin).length;
-  const erroneous  = data.filter(r=>r.foundInShortedBin).length;
-  const notLoc     = data.filter(r=>r.located==='N'&&!r.foundInShortedBin).length;
+  const located2nd = data.filter(r=>r.located==='Y').length;  // all 2nd location finds, including those also in shorted bin
+  const erroneous  = data.filter(r=>r.foundInShortedBin).length;  // found in original shorted bin (may also have 2nd location)
+  const notLoc     = data.filter(r=>r.located==='N'&&!r.foundInShortedBin).length;  // truly not found anywhere
   const pending    = data.filter(r=>r.located==='pending').length;
   const shift1c    = data.filter(r=>(r.shift||getShift(r.timestamp))===1).length;
   const shift2c    = data.filter(r=>(r.shift||getShift(r.timestamp))===2).length;
