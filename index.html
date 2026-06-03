@@ -1212,7 +1212,8 @@ body.has-banner #app{margin-top:44px}
           </select>
         </div>
         <div class="sf-field">
-          <label>Picker <span class="req">*</span> <span style="font-size:10px;color:var(--accent);font-weight:400">— scan badge</span></label>
+          <label>Picker <span class="req">*</span></label>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;line-height:1.4">Scan badge. <em>No badge?</em> Type first initial + last name, e.g. <strong style="color:var(--text)">JDoe</strong></div>
           <div style="display:flex;align-items:center;gap:6px">
             <input type="text" id="sfPicker" placeholder="Scan picker badge…"
               autocomplete="off" spellcheck="false"
@@ -1262,6 +1263,7 @@ body.has-banner #app{margin-top:44px}
       <input type="text" id="shortageSearch" placeholder="Search by product, order, picker, division…" oninput="renderShortageList()" class="tracker-search-inp" style="flex:1;min-width:200px">
       <select id="shortageFilterDiv" onchange="renderShortageList()" class="tracker-sort-sel"><option value="">All Divisions</option><option>GT</option><option>NH</option><option>BC</option><option>FS</option><option>EE</option><option>VP</option><option>TP</option><option>CI</option><option>KA</option></select>
       <select id="shortageFilterLoc" onchange="renderShortageList()" class="tracker-sort-sel"><option value="">All</option><option value="Y">Located</option><option value="N">Not Located</option><option value="pending">Pending</option></select>
+      <select id="shortageFilterArchive" onchange="renderShortageList()" class="tracker-sort-sel"><option value="active">Active</option><option value="archived">📦 Archived</option><option value="all">All</option></select>
       <select id="shortageSort" onchange="renderShortageList()" class="tracker-sort-sel">
         <option value="date-desc">Newest First</option>
         <option value="date-asc">Oldest First</option>
@@ -1272,7 +1274,8 @@ body.has-banner #app{margin-top:44px}
       <button class="refresh-btn" onclick="generateAppriseExport()" id="btnExport" style="background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:var(--green)">⬇ Apprise Export</button>
       <div id="shortageClearControls" style="display:none;gap:6px;align-items:center">
         <button class="refresh-btn" onclick="clearExportedShortages()" style="background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.3);color:var(--red)" title="Remove all rows already marked as exported to Apprise">🗑 Clear Exported</button>
-        <button class="refresh-btn" onclick="clearSelectedShortages()" id="btnClearSelected" style="display:none;background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.3);color:var(--red)">🗑 Clear Selected (<span id="clearSelCount">0</span>)</button>
+        <button class="refresh-btn" onclick="archiveSelectedShortages()" style="background:rgba(107,116,148,.12);border-color:var(--border);color:var(--muted)">📦 Archive Selected</button>
+        <button class="refresh-btn" onclick="clearSelectedShortages()" id="btnClearSelected" style="display:none;background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.3);color:var(--red)">🗑 Delete Selected (<span id="clearSelCount">0</span>)</button>
       </div>
     </div>
     <div id="shortageSelRow" style="display:none;margin-bottom:8px;align-items:center;gap:10px">
@@ -1401,8 +1404,12 @@ body.has-banner #app{margin-top:44px}
           <input type="text" id="seFoundBin" style="text-transform:uppercase">
         </div>
         <div class="sf-field" id="seQtyLocWrap" style="max-width:100px">
-          <label>Qty Located</label>
+          <label>Qty Picked</label>
           <input type="number" id="seQtyLocated" min="0">
+        </div>
+        <div class="sf-field" style="max-width:100px">
+          <label>IC Counted Qty</label>
+          <input type="number" id="seIcQty" min="0">
         </div>
       </div>
       <div class="sf-field">
@@ -4064,6 +4071,25 @@ async function deleteShortageRow(id){
   }catch(e){ toast('Delete failed: '+e.message,'error'); }
 }
 
+async function archiveSelectedShortages(){
+  const ids=[...document.querySelectorAll('.shortage-row-chk:checked')].map(c=>c.dataset.id);
+  if(!ids.length){ toast('Select rows to archive','error'); return; }
+  showLoad(`Archiving ${ids.length} record(s)…`);
+  let done=0;
+  for(const id of ids){
+    try{
+      if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id,{shortageArchived:true}); }
+      const rec=shortageData.find(r=>r.id===id); if(rec) rec.shortageArchived=true;
+      done++;
+    }catch(e){ console.error('Archive failed for '+id,e); }
+  }
+  hideLoad();
+  document.querySelectorAll('.shortage-row-chk').forEach(c=>c.checked=false);
+  onShortageRowCheck();
+  renderShortageList();
+  toast(done+' record(s) archived ✓','success');
+}
+
 async function clearSelectedShortages(){
   const ids=[...document.querySelectorAll('.shortage-row-chk:checked')].map(c=>c.dataset.id);
   if(!ids.length) return;
@@ -4117,6 +4143,7 @@ function openShortageEdit(id){
   document.getElementById('seLocated').value     = r.located||'N';
   document.getElementById('seFoundBin').value    = r.foundBin||'';
   document.getElementById('seQtyLocated').value  = r.qtyLocated||0;
+  const seIcEl=document.getElementById('seIcQty'); if(seIcEl) seIcEl.value=r.icQtyAtSecondLoc||0;
   document.getElementById('seLocNotes').value    = r.locNotes||'';
   document.getElementById('seReplenished').checked = r.binReplenished||false;
   // Format timestamp for datetime-local input
@@ -4158,6 +4185,7 @@ async function saveShortageEdit(){
     located:     document.getElementById('seLocated').value,
     foundBin:    document.getElementById('seFoundBin').value.trim().toUpperCase(),
     qtyLocated:  parseInt(document.getElementById('seQtyLocated').value||'0'),
+    icQtyAtSecondLoc: parseInt(document.getElementById('seIcQty')?.value||'0'),
     locNotes:    document.getElementById('seLocNotes').value.trim(),
     binReplenished: document.getElementById('seReplenished').checked,
   };
@@ -4202,7 +4230,9 @@ async function fetchShortages(){
         foundBin:    d.foundBin || '',
         foundInShortedBin: d.foundInShortedBin || false,
         binReplenished: d.binReplenished || false,
+        shortageArchived: d.shortageArchived || false,
         qtyLocated:  typeof d.qtyLocated === 'number' ? d.qtyLocated : parseInt(d.qtyLocated||0),
+        icQtyAtSecondLoc: typeof d.icQtyAtSecondLoc === 'number' ? d.icQtyAtSecondLoc : parseInt(d.icQtyAtSecondLoc||0),
         locNotes:    d.locNotes || '',
         exported:    d.exported || false,
         shift:       d.shift || getShift(d.timestamp||''),
@@ -4355,13 +4385,14 @@ async function submitShortage(){
 
 // Inline "locate" update after the fact
 async function markLocated(id){
-  const bin   = document.getElementById('il-bin-'+id)?.value.trim().toUpperCase();
-  const qty   = parseInt(document.getElementById('il-qty-'+id)?.value||'0');
-  const notes = document.getElementById('il-notes-'+id)?.value.trim();
+  const bin    = document.getElementById('il-bin-'+id)?.value.trim().toUpperCase();
+  const qty    = parseInt(document.getElementById('il-qty-'+id)?.value||'0');
+  const icqty  = parseInt(document.getElementById('il-icqty-'+id)?.value||'0');
+  const notes  = document.getElementById('il-notes-'+id)?.value.trim();
   if(!bin) { toast('Enter the bin where item was found','error'); return; }
   if(!qty||qty<1) { toast('Enter qty located','error'); return; }
   try{
-    const upd = {located:'Y', foundBin:bin, qtyLocated:qty, locNotes:notes||''};
+    const upd = {located:'Y', foundBin:bin, qtyLocated:qty, icQtyAtSecondLoc:icqty||0, locNotes:notes||''};
     if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
     const rec = shortageData.find(r=>r.id===id);
     if(rec) Object.assign(rec, upd);
@@ -4501,6 +4532,33 @@ async function confirmPickerRename(){
   toast(`"${from}" renamed to "${to}" across ${done} record(s)${failed?' ('+failed+' failed)':''}  ✓`,'success');
 }
 
+async function archiveShortageRow(id){
+  try{
+    const upd={shortageArchived:true};
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    const rec=shortageData.find(r=>r.id===id);
+    if(rec) rec.shortageArchived=true;
+    else {
+      const s=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+      const i=s.findIndex(r=>r.id===id);
+      if(i>=0){ s[i].shortageArchived=true; localStorage.setItem('shortages_demo',JSON.stringify(s)); }
+    }
+    renderShortageList();
+    toast('Archived ✓','success');
+  }catch(e){ toast('Archive failed: '+e.message,'error'); }
+}
+
+async function unarchiveShortageRow(id){
+  try{
+    const upd={shortageArchived:false};
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    const rec=shortageData.find(r=>r.id===id);
+    if(rec) rec.shortageArchived=false;
+    renderShortageList();
+    toast('Unarchived ✓','success');
+  }catch(e){ toast('Unarchive failed','error'); }
+}
+
 async function toggleReplenished(id, checked){
   try{
     const upd={binReplenished: checked};
@@ -4636,6 +4694,10 @@ function renderShortageList(){
   const sort   = document.getElementById('shortageSort')?.value||'date-desc';
 
   let data = [...shortageData];
+  const archF = document.getElementById('shortageFilterArchive')?.value||'active';
+  if(archF==='active')   data=data.filter(r=>!r.shortageArchived);
+  else if(archF==='archived') data=data.filter(r=>r.shortageArchived);
+  // 'all' shows everything
   if(q)    data=data.filter(r=>[r.productCode,r.orderNumber,r.picker,r.division,r.name,r.binShorted].join(' ').toLowerCase().includes(q));
   if(divF) data=data.filter(r=>r.division===divF);
   if(locF) data=data.filter(r=>r.located===locF||(locF==='pending'&&r.located==='pending'));
@@ -4664,7 +4726,7 @@ function renderShortageList(){
     const locDetails = (()=>{
       let d='';
       if(r.located==='Y' && r.foundBin)
-        d+=`<div style="margin-top:6px;font-size:12px;color:var(--green)">✓ 2nd Location: <span style="font-family:var(--mono);font-weight:600">${esc(r.foundBin)}</span> · Picked: <strong>${r.qtyLocated}</strong> ${esc(r.uom)}${r.locNotes?' · '+esc(r.locNotes):''}</div>`;
+        d+=`<div style="margin-top:6px;font-size:12px;color:var(--green)">✓ 2nd Location: <span style="font-family:var(--mono);font-weight:600">${esc(r.foundBin)}</span> · Picked: <strong>${r.qtyLocated}</strong> ${esc(r.uom)}${r.icQtyAtSecondLoc!=null&&r.icQtyAtSecondLoc>0?' · IC Counted: <strong>'+r.icQtyAtSecondLoc+'</strong>':''}${r.locNotes?' · '+esc(r.locNotes):''}</div>`;
       if(r.foundInShortedBin)
         d+=`<div style="margin-top:4px;font-size:12px;color:#f59e0b">⚠ Also found in original shorted bin <span style="font-family:var(--mono);font-weight:600">${esc(r.binShorted)}</span> — stock was present in both locations</div>`;
       return d;
@@ -4678,10 +4740,12 @@ function renderShortageList(){
         ${showFoundInBin  ? `<button class="locate-btn" onclick="markFoundInShortedBin('${r.id}')" style="border-color:rgba(245,158,11,.4);color:#f59e0b" title="Item was also found in the original shorted bin">⚠ Found in Shorted Bin</button>` : ''}
       </div>
       <div class="locate-inline" id="il-${r.id}" style="display:none">
-        <div class="sf-field" style="min-width:120px"><label>Found In Bin</label><input id="il-bin-${r.id}" type="text" style="text-transform:uppercase" placeholder="Bin"></div>
-        <div class="sf-field" style="min-width:80px"><label>Qty Picked</label><input id="il-qty-${r.id}" type="number" min="1" placeholder="0"></div>
+        <div style="width:100%;font-size:10px;font-weight:700;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">2nd Location Details</div>
+        <div class="sf-field" style="min-width:120px"><label>Found In Bin <span class="req">*</span></label><input id="il-bin-${r.id}" type="text" style="text-transform:uppercase" placeholder="e.g. B-03-02"></div>
+        <div class="sf-field" style="min-width:80px"><label>Qty Picked <span class="req">*</span></label><input id="il-qty-${r.id}" type="number" min="1" placeholder="0"></div>
+        <div class="sf-field" style="min-width:80px"><label>IC Counted Qty</label><input id="il-icqty-${r.id}" type="number" min="0" placeholder="0" title="How many IC counted in this 2nd location bin"></div>
         <div class="sf-field" style="flex:2;min-width:150px"><label>Notes</label><input id="il-notes-${r.id}" type="text" placeholder="Optional"></div>
-        <button onclick="markLocated('${r.id}')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;white-space:nowrap">Save</button>
+        <button onclick="markLocated('${r.id}')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;white-space:nowrap">Save Location</button>
       </div>`;
     })();
     const exportChk = (role==='manager'||role==='clerk') && r.located==='Y'
@@ -4693,10 +4757,16 @@ function renderShortageList(){
       <input type="checkbox" style="accent-color:var(--green);width:13px;height:13px;cursor:pointer" ${r.binReplenished?'checked':''} onchange="toggleReplenished('${r.id}',this.checked)">
       Bin replenished after pick?
     </label>`;
-    const canClear = role==='icteam'||role==='manager';
+    const canClear  = role==='icteam'||role==='manager';
+    const canArchive = role==='icteam'||role==='manager';
     const rowChk = canClear
       ? `<input type="checkbox" class="shortage-row-chk" data-id="${r.id}" onchange="onShortageRowCheck()" style="width:14px;height:14px;accent-color:var(--red);cursor:pointer;flex-shrink:0;margin-top:2px">`
       : '';
+    const archiveBtn = canArchive && !r.shortageArchived
+      ? `<button onclick="archiveShortageRow('${r.id}')" style="padding:3px 8px;background:rgba(107,116,148,.12);border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--muted);cursor:pointer;flex-shrink:0" title="Archive after IC review">📦 Archive</button>`
+      : r.shortageArchived
+        ? `<button onclick="unarchiveShortageRow('${r.id}')" style="padding:3px 8px;background:rgba(107,116,148,.08);border:1px solid var(--border);border-radius:5px;font-size:10px;color:var(--muted);cursor:pointer;flex-shrink:0">↩ Unarchive</button>`
+        : '';
     const deleteBtn = canClear
       ? `<button onclick="if(confirm('Delete this record?')) deleteShortageRow('${r.id}')" style="padding:3px 8px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:5px;font-size:11px;color:var(--red);cursor:pointer;flex-shrink:0" title="Delete record">🗑</button>`
       : '';
@@ -4718,7 +4788,7 @@ function renderShortageList(){
           ${locateBtn}
           ${exportChk}
           ${replenishChk}
-          <div style="display:flex;gap:6px;margin-top:6px">${deleteBtn}${editBtn}</div>
+          <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">${archiveBtn}${deleteBtn}${editBtn}</div>
         </div>
       </div>
     </div>`;
