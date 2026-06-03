@@ -474,11 +474,45 @@ body.has-banner #app{margin-top:44px}
 .shortage-stat-num{font-size:24px;font-weight:700;color:var(--text);font-family:var(--mono)}
 .shortage-stat-lbl{font-size:10px;color:var(--muted);margin-top:3px}
 @media print{
-  .shortage-form-panel,.shortage-form-header,.sf-row,.shortage-filter-bar,.btn-primary,.refresh-btn,.locate-btn,.locate-inline,.export-chk,#shortageListWrap,.div-tabs,.dash-toolbar,.global-stats,.topbar{display:none!important}
-  #shortageStatsWrap{display:block!important;padding:0}
-  .shortage-stat-card{border:1px solid #ccc;background:#fff;color:#000}
-  .shortage-stat-num{color:#000}
-  .shortage-stat-lbl{color:#666}
+  /* Hide all app chrome */
+  body *{visibility:hidden}
+  #printReportWrap,#printReportWrap *{visibility:visible}
+  #printReportWrap{
+    position:fixed;top:0;left:0;right:0;bottom:0;
+    overflow:visible;background:#fff;
+  }
+  /* Page setup */
+  @page{size:letter portrait;margin:.7in .65in .7in .65in}
+  html,body{background:#fff!important;color:#111!important;font-family:'Segoe UI',Arial,sans-serif!important;font-size:10pt!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+
+  /* Stat cards */
+  .shortage-stat-grid{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:8pt!important;margin-bottom:14pt!important}
+  .shortage-stat-card{border:1pt solid #d1d5db!important;border-radius:4pt!important;padding:8pt 10pt!important;background:#f9fafb!important;text-align:center!important;break-inside:avoid!important}
+  .shortage-stat-num{font-size:20pt!important;font-weight:700!important;color:#1a2038!important;font-family:'Segoe UI',Arial,sans-serif!important;line-height:1.2!important}
+  .shortage-stat-lbl{font-size:7pt!important;color:#6b7280!important;margin-top:3pt!important;text-transform:uppercase!important;letter-spacing:.06em!important}
+
+  /* Section titles */
+  .stats-section-title{font-size:8pt!important;font-weight:700!important;color:#374151!important;letter-spacing:.1em!important;text-transform:uppercase!important;border-bottom:1.5pt solid #e5e7eb!important;padding-bottom:4pt!important;margin:14pt 0 8pt!important;font-family:'Segoe UI',Arial,sans-serif!important}
+
+  /* Tables */
+  .pr-tbl{width:100%!important;border-collapse:collapse!important;font-size:9pt!important;margin-bottom:12pt!important;break-inside:avoid!important}
+  .pr-tbl thead th{background:#1a2038!important;color:#fff!important;padding:5pt 8pt!important;text-align:left!important;font-size:8pt!important;font-weight:600!important;letter-spacing:.04em!important}
+  .pr-tbl tbody tr:nth-child(even){background:#f3f4f6!important}
+  .pr-tbl tbody tr:nth-child(odd){background:#fff!important}
+  .pr-tbl tbody td{padding:4pt 8pt!important;border-bottom:.5pt solid #e5e7eb!important;color:#111!important;font-size:8.5pt!important}
+  .pr-tbl tbody tr.dup-row{background:#fff5f5!important}
+
+  /* Typography overrides */
+  .mono{font-family:'Courier New',monospace!important}
+  .pr-green{color:#047857!important;font-weight:600!important}
+  .pr-red{color:#b91c1c!important;font-weight:600!important}
+  .pr-amber{color:#92400e!important;font-weight:600!important}
+  .pr-blue{color:#1d4ed8!important;font-weight:600!important}
+  .pr-muted{color:#6b7280!important}
+
+  /* Page breaks */
+  .print-page-break{page-break-before:always!important}
+  .no-break{break-inside:avoid!important;page-break-inside:avoid!important}
 }
 /* Retire panel */
 .retire-panel{background:rgba(107,116,148,.1);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;margin-top:10px}
@@ -1273,13 +1307,16 @@ body.has-banner #app{margin-top:44px}
       <input type="date" id="statsDateTo" onchange="renderShortageStats()" class="tracker-search-inp" style="max-width:160px">
       <select id="statsFilterDiv" onchange="renderShortageStats()" class="tracker-sort-sel"><option value="">All Divisions</option><option>GT</option><option>NH</option><option>BC</option><option>FS</option><option>EE</option><option>VP</option><option>TP</option><option>CI</option><option>KA</option></select>
       <select id="statsFilterShift" onchange="renderShortageStats()" class="tracker-sort-sel"><option value="">All Shifts</option><option value="1">1st Shift (6A–3:30P)</option><option value="2">2nd Shift (3:30P–12A)</option></select>
-      <button class="refresh-btn" onclick="window.print()" style="margin-left:auto">🖨 Print</button>
+      <button class="refresh-btn" onclick="printShortageReport()" style="margin-left:auto">🖨 Print Report</button>
     </div>
     <div id="shortageStatsArea" class="printable"></div>
   </div>
 </div>
 
-<!-- ═══════════ SHORTAGE EDIT MODAL ═══════════ -->
+<!-- Print report wrapper — populated by printShortageReport() -->
+<div id="printReportWrap" style="display:none"></div>
+
+</div><!-- #app -->
 <div class="merge-overlay" id="shortageEditOverlay" style="display:none">
   <div class="merge-modal" style="max-width:500px">
     <div class="merge-modal-header">
@@ -4472,6 +4509,259 @@ function generateAppriseExport(){
 
 // ── Stats ────────────────────────────────────────────────
 let statsDrillDiv=null, statsDrillShift=null;
+
+function printShortageReport(){
+  const fromStr = document.getElementById('statsDateFrom')?.value;
+  const toStr   = document.getElementById('statsDateTo')?.value;
+  const divF    = document.getElementById('statsFilterDiv')?.value||'';
+  const shiftF  = document.getElementById('statsFilterShift')?.value||'';
+
+  const from = fromStr ? new Date(fromStr+'T00:00:00') : new Date(0);
+  const to   = toStr   ? new Date(toStr  +'T23:59:59') : new Date();
+  const fmtD = d=>d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  const dateRange = fromStr||toStr ? fmtD(from)+' — '+fmtD(to) : 'All Dates';
+  const shiftLabel = shiftF==='1'?'1st Shift (6am–3:30pm)':shiftF==='2'?'2nd Shift (3:30pm–12am)':'All Shifts';
+  const divLabel   = divF ? divF+' — '+(DIV_NAMES[divF]||divF) : 'All Divisions';
+
+  let data = shortageData.filter(r=>{
+    const d=new Date(r.timestamp);
+    return d>=from && d<=to
+      && (!divF   || r.division===divF)
+      && (!shiftF || String(r.shift||getShift(r.timestamp))===shiftF);
+  });
+
+  // ── Compute all stats ─────────────────────────────────
+  const total      = data.length;
+  const located2nd = data.filter(r=>r.located==='Y'&&!r.foundInShortedBin).length;
+  const erroneous  = data.filter(r=>r.foundInShortedBin).length;
+  const notLoc     = data.filter(r=>r.located==='N'&&!r.foundInShortedBin).length;
+  const pending    = data.filter(r=>r.located==='pending').length;
+  const shift1c    = data.filter(r=>(r.shift||getShift(r.timestamp))===1).length;
+  const shift2c    = data.filter(r=>(r.shift||getShift(r.timestamp))===2).length;
+  const locPct     = total?Math.round(located2nd/total*100):0;
+  const errPct     = total?Math.round(erroneous/total*100):0;
+
+  const divs=[...new Set(data.map(r=>r.division))].sort();
+  const byDiv={};
+  divs.forEach(d=>{ byDiv[d]={total:0,s1:0,s2:0,located:0,erroneous:0,notLoc:0}; });
+  data.forEach(r=>{
+    if(!byDiv[r.division]) byDiv[r.division]={total:0,s1:0,s2:0,located:0,erroneous:0,notLoc:0};
+    byDiv[r.division].total++;
+    if((r.shift||getShift(r.timestamp))===1) byDiv[r.division].s1++;
+    else byDiv[r.division].s2++;
+    if(r.foundInShortedBin) byDiv[r.division].erroneous++;
+    else if(r.located==='Y') byDiv[r.division].located++;
+    else if(r.located==='N') byDiv[r.division].notLoc++;
+  });
+
+  const binProductMap={};
+  data.forEach(r=>{
+    const key=r.binShorted+'|'+r.productCode;
+    if(!binProductMap[key]) binProductMap[key]=[];
+    binProductMap[key].push(r);
+  });
+  const duplicates=Object.entries(binProductMap).filter(([k,v])=>v.length>1).sort((a,b)=>b[1].length-a[1].length);
+
+  const byPicker={};
+  data.forEach(r=>{
+    const p=r.picker||'Unknown';
+    if(!byPicker[p]) byPicker[p]={total:0,located:0,erroneous:0,notLoc:0};
+    byPicker[p].total++;
+    if(r.foundInShortedBin) byPicker[p].erroneous++;
+    else if(r.located==='Y') byPicker[p].located++;
+    else if(r.located==='N') byPicker[p].notLoc++;
+  });
+  const pickerRows=Object.entries(byPicker).sort((a,b)=>b[1].total-a[1].total);
+
+  const byDay={};
+  data.forEach(r=>{
+    const d=new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'});
+    if(!byDay[d]) byDay[d]={total:0,located:0,erroneous:0,s1:0,s2:0};
+    byDay[d].total++;
+    if(r.foundInShortedBin) byDay[d].erroneous++;
+    else if(r.located==='Y') byDay[d].located++;
+    const sh=r.shift||getShift(r.timestamp);
+    if(sh===1) byDay[d].s1++; else byDay[d].s2++;
+  });
+
+  function sc(n,cls){ return `<span class="${cls}">${n}</span>`; }
+  function pct(a,b){ return b?Math.round(a/b*100)+'%':'—'; }
+  const today=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+  // ── Build report HTML ─────────────────────────────────
+  const html = `
+  <div style="font-family:'Segoe UI',Arial,sans-serif;color:#111;font-size:10pt;line-height:1.4">
+
+    <!-- Report Header -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2.5pt solid #1a2038;padding-bottom:12pt;margin-bottom:18pt">
+      <div>
+        <div style="font-size:8pt;font-weight:700;color:#6b7280;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4pt">C &amp; F Enterprises · 815 Chapman Warehouse</div>
+        <div style="font-size:20pt;font-weight:700;color:#1a2038;line-height:1.1">Outbound Shortage Report</div>
+        <div style="font-size:10pt;color:#6b7280;margin-top:4pt">${esc(dateRange)} &nbsp;·&nbsp; ${esc(divLabel)} &nbsp;·&nbsp; ${esc(shiftLabel)}</div>
+      </div>
+      <div style="text-align:right;font-size:8.5pt;color:#6b7280;line-height:1.8;padding-top:4pt">
+        <div><span style="font-weight:600;color:#374151">Generated:</span> ${today}</div>
+        <div><span style="font-weight:600;color:#374151">Prepared by:</span> 815 Inventory Control</div>
+        <div><span style="font-weight:600;color:#374151">Total Records:</span> ${total}</div>
+      </div>
+    </div>
+
+    <!-- Executive Summary Cards -->
+    <div style="font-size:8pt;font-weight:700;color:#374151;letter-spacing:.1em;text-transform:uppercase;border-bottom:1pt solid #e5e7eb;padding-bottom:4pt;margin-bottom:10pt">Executive Summary</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8pt;margin-bottom:18pt">
+      ${[
+        ['Total Shortages',total,'#1a2038'],
+        ['2nd Location Found',located2nd+'  ('+locPct+'%)','#047857'],
+        ['⚠ Erroneous Shorts',erroneous+'  ('+errPct+'%)','#92400e'],
+        ['Not Located',notLoc,'#b91c1c'],
+        ['Pending Resolution',pending,'#92400e'],
+        ['1st Shift',shift1c,'#1d4ed8'],
+        ['2nd Shift',shift2c,'#1d4ed8'],
+        ['Exported to Apprise',data.filter(r=>r.exported).length,'#047857'],
+      ].map(([lbl,val,color])=>`
+        <div style="border:1pt solid #d1d5db;border-radius:4pt;padding:10pt;background:#f9fafb;text-align:center;break-inside:avoid">
+          <div style="font-size:20pt;font-weight:700;color:${color};line-height:1.1">${val}</div>
+          <div style="font-size:7pt;color:#6b7280;margin-top:3pt;text-transform:uppercase;letter-spacing:.06em">${lbl}</div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Division × Shift Breakdown -->
+    <div style="font-size:8pt;font-weight:700;color:#374151;letter-spacing:.1em;text-transform:uppercase;border-bottom:1pt solid #e5e7eb;padding-bottom:4pt;margin:14pt 0 8pt">Division &amp; Shift Breakdown</div>
+    <table class="pr-tbl" style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:16pt">
+      <thead>
+        <tr>
+          ${['Division','Total','1st Shift','2nd Shift','2nd Location','⚠ Erroneous','Not Located','Error Rate'].map(h=>`<th style="background:#1a2038;color:#fff;padding:5pt 8pt;text-align:left;font-size:8pt;font-weight:600;letter-spacing:.04em">${h}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${divs.map((d,i)=>{
+          const row=byDiv[d];
+          const ep=pct(row.erroneous,row.total);
+          const bg=i%2===0?'#fff':'#f3f4f6';
+          const epColor=row.erroneous/row.total>0.2?'#b91c1c':row.erroneous/row.total>0.1?'#92400e':'#111';
+          return `<tr style="background:${bg}">
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-weight:700">${esc(d)} <span style="font-weight:400;color:#6b7280;font-size:8pt">${esc(DIV_NAMES[d]||'')}</span></td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace">${row.total}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace">${row.s1}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace">${row.s2}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;color:#047857;font-weight:600">${row.located}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;color:#92400e;font-weight:600">${row.erroneous}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;color:#b91c1c;font-weight:600">${row.notLoc}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;color:${epColor};font-weight:600">${ep}</td>
+          </tr>`;
+        }).join('')}
+        <!-- Totals row -->
+        <tr style="background:#1a2038;color:#fff">
+          <td style="padding:5pt 8pt;font-weight:700;font-size:9pt">TOTAL</td>
+          <td style="padding:5pt 8pt;font-family:'Courier New',monospace;font-weight:700">${total}</td>
+          <td style="padding:5pt 8pt;font-family:'Courier New',monospace;font-weight:700">${shift1c}</td>
+          <td style="padding:5pt 8pt;font-family:'Courier New',monospace;font-weight:700">${shift2c}</td>
+          <td style="padding:5pt 8pt;font-family:'Courier New',monospace;font-weight:700;color:#6ee7b7">${located2nd}</td>
+          <td style="padding:5pt 8pt;font-family:'Courier New',monospace;font-weight:700;color:#fcd34d">${erroneous}</td>
+          <td style="padding:5pt 8pt;font-family:'Courier New',monospace;font-weight:700;color:#fca5a5">${notLoc}</td>
+          <td style="padding:5pt 8pt;font-family:'Courier New',monospace;font-weight:700;color:#fcd34d">${pct(erroneous,total)}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Picker Performance -->
+    <div style="page-break-inside:avoid">
+    <div style="font-size:8pt;font-weight:700;color:#374151;letter-spacing:.1em;text-transform:uppercase;border-bottom:1pt solid #e5e7eb;padding-bottom:4pt;margin:14pt 0 8pt">Picker Performance</div>
+    <table class="pr-tbl" style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:16pt">
+      <thead>
+        <tr>
+          ${['Picker','Total Shorts','2nd Location','⚠ Erroneous','Not Located','Error Rate'].map(h=>`<th style="background:#1a2038;color:#fff;padding:5pt 8pt;text-align:left;font-size:8pt;font-weight:600;letter-spacing:.04em">${h}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${pickerRows.map(([picker,row],i)=>{
+          const ep=pct(row.erroneous,row.total);
+          const epColor=row.erroneous/row.total>0.25?'#b91c1c':row.erroneous/row.total>0.15?'#92400e':'#111';
+          const bg=i%2===0?'#fff':'#f3f4f6';
+          return `<tr style="background:${bg}">
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-weight:600">${esc(picker)}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace">${row.total}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;color:#047857;font-weight:600">${row.located}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;color:#92400e;font-weight:600">${row.erroneous}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;color:#b91c1c;font-weight:600">${row.notLoc}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;color:${epColor};font-weight:600">${ep}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>
+
+    ${duplicates.length ? `
+    <!-- Duplicate Bin Alerts -->
+    <div style="page-break-before:always">
+    <div style="font-size:8pt;font-weight:700;color:#374151;letter-spacing:.1em;text-transform:uppercase;border-bottom:1pt solid #e5e7eb;padding-bottom:4pt;margin:14pt 0 8pt">⚠ Duplicate Bin / Product Alerts</div>
+    <div style="font-size:8.5pt;color:#6b7280;margin-bottom:8pt">Multiple pickers shorted the same item from the same bin location. These may indicate systemic picking errors or data entry issues.</div>
+    <table class="pr-tbl" style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:16pt">
+      <thead>
+        <tr>
+          ${['Product Code','Bin Location','# Occurrences','Pickers Involved','Dates'].map(h=>`<th style="background:#7f1d1d;color:#fff;padding:5pt 8pt;text-align:left;font-size:8pt;font-weight:600;letter-spacing:.04em">${h}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${duplicates.map(([key,rows],i)=>{
+          const [bin,code]=key.split('|');
+          const pickers=[...new Set(rows.map(r=>r.picker))].join(', ');
+          const dates=[...new Set(rows.map(r=>new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit'})))].join(', ');
+          const bg=i%2===0?'#fff5f5':'#fee2e2';
+          return `<tr style="background:${bg}">
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace;font-weight:700;color:#1a2038">${esc(code)}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace">${esc(bin)}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace;font-weight:700;color:#b91c1c">${rows.length}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-size:8.5pt">${esc(pickers)}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-size:8.5pt;color:#6b7280">${esc(dates)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>` : ''}
+
+    <!-- Daily Summary -->
+    <div style="page-break-inside:avoid">
+    <div style="font-size:8pt;font-weight:700;color:#374151;letter-spacing:.1em;text-transform:uppercase;border-bottom:1pt solid #e5e7eb;padding-bottom:4pt;margin:14pt 0 8pt">Daily Summary</div>
+    <table class="pr-tbl" style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:16pt">
+      <thead>
+        <tr>
+          ${['Date','Total','1st Shift','2nd Shift','2nd Location','⚠ Erroneous'].map(h=>`<th style="background:#1a2038;color:#fff;padding:5pt 8pt;text-align:left;font-size:8pt;font-weight:600;letter-spacing:.04em">${h}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${Object.keys(byDay).sort().map((d,i)=>{
+          const bg=i%2===0?'#fff':'#f3f4f6';
+          return `<tr style="background:${bg}">
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace">${d}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace">${byDay[d].total}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace">${byDay[d].s1}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace">${byDay[d].s2}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;color:#047857;font-weight:600">${byDay[d].located}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;color:#92400e;font-weight:600">${byDay[d].erroneous}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>
+
+    <!-- Footer -->
+    <div style="margin-top:20pt;padding-top:8pt;border-top:1pt solid #e5e7eb;font-size:7.5pt;color:#9ca3af;display:flex;justify-content:space-between">
+      <span>815 Inventory Control Portal · C &amp; F Enterprises · Chapman Warehouse</span>
+      <span>Built by Ruben Mendoza &nbsp;·&nbsp; Printed ${today}</span>
+    </div>
+
+  </div>`;
+
+  // Inject into print wrapper and trigger print
+  const wrap = document.getElementById('printReportWrap');
+  wrap.innerHTML = html;
+  wrap.style.display = 'block';
+  setTimeout(()=>{
+    window.print();
+    setTimeout(()=>{ wrap.style.display='none'; wrap.innerHTML=''; }, 500);
+  }, 150);
+}
 
 function renderShortageStats(){
   const fromStr = document.getElementById('statsDateFrom')?.value;
