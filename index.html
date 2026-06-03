@@ -1212,8 +1212,16 @@ body.has-banner #app{margin-top:44px}
           </select>
         </div>
         <div class="sf-field">
-          <label>Picker <span class="req">*</span></label>
-          <input type="text" id="sfPicker" placeholder="Picker name">
+          <label>Picker <span class="req">*</span> <span style="font-size:10px;color:var(--accent);font-weight:400">— scan badge</span></label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input type="text" id="sfPicker" placeholder="Scan picker badge…"
+              autocomplete="off" spellcheck="false"
+              style="font-family:var(--mono)"
+              onkeydown="onPickerKey(event)"
+              onfocus="this.select()">
+            <span id="sfPickerConfirm" style="font-size:18px;display:none">✅</span>
+          </div>
+          <div id="sfPickerDisplay" style="font-size:11px;color:var(--green);margin-top:3px;font-weight:600;min-height:16px"></div>
         </div>
         <div class="sf-field">
           <label>Order Number <span class="req">*</span></label>
@@ -1286,6 +1294,7 @@ body.has-banner #app{margin-top:44px}
       <select id="statsFilterDiv" onchange="renderShortageStats()" class="tracker-sort-sel"><option value="">All Divisions</option><option>GT</option><option>NH</option><option>BC</option><option>FS</option><option>EE</option><option>VP</option><option>TP</option><option>CI</option><option>KA</option></select>
       <select id="statsFilterShift" onchange="renderShortageStats()" class="tracker-sort-sel"><option value="">All Shifts</option><option value="1">1st Shift (6A–3:30P)</option><option value="2">2nd Shift (3:30P–12A)</option></select>
       <button class="refresh-btn" onclick="printShortageReport()" style="margin-left:auto">🖨 Print Report</button>
+      <button class="refresh-btn" onclick="printICCheckSheet()" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#f59e0b">📋 IC Check Sheet</button>
     </div>
     <div id="shortageStatsArea" class="printable"></div>
   </div>
@@ -1370,6 +1379,10 @@ body.has-banner #app{margin-top:44px}
       <div class="sf-field">
         <label>Location Notes</label>
         <input type="text" id="seLocNotes" placeholder="Optional">
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0">
+        <input type="checkbox" id="seReplenished" style="width:15px;height:15px;accent-color:var(--green);cursor:pointer">
+        <label for="seReplenished" style="font-size:12px;cursor:pointer;color:var(--text)">Bin has been replenished after pick</label>
       </div>
     </div>
     <div class="merge-modal-footer">
@@ -4064,6 +4077,7 @@ function openShortageEdit(id){
   document.getElementById('seFoundBin').value    = r.foundBin||'';
   document.getElementById('seQtyLocated').value  = r.qtyLocated||0;
   document.getElementById('seLocNotes').value    = r.locNotes||'';
+  document.getElementById('seReplenished').checked = r.binReplenished||false;
   // Format timestamp for datetime-local input
   if(r.timestamp){
     const d = new Date(r.timestamp);
@@ -4104,6 +4118,7 @@ async function saveShortageEdit(){
     foundBin:    document.getElementById('seFoundBin').value.trim().toUpperCase(),
     qtyLocated:  parseInt(document.getElementById('seQtyLocated').value||'0'),
     locNotes:    document.getElementById('seLocNotes').value.trim(),
+    binReplenished: document.getElementById('seReplenished').checked,
   };
   if(ts) upd.timestamp = ts;
   showLoad('Saving…');
@@ -4145,6 +4160,7 @@ async function fetchShortages(){
         located:     d.located || 'pending',  // 'Y','N','pending'
         foundBin:    d.foundBin || '',
         foundInShortedBin: d.foundInShortedBin || false,
+        binReplenished: d.binReplenished || false,
         qtyLocated:  typeof d.qtyLocated === 'number' ? d.qtyLocated : parseInt(d.qtyLocated||0),
         locNotes:    d.locNotes || '',
         exported:    d.exported || false,
@@ -4192,6 +4208,9 @@ function removeProductLine(id){
 function resetShortageForm(){
   document.getElementById('sfDivision').value='';
   document.getElementById('sfPicker').value='';
+  document.getElementById('sfPickerDisplay').textContent='';
+  document.getElementById('sfPickerDisplay').style.color='var(--green)';
+  const ok=document.getElementById('sfPickerConfirm'); if(ok) ok.style.display='none';
   document.getElementById('sfOrderNum').value='';
   document.getElementById('sfShiftOverride').value='';
   document.getElementById('sfProductLines').innerHTML='';
@@ -4315,6 +4334,144 @@ async function markLocated(id){
   }catch(e){ toast('Update failed: '+e.message,'error'); }
 }
 
+/* ── Picker scan-only handler ────────────────────────────── */
+function onPickerKey(e){
+  const inp=document.getElementById('sfPicker');
+  if(e.key==='Enter'){
+    e.preventDefault();
+    const val=inp.value.trim();
+    if(val){
+      document.getElementById('sfPickerDisplay').textContent='✅ '+val;
+      document.getElementById('sfPickerDisplay').style.color='var(--green)';
+      const ok=document.getElementById('sfPickerConfirm');
+      if(ok) ok.style.display='';
+      // Auto-advance to first product code
+      const firstCode=document.querySelector('#sfProductLines .sf-product-line input[type="text"]');
+      if(firstCode) setTimeout(()=>firstCode.focus(),50);
+    }
+    return;
+  }
+  // Any edit clears confirmation
+  document.getElementById('sfPickerDisplay').textContent='Scan not confirmed — press Enter or scan badge';
+  document.getElementById('sfPickerDisplay').style.color='var(--orange)';
+  const ok=document.getElementById('sfPickerConfirm');
+  if(ok) ok.style.display='none';
+}
+
+/* ── Replenished toggle ──────────────────────────────────── */
+async function toggleReplenished(id, checked){
+  try{
+    const upd={binReplenished: checked};
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    const rec=shortageData.find(r=>r.id===id);
+    if(rec) rec.binReplenished=checked;
+    else {
+      const s=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+      const i=s.findIndex(r=>r.id===id);
+      if(i>=0){ s[i].binReplenished=checked; localStorage.setItem('shortages_demo',JSON.stringify(s)); }
+    }
+  }catch(e){ toast('Could not save replenished status','error'); }
+}
+
+/* ── IC Check Sheet print ────────────────────────────────── */
+function printICCheckSheet(){
+  const fromStr=document.getElementById('statsDateFrom')?.value;
+  const toStr  =document.getElementById('statsDateTo')?.value;
+  const divF   =document.getElementById('statsFilterDiv')?.value||'';
+  const from=fromStr?new Date(fromStr+'T00:00:00'):new Date(0);
+  const to  =toStr  ?new Date(toStr  +'T23:59:59'):new Date();
+
+  let data=shortageData.filter(r=>{
+    const d=new Date(r.timestamp);
+    return d>=from&&d<=to&&(!divF||r.division===divF);
+  }).sort((a,b)=>(a.binShorted||'').localeCompare(b.binShorted||'')||a.productCode.localeCompare(b.productCode));
+
+  if(!data.length){ toast('No shortage records in selected range','error'); return; }
+
+  const today=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const fmtD=d=>new Date(d).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit'});
+  const fmtT=d=>new Date(d).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+
+  const binProdCount={};
+  data.forEach(r=>{ const k=r.binShorted+'|'+r.productCode; binProdCount[k]=(binProdCount[k]||0)+1; });
+
+  const rows=data.map((r,i)=>{
+    const isDup=(binProdCount[r.binShorted+'|'+r.productCode]||0)>1;
+    const status=r.foundInShortedBin?'Erroneous':r.located==='Y'?'Located (2nd)':r.located==='N'?'Not Found':'Pending';
+    const statusColor=r.foundInShortedBin?'#92400e':r.located==='Y'?'#047857':r.located==='N'?'#b91c1c':'#374151';
+    const bg=i%2===0?'#fff':'#f9fafb';
+    return `<tr style="background:${bg}${isDup?';border-left:3pt solid #f87171':''}">
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;text-align:center;font-size:7pt;color:#9ca3af">${i+1}</td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;font-weight:700;font-size:8.5pt${isDup?';color:#b91c1c':''}">${esc(r.binShorted||'—')}${isDup?' ⚠':''}</td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;font-family:'Courier New',monospace;font-weight:700;font-size:8.5pt">${esc(r.productCode)}</td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;font-size:8pt;font-family:'Courier New',monospace">${r.qtyShorted}</td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;font-size:8pt">${esc(r.picker||'—')}</td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;font-size:8pt;font-family:'Courier New',monospace">${esc(r.division||'—')}</td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;font-size:7.5pt;color:#6b7280">${fmtD(r.timestamp)} ${fmtT(r.timestamp)}</td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;font-size:7.5pt;font-weight:600;color:${statusColor}">${status}</td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;font-size:7.5pt;color:${r.binReplenished?'#047857':'#9ca3af'}">${r.binReplenished?'✓ Yes':'—'}</td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;border:1pt solid #e5e7eb;min-width:45pt"></td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;border:1pt solid #e5e7eb;min-width:50pt;text-align:center"></td>
+      <td style="padding:4pt 5pt;border-bottom:.5pt solid #e5e7eb;border:1pt solid #e5e7eb;min-width:60pt"></td>
+    </tr>`;
+  }).join('');
+
+  const totalPending=data.filter(r=>r.located==='pending'||r.located==='N').length;
+  const totalDups=Object.values(binProdCount).filter(v=>v>1).length;
+
+  const reportHtml=`<div style="font-family:'Segoe UI',Arial,sans-serif;color:#111;font-size:9pt">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2.5pt solid #1a2038;padding-bottom:10pt;margin-bottom:12pt">
+      <div>
+        <div style="font-size:7.5pt;font-weight:700;color:#6b7280;letter-spacing:.12em;text-transform:uppercase;margin-bottom:3pt">C &amp; F Enterprises · 815 Chapman Warehouse</div>
+        <div style="font-size:16pt;font-weight:700;color:#1a2038">IC Shortage Verification Sheet</div>
+        <div style="font-size:9pt;color:#6b7280;margin-top:3pt">${divF?(divF+' — '+(DIV_NAMES[divF]||'')):'All Divisions'} · ${fromStr||'All dates'} to ${toStr||'today'}</div>
+      </div>
+      <div style="text-align:right;font-size:8pt;color:#6b7280;line-height:1.8">
+        <div><span style="font-weight:600;color:#374151">Printed:</span> ${today}</div>
+        <div><span style="font-weight:600;color:#374151">Total:</span> ${data.length} shortages</div>
+        <div style="color:#b91c1c;font-weight:600">⚠ Duplicate Bins: ${totalDups}</div>
+        <div style="color:#92400e;font-weight:600">Pending: ${totalPending}</div>
+      </div>
+    </div>
+    <div style="background:#f0f9ff;border:1pt solid #bae6fd;border-radius:3pt;padding:6pt 10pt;margin-bottom:10pt;font-size:8pt;color:#075985">
+      <strong>IC Instructions:</strong> Walk each bin location. Confirm qty on-hand. Mark Confirmed ✓ or Erroneous ✗ in the write-in columns.
+      ⚠ Red-border rows = duplicate bin/product — multiple pickers, investigate first.
+    </div>
+    <table style="width:100%;border-collapse:collapse">
+      <thead>
+        <tr style="background:#1a2038;color:#fff">
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em;text-align:center">#</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em">BIN LOCATION</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em">PRODUCT CODE</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em">QTY</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em">PICKER</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em">DIV</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em">DATE / TIME</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em">STATUS</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em">REPLENISHED?</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em;background:#374151">IC QTY ON-HAND</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em;background:#374151;text-align:center">CONFIRMED ✓ / ✗</th>
+          <th style="padding:5pt 5pt;font-size:7pt;font-weight:600;letter-spacing:.04em;background:#374151">IC NOTES</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="margin-top:20pt;display:flex;gap:36pt;border-top:1pt solid #e5e7eb;padding-top:10pt">
+      <div style="flex:1"><div style="border-bottom:1pt solid #374151;height:16pt;margin-bottom:3pt"></div><div style="font-size:7.5pt;color:#6b7280">IC Team Member</div></div>
+      <div style="flex:1"><div style="border-bottom:1pt solid #374151;height:16pt;margin-bottom:3pt"></div><div style="font-size:7.5pt;color:#6b7280">Date Verified</div></div>
+      <div style="flex:1"><div style="border-bottom:1pt solid #374151;height:16pt;margin-bottom:3pt"></div><div style="font-size:7.5pt;color:#6b7280">Supervisor Initials</div></div>
+    </div>
+    <div style="margin-top:10pt;padding-top:6pt;border-top:1pt solid #e5e7eb;font-size:7pt;color:#9ca3af;text-align:center">
+      815 Inventory Control · C &amp; F Enterprises · Chapman Warehouse · Built by Ruben Mendoza · ${today}
+    </div>
+  </div>`;
+
+  const wrap=document.getElementById('printReportWrap');
+  wrap.innerHTML=reportHtml;
+  wrap.style.display='block';
+  setTimeout(()=>{ window.print(); setTimeout(()=>{ wrap.style.display='none'; wrap.innerHTML=''; },500); },150);
+}
+
 async function toggleExported(id, checked){
   try{
     const upd = {exported: checked};
@@ -4383,6 +4540,10 @@ function renderShortageList(){
            <input type="checkbox" class="export-chk" ${r.exported?'checked':''} onchange="toggleExported('${r.id}',this.checked)"> Included in Apprise Export
          </label>`
       : '';
+    const replenishChk = `<label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-top:4px;color:${r.binReplenished?'var(--green)':'var(--muted)'}">
+      <input type="checkbox" style="accent-color:var(--green);width:13px;height:13px;cursor:pointer" ${r.binReplenished?'checked':''} onchange="toggleReplenished('${r.id}',this.checked)">
+      Bin replenished after pick?
+    </label>`;
     const canClear = role==='icteam'||role==='manager';
     const rowChk = canClear
       ? `<input type="checkbox" class="shortage-row-chk" data-id="${r.id}" onchange="onShortageRowCheck()" style="width:14px;height:14px;accent-color:var(--red);cursor:pointer;flex-shrink:0;margin-top:2px">`
@@ -4407,6 +4568,7 @@ function renderShortageList(){
           ${locDetails}
           ${locateBtn}
           ${exportChk}
+          ${replenishChk}
           <div style="display:flex;gap:6px;margin-top:6px">${deleteBtn}${editBtn}</div>
         </div>
       </div>
