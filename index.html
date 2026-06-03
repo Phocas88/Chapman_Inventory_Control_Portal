@@ -4129,6 +4129,7 @@ async function fetchShortages(){
         uom:         d.uom || '',
         located:     d.located || 'pending',  // 'Y','N','pending'
         foundBin:    d.foundBin || '',
+        foundInShortedBin: d.foundInShortedBin || false,
         qtyLocated:  typeof d.qtyLocated === 'number' ? d.qtyLocated : parseInt(d.qtyLocated||0),
         locNotes:    d.locNotes || '',
         exported:    d.exported || false,
@@ -4336,24 +4337,30 @@ function renderShortageList(){
 
   el.innerHTML = data.map(r=>{
     const locClass = r.located==='Y'?'located':r.located==='N'?'not-located':'pending-loc';
-    const locBadge = r.located==='Y'
-      ? `<span class="sr-badge located">✓ Located</span>`
-      : r.located==='N'
-        ? `<span class="sr-badge not-located">✗ Not Located</span>`
-        : `<span class="sr-badge pending">⏳ Pending</span>`;
+    const locBadge = r.located==='Y' && r.foundInShortedBin
+      ? `<span class="sr-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">⚠ Found in Shorted Bin</span>`
+      : r.located==='Y'
+        ? `<span class="sr-badge located">✓ Located (2nd Location)</span>`
+        : r.located==='N'
+          ? `<span class="sr-badge not-located">✗ Not Located</span>`
+          : `<span class="sr-badge pending">⏳ Pending</span>`;
     const expBadge = r.exported ? `<span class="sr-badge exported">✓ Exported</span>` : '';
     const shiftLbl = `Shift ${r.shift||getShift(r.timestamp)}`;
-    const locDetails = r.located==='Y' && r.foundBin
-      ? `<div style="margin-top:6px;font-size:12px;color:var(--green)">Found: <span style="font-family:var(--mono);font-weight:600">${esc(r.foundBin)}</span> · Picked: <strong>${r.qtyLocated}</strong> ${esc(r.uom)}${r.locNotes?` · ${esc(r.locNotes)}`:''}</div>`
+    const locDetails = r.located==='Y'
+      ? r.foundInShortedBin
+        ? `<div style="margin-top:6px;font-size:12px;color:#f59e0b">⚠ Found in original shorted bin <span style="font-family:var(--mono);font-weight:600">${esc(r.binShorted)}</span> — erroneous short${r.locNotes?' · '+esc(r.locNotes):''}</div>`
+        : `<div style="margin-top:6px;font-size:12px;color:var(--green)">Found: <span style="font-family:var(--mono);font-weight:600">${esc(r.foundBin)}</span> · Picked: <strong>${r.qtyLocated}</strong> ${esc(r.uom)}${r.locNotes?` · ${esc(r.locNotes)}`:''}</div>`
       : '';
     const locateBtn = (r.located==='pending' || r.located==='N')
-      ? `<button class="locate-btn" onclick="showInlineLocate('${r.id}')">📍 Mark as Located</button>
+      ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
+           <button class="locate-btn" onclick="showInlineLocate('${r.id}')">📍 Mark as Located</button>
+           <button class="locate-btn" onclick="markFoundInShortedBin('${r.id}')" style="border-color:rgba(245,158,11,.4);color:#f59e0b" title="Item was found in the original shorted bin — erroneous short">⚠ Found in Shorted Bin</button>
+         </div>
          <div class="locate-inline" id="il-${r.id}" style="display:none">
            <div class="sf-field" style="min-width:120px"><label>Found In Bin</label><input id="il-bin-${r.id}" type="text" style="text-transform:uppercase" placeholder="Bin"></div>
            <div class="sf-field" style="min-width:80px"><label>Qty Picked</label><input id="il-qty-${r.id}" type="number" min="1" placeholder="0"></div>
            <div class="sf-field" style="flex:2;min-width:150px"><label>Notes</label><input id="il-notes-${r.id}" type="text" placeholder="Optional"></div>
            <button onclick="markLocated('${r.id}')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;white-space:nowrap">Save</button>
-
          </div>`
       : '';
     const exportChk = (role==='manager'||role==='clerk') && r.located==='Y'
@@ -4390,6 +4397,18 @@ function renderShortageList(){
       </div>
     </div>`;
   }).join('');
+}
+
+async function markFoundInShortedBin(id){
+  if(!confirm('Mark as found in the original shorted bin?\n\nThis means the item WAS in the bin but the picker missed it — an erroneous short.')) return;
+  try{
+    const upd={located:'Y', foundInShortedBin:true, foundBin:'', qtyLocated:0, locNotes:'Erroneous short — found in shorted bin'};
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    const rec=shortageData.find(r=>r.id===id);
+    if(rec) Object.assign(rec,upd);
+    toast('Marked as erroneous short ✓','success');
+    renderShortageList();
+  }catch(e){ toast('Update failed: '+e.message,'error'); }
 }
 
 function showInlineLocate(id){
@@ -4452,6 +4471,8 @@ function generateAppriseExport(){
 }
 
 // ── Stats ────────────────────────────────────────────────
+let statsDrillDiv=null, statsDrillShift=null;
+
 function renderShortageStats(){
   const fromStr = document.getElementById('statsDateFrom')?.value;
   const toStr   = document.getElementById('statsDateTo')?.value;
@@ -4468,60 +4489,214 @@ function renderShortageStats(){
       && (!shiftF || String(r.shift||getShift(r.timestamp))===shiftF);
   });
 
-  const total     = data.length;
-  const located   = data.filter(r=>r.located==='Y').length;
-  const notLoc    = data.filter(r=>r.located==='N').length;
-  const pending   = data.filter(r=>r.located==='pending').length;
-  const exported  = data.filter(r=>r.exported).length;
-  const shift1    = data.filter(r=>(r.shift||getShift(r.timestamp))===1).length;
-  const shift2    = data.filter(r=>(r.shift||getShift(r.timestamp))===2).length;
-  const locPct    = total ? Math.round(located/total*100) : 0;
+  // If drill-down active, filter further
+  let drillData = null;
+  if(statsDrillDiv || statsDrillShift){
+    drillData = data.filter(r=>
+      (!statsDrillDiv   || r.division===statsDrillDiv) &&
+      (!statsDrillShift || String(r.shift||getShift(r.timestamp))===String(statsDrillShift))
+    );
+  }
 
-  // By division
+  const total       = data.length;
+  const located2nd  = data.filter(r=>r.located==='Y'&&!r.foundInShortedBin).length;
+  const erroneous   = data.filter(r=>r.foundInShortedBin).length;
+  const notLoc      = data.filter(r=>r.located==='N'&&!r.foundInShortedBin).length;
+  const pending     = data.filter(r=>r.located==='pending').length;
+  const exported    = data.filter(r=>r.exported).length;
+  const shift1      = data.filter(r=>(r.shift||getShift(r.timestamp))===1).length;
+  const shift2c     = data.filter(r=>(r.shift||getShift(r.timestamp))===2).length;
+  const locPct      = total ? Math.round(located2nd/total*100) : 0;
+  const errPct      = total ? Math.round(erroneous/total*100) : 0;
+
+  // ── By division + shift matrix ────────────────────────
+  const divs = [...new Set(data.map(r=>r.division))].sort();
   const byDiv={};
-  data.forEach(r=>{ if(!byDiv[r.division]) byDiv[r.division]={total:0,located:0,notLoc:0}; byDiv[r.division].total++; if(r.located==='Y') byDiv[r.division].located++; if(r.located==='N') byDiv[r.division].notLoc++; });
+  divs.forEach(d=>{ byDiv[d]={total:0,s1:0,s2:0,located:0,erroneous:0,notLoc:0}; });
+  data.forEach(r=>{
+    if(!byDiv[r.division]) byDiv[r.division]={total:0,s1:0,s2:0,located:0,erroneous:0,notLoc:0};
+    byDiv[r.division].total++;
+    if((r.shift||getShift(r.timestamp))===1) byDiv[r.division].s1++;
+    else byDiv[r.division].s2++;
+    if(r.foundInShortedBin)                  byDiv[r.division].erroneous++;
+    else if(r.located==='Y')                 byDiv[r.division].located++;
+    else if(r.located==='N')                 byDiv[r.division].notLoc++;
+  });
 
-  // By day
+  // ── Duplicate bin/product detection ──────────────────
+  const binProductMap={};
+  data.forEach(r=>{
+    const key=r.binShorted+'::'+r.productCode;
+    if(!binProductMap[key]) binProductMap[key]=[];
+    binProductMap[key].push(r);
+  });
+  const duplicates=Object.entries(binProductMap).filter(([k,v])=>v.length>1).sort((a,b)=>b[1].length-a[1].length);
+
+  // ── Picker stats ─────────────────────────────────────
+  const byPicker={};
+  data.forEach(r=>{
+    const p=r.picker||'Unknown';
+    if(!byPicker[p]) byPicker[p]={total:0,located:0,erroneous:0,notLoc:0};
+    byPicker[p].total++;
+    if(r.foundInShortedBin)       byPicker[p].erroneous++;
+    else if(r.located==='Y')      byPicker[p].located++;
+    else if(r.located==='N')      byPicker[p].notLoc++;
+  });
+  const pickerRows=Object.entries(byPicker).sort((a,b)=>b[1].total-a[1].total);
+
+  // ── By day ────────────────────────────────────────────
   const byDay={};
-  data.forEach(r=>{ const d=new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit'}); if(!byDay[d]) byDay[d]={total:0,located:0,s1:0,s2:0}; byDay[d].total++; if(r.located==='Y') byDay[d].located++; const sh=r.shift||getShift(r.timestamp); if(sh===1) byDay[d].s1++; else byDay[d].s2++; });
+  data.forEach(r=>{
+    const d=new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'});
+    if(!byDay[d]) byDay[d]={total:0,located:0,erroneous:0,s1:0,s2:0};
+    byDay[d].total++;
+    if(r.foundInShortedBin) byDay[d].erroneous++;
+    else if(r.located==='Y') byDay[d].located++;
+    const sh=r.shift||getShift(r.timestamp);
+    if(sh===1) byDay[d].s1++; else byDay[d].s2++;
+  });
 
   const el = document.getElementById('shortageStatsArea');
+
+  // ── Drill-down panel ──────────────────────────────────
+  let drillHtml='';
+  if(drillData){
+    const dDiv=statsDrillDiv||'All Divisions';
+    const dShift=statsDrillShift?'Shift '+statsDrillShift:'All Shifts';
+    // Group drill data by bin
+    const binMap={};
+    drillData.forEach(r=>{
+      if(!binMap[r.binShorted]) binMap[r.binShorted]=[];
+      binMap[r.binShorted].push(r);
+    });
+    drillHtml=`
+      <div style="background:var(--panel);border:1.5px solid var(--accent);border-radius:10px;padding:14px 16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <div style="font-size:13px;font-weight:700;color:var(--accent)">🔍 Drill-Down: ${esc(dDiv)} · ${dShift}</div>
+          <button onclick="statsDrillDiv=null;statsDrillShift=null;renderShortageStats()" style="padding:3px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--muted);cursor:pointer;margin-left:auto">✕ Close</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${drillData.length} shortages · ${Object.keys(binMap).length} unique bins</div>
+        ${Object.entries(binMap).sort((a,b)=>b[1].length-a[1].length).map(([bin,rows])=>`
+          <div style="margin-bottom:8px;background:var(--panel2);border-radius:8px;padding:8px 12px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="font-family:var(--mono);font-weight:700;color:var(--text)">${esc(bin)}</span>
+              <span style="font-size:11px;color:var(--muted)">${rows.length} shortage${rows.length>1?'s':''}</span>
+              ${rows.length>1?'<span style="font-size:10px;font-weight:700;color:var(--red);background:rgba(248,113,113,.15);padding:1px 7px;border-radius:10px;border:1px solid rgba(248,113,113,.3)">⚠ DUPLICATE BIN</span>':''}
+            </div>
+            ${rows.map(r=>`<div style="font-size:11px;color:var(--muted);padding:3px 0;border-top:1px solid var(--border)">
+              <span style="font-family:var(--mono);color:var(--text)">${esc(r.productCode)}</span>
+              · Qty: ${r.qtyShorted}
+              · Picker: ${esc(r.picker)}
+              · ${new Date(r.timestamp).toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+              · <span style="color:${r.foundInShortedBin?'#f59e0b':r.located==='Y'?'var(--green)':'var(--red)'}">${r.foundInShortedBin?'⚠ Erroneous':r.located==='Y'?'✓ Located':'✗ Not Found'}</span>
+            </div>`).join('')}
+          </div>`).join('')}
+      </div>`;
+  }
+
   el.innerHTML = `
+    ${drillHtml}
     <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">Shortage Statistics${divF?' — '+divF:''}${shiftF?' — Shift '+shiftF:''}</div>
 
+    <!-- Summary cards -->
     <div class="shortage-stat-grid">
       <div class="shortage-stat-card"><div class="shortage-stat-num">${total}</div><div class="shortage-stat-lbl">Total Shortages</div></div>
-      <div class="shortage-stat-card" style="border-color:rgba(16,185,129,.3)"><div class="shortage-stat-num" style="color:var(--green)">${located}</div><div class="shortage-stat-lbl">Located (2nd Loc)</div></div>
+      <div class="shortage-stat-card" style="border-color:rgba(16,185,129,.3)"><div class="shortage-stat-num" style="color:var(--green)">${located2nd}</div><div class="shortage-stat-lbl">2nd Location Found</div></div>
+      <div class="shortage-stat-card" style="border-color:rgba(245,158,11,.3)"><div class="shortage-stat-num" style="color:#f59e0b">${erroneous} <span style="font-size:12px">(${errPct}%)</span></div><div class="shortage-stat-lbl">⚠ Erroneous Shorts</div></div>
       <div class="shortage-stat-card" style="border-color:rgba(248,113,113,.3)"><div class="shortage-stat-num" style="color:var(--red)">${notLoc}</div><div class="shortage-stat-lbl">Not Located</div></div>
       <div class="shortage-stat-card" style="border-color:rgba(245,158,11,.3)"><div class="shortage-stat-num" style="color:#f59e0b">${pending}</div><div class="shortage-stat-lbl">Pending</div></div>
-      <div class="shortage-stat-card"><div class="shortage-stat-num" style="color:var(--accent)">${locPct}%</div><div class="shortage-stat-lbl">Located Rate</div></div>
+      <div class="shortage-stat-card"><div class="shortage-stat-num" style="color:var(--accent)">${locPct}%</div><div class="shortage-stat-lbl">2nd Loc Rate</div></div>
       <div class="shortage-stat-card"><div class="shortage-stat-num">${shift1}</div><div class="shortage-stat-lbl">1st Shift</div></div>
-      <div class="shortage-stat-card"><div class="shortage-stat-num">${shift2}</div><div class="shortage-stat-lbl">2nd Shift</div></div>
-      <div class="shortage-stat-card" style="border-color:rgba(16,185,129,.2)"><div class="shortage-stat-num" style="color:var(--green)">${exported}</div><div class="shortage-stat-lbl">Apprise Exported</div></div>
+      <div class="shortage-stat-card"><div class="shortage-stat-num">${shift2c}</div><div class="shortage-stat-lbl">2nd Shift</div></div>
     </div>
 
-    <div class="stats-section-title">By Division</div>
+    <!-- Division × Shift matrix — clickable rows -->
+    <div class="stats-section-title">By Division &amp; Shift <span style="font-size:10px;font-weight:400;color:var(--muted)">(click a row to drill into bins)</span></div>
     <table class="tbl" style="margin-bottom:20px">
-      <thead><tr><th>Division</th><th>Total</th><th style="color:var(--green)">Located</th><th style="color:var(--red)">Not Located</th><th>Located Rate</th></tr></thead>
-      <tbody>${Object.keys(byDiv).sort().map(d=>`<tr>
-        <td><span class="mono" style="font-weight:700">${d}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[d]||''}</span></td>
-        <td class="mono">${byDiv[d].total}</td>
-        <td class="mono" style="color:var(--green)">${byDiv[d].located}</td>
-        <td class="mono" style="color:var(--red)">${byDiv[d].notLoc}</td>
-        <td class="mono">${byDiv[d].total?Math.round(byDiv[d].located/byDiv[d].total*100):0}%</td>
-      </tr>`).join('')}</tbody>
+      <thead><tr>
+        <th>Division</th>
+        <th>Total</th>
+        <th>1st Shift</th>
+        <th>2nd Shift</th>
+        <th style="color:var(--green)">2nd Loc</th>
+        <th style="color:#f59e0b">⚠ Erroneous</th>
+        <th style="color:var(--red)">Not Found</th>
+        <th>Err %</th>
+        <th></th>
+      </tr></thead>
+      <tbody>
+        ${divs.map(d=>{
+          const row=byDiv[d];
+          const ep=row.total?Math.round(row.erroneous/row.total*100):0;
+          return `<tr style="cursor:pointer" onclick="statsDrillDiv='${d}';statsDrillShift=null;renderShortageStats()">
+            <td><span class="mono" style="font-weight:700">${d}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[d]||''}</span></td>
+            <td class="mono">${row.total}</td>
+            <td class="mono">${row.s1} <button onclick="event.stopPropagation();statsDrillDiv='${d}';statsDrillShift=1;renderShortageStats()" style="margin-left:4px;padding:1px 5px;font-size:10px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--muted)">🔍</button></td>
+            <td class="mono">${row.s2} <button onclick="event.stopPropagation();statsDrillDiv='${d}';statsDrillShift=2;renderShortageStats()" style="margin-left:4px;padding:1px 5px;font-size:10px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--muted)">🔍</button></td>
+            <td class="mono" style="color:var(--green)">${row.located}</td>
+            <td class="mono" style="color:#f59e0b">${row.erroneous}</td>
+            <td class="mono" style="color:var(--red)">${row.notLoc}</td>
+            <td class="mono" style="color:${ep>20?'var(--red)':ep>10?'#f59e0b':'var(--muted)'}">${ep}%</td>
+            <td><button onclick="event.stopPropagation();statsDrillDiv='${d}';statsDrillShift=null;renderShortageStats()" style="padding:2px 8px;font-size:10px;background:var(--accent-l);border:1px solid var(--accent);border-radius:4px;cursor:pointer;color:var(--accent)">Bins 🔍</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
     </table>
 
+    <!-- Duplicate bin/product flags -->
+    ${duplicates.length ? `
+    <div class="stats-section-title">⚠ Duplicate Bin+Product Alerts <span style="font-size:10px;font-weight:400;color:var(--muted)">(multiple pickers shorted same item from same bin)</span></div>
+    <table class="tbl" style="margin-bottom:20px">
+      <thead><tr><th>Product Code</th><th>Bin Shorted</th><th>Count</th><th>Pickers</th><th>Dates</th></tr></thead>
+      <tbody>${duplicates.map(([key,rows])=>{
+        const [bin,code]=key.split('::');
+        const pickers=[...new Set(rows.map(r=>r.picker))].join(', ');
+        const dates=rows.map(r=>new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit'})).join(', ');
+        return `<tr style="background:rgba(248,113,113,.07)">
+          <td class="mono" style="font-weight:700;color:var(--accent)">${esc(code)}</td>
+          <td class="mono">${esc(bin)}</td>
+          <td class="mono" style="color:var(--red);font-weight:700">${rows.length}</td>
+          <td style="font-size:12px">${esc(pickers)}</td>
+          <td style="font-size:11px;color:var(--muted)">${esc(dates)}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>` : ''}
+
+    <!-- Picker performance -->
+    <div class="stats-section-title">Picker Breakdown</div>
+    <table class="tbl" style="margin-bottom:20px">
+      <thead><tr>
+        <th>Picker</th><th>Total Shorts</th>
+        <th style="color:var(--green)">2nd Location</th>
+        <th style="color:#f59e0b">⚠ Erroneous</th>
+        <th style="color:var(--red)">Not Found</th>
+        <th>Err Rate</th>
+      </tr></thead>
+      <tbody>${pickerRows.map(([picker,row])=>{
+        const ep=row.total?Math.round(row.erroneous/row.total*100):0;
+        return `<tr>
+          <td style="font-weight:600">${esc(picker)}</td>
+          <td class="mono">${row.total}</td>
+          <td class="mono" style="color:var(--green)">${row.located}</td>
+          <td class="mono" style="color:#f59e0b">${row.erroneous}</td>
+          <td class="mono" style="color:var(--red)">${row.notLoc}</td>
+          <td class="mono" style="color:${ep>25?'var(--red)':ep>15?'#f59e0b':'var(--muted)'}">${ep}%</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+
+    <!-- By day -->
     <div class="stats-section-title">By Day</div>
     <table class="tbl">
-      <thead><tr><th>Date</th><th>Total</th><th>1st Shift</th><th>2nd Shift</th><th style="color:var(--green)">Located</th><th>Located Rate</th></tr></thead>
-      <tbody>${Object.keys(byDay).sort((a,b)=>new Date(a)-new Date(b)).map(d=>`<tr>
+      <thead><tr><th>Date</th><th>Total</th><th>1st Shift</th><th>2nd Shift</th><th style="color:var(--green)">2nd Loc</th><th style="color:#f59e0b">Erroneous</th></tr></thead>
+      <tbody>${Object.keys(byDay).sort((a,b)=>new Date(a+'/2025')-new Date(b+'/2025')).map(d=>`<tr>
         <td class="mono">${d}</td>
         <td class="mono">${byDay[d].total}</td>
         <td class="mono">${byDay[d].s1}</td>
         <td class="mono">${byDay[d].s2}</td>
         <td class="mono" style="color:var(--green)">${byDay[d].located}</td>
-        <td class="mono">${byDay[d].total?Math.round(byDay[d].located/byDay[d].total*100):0}%</td>
+        <td class="mono" style="color:#f59e0b">${byDay[d].erroneous}</td>
       </tr>`).join('')}
       </tbody>
     </table>`;
