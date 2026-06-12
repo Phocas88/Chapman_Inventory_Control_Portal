@@ -838,7 +838,7 @@ body.has-banner #app{margin-top:44px}
         <option value="date-desc">Newest First</option>
         <option value="date-asc">Oldest First</option>
         <option value="product">Product Code A–Z</option>
-        <option value="order">Order Number</option>
+        <option value="order">Pick Demand #</option>
         <option value="id">Ticket ID</option>
       </select>
     </div>
@@ -1241,8 +1241,9 @@ body.has-banner #app{margin-top:44px}
           <div id="sfPickerDisplay" style="font-size:11px;color:var(--green);margin-top:3px;font-weight:600;min-height:16px"></div>
         </div>
         <div class="sf-field">
-          <label>Order Number <span class="req">*</span></label>
-          <input type="text" id="sfOrderNum" placeholder="e.g. 123456">
+          <label>Pick Demand # <span class="req">*</span></label>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Scan barcode on paperwork — division auto-fills</div>
+          <input type="text" id="sfOrderNum" placeholder="e.g. NH00012345" autocomplete="off" oninput="onPickDemandInput(this.value)" style="font-family:var(--mono)">
         </div>
         <div class="sf-field" style="max-width:200px">
           <label>Shift Override</label>
@@ -1287,7 +1288,13 @@ body.has-banner #app{margin-top:44px}
         <option value="division">Division</option>
         <option value="order">Order #</option>
       </select>
-      <button class="refresh-btn" onclick="generateAppriseExport()" id="btnExport" style="background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:var(--green)">⬇ Apprise Export</button>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--muted)">Export dates:</span>
+        <input type="date" id="exportDateFrom" class="tracker-search-inp" style="max-width:140px" placeholder="From">
+        <span style="font-size:11px;color:var(--muted)">to</span>
+        <input type="date" id="exportDateTo" class="tracker-search-inp" style="max-width:140px" placeholder="To">
+        <button class="refresh-btn" onclick="generateAppriseExport()" id="btnExport" style="background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:var(--green)">⬇ Apprise Export</button>
+      </div>
       <div id="shortageClearControls" style="display:none;gap:6px;align-items:center">
         <button class="refresh-btn" onclick="clearExportedShortages()" style="background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.3);color:var(--red)" title="Remove all rows already marked as exported to Apprise">🗑 Clear Exported</button>
         <button class="refresh-btn" onclick="archiveSelectedShortages()" style="background:rgba(107,116,148,.12);border-color:var(--border);color:var(--muted)">📦 Archive Selected</button>
@@ -1376,7 +1383,7 @@ body.has-banner #app{margin-top:44px}
       </div>
       <div class="sf-row">
         <div class="sf-field">
-          <label>Order Number</label>
+          <label>Pick Demand #</label>
           <input type="text" id="seOrderNum" placeholder="Order #">
         </div>
         <div class="sf-field">
@@ -1485,7 +1492,7 @@ body.has-banner #app{margin-top:44px}
           </select>
         </div>
         <div class="ef2"><label>Product Code(s)</label><input type="text" id="eFProducts" placeholder="BCH44210 NH00023321" oninput="this.value=this.value.toUpperCase()"></div>
-        <div class="ef2"><label>Order Number</label><input type="text" id="eFOrderNum" placeholder="NH00023321"></div>
+        <div class="ef2"><label>Pick Demand #</label><input type="text" id="eFOrderNum" placeholder="NH00023321"></div>
         <div class="ef2"><label>Quantity</label><input type="number" id="eFQtyPick" min="0" placeholder="24"></div>
         <div class="ef2"><label>Inventory Issue Type</label>
           <select id="eFInvIssue">
@@ -4271,7 +4278,7 @@ async function fetchShortages(){
       shortageData = saved ? JSON.parse(saved) : [];
     } else {
       const docs = await fsQuery('shortages', null, 'timestamp', 2000);
-      shortageData = docs.map(d=>({
+      const rawDocs = docs.map(d=>({
         id:          d._id || d.id || '',
         timestamp:   d.timestamp || '',
         name:        d.name || '',
@@ -4293,6 +4300,8 @@ async function fetchShortages(){
         exported:    d.exported || false,
         shift:       d.shift || getShift(d.timestamp||''),
       }));
+      // Auto-normalize picker capitalization in memory (non-destructive — just display)
+      shortageData = rawDocs.map(r=>({...r, picker: autoCapPicker(r.picker||'')}));
     }
     renderShortageList();
   }catch(e){ toast('Could not load shortages: '+e.message,'error'); }
@@ -4313,7 +4322,7 @@ function addProductLine(){
         <input type="text" id="sfCode-${id}" placeholder="e.g. 123456" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
       </div>
       <div class="sf-field" style="min-width:90px;max-width:110px">
-        <label>Qty <span class="req">*</span></label>
+        <label>Qty (Each) <span class="req">*</span></label>
         <input type="number" id="sfQty-${id}" placeholder="0" min="1">
       </div>
       <div class="sf-field" style="flex:1.5;min-width:130px">
@@ -4467,6 +4476,20 @@ async function markLocated(id){
    Capitalizes first letter of each word: jdoe → JDoe
    Handles "J Doe", "jdoe", "JDOE" → "JDoe"
    ─────────────────────────────────────────────────────── */
+function onPickDemandInput(val){
+  if(!val) return;
+  // Auto-fill division from pick demand prefix (NH, GT, FS, VP, BC, EE, TP, CI, KA)
+  const prefixes=['NH','GT','FS','VP','BC','EE','TP','CI','KA'];
+  const upper=val.toUpperCase();
+  for(const p of prefixes){
+    if(upper.startsWith(p)){
+      const divEl=document.getElementById('sfDivision');
+      if(divEl&&!divEl.value) divEl.value=p;
+      break;
+    }
+  }
+}
+
 function autoCapPicker(val){
   // If it looks like a combined name (no space, camelCase desired): capitalize first char only
   // If it has spaces: capitalize each word
@@ -4841,7 +4864,7 @@ function renderShortageList(){
     const deleteBtn = canClear
       ? `<button onclick="if(confirm('Delete this record?')) deleteShortageRow('${r.id}')" style="padding:3px 8px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:5px;font-size:11px;color:var(--red);cursor:pointer;flex-shrink:0" title="Delete record">🗑</button>`
       : '';
-    const editBtn = role==='manager'
+    const editBtn = (role==='manager'||role==='icteam')
       ? `<button onclick="openShortageEdit('${r.id}')" style="padding:3px 8px;background:var(--accent-l);border:1px solid rgba(79,131,245,.3);border-radius:5px;font-size:11px;color:var(--accent);cursor:pointer;flex-shrink:0" title="Edit record">✏️ Edit</button>`
       : '';
     return `<div class="shortage-row ${locClass} ${r.exported?'exported':''}">
@@ -4897,49 +4920,71 @@ async function markNotLocated(id){
 
 // ── Apprise Export ───────────────────────────────────────
 function generateAppriseExport(){
-  const located = shortageData.filter(r=>r.located==='Y' && !r.exported);
-  if(!located.length){ toast('No un-exported located items found','error'); return; }
+  // Date filter from export-specific inputs
+  const fromStr=document.getElementById('exportDateFrom')?.value;
+  const toStr  =document.getElementById('exportDateTo')?.value;
+  const from=fromStr?new Date(fromStr+'T00:00:00'):new Date(0);
+  const to  =toStr  ?new Date(toStr  +'T23:59:59'):new Date();
 
-  // A:Product Code B:Location Prefix C:Bin D:Blank E:Blank F:UOM G:Qty H:Adj Code I:Notes J:Blank
-  // Columns A, B, C, G are wrapped in ="..." so Excel treats them as text, not dates/numbers
+  function inRange(r){ const d=new Date(r.timestamp); return d>=from&&d<=to; }
   function textCell(v){ return '="'+String(v||'').replace(/"/g,'""')+'"'; }
 
+  // POSITIVE rows: found at 2nd location — add inventory
+  const located = shortageData.filter(r=>r.located==='Y'&&!r.foundInShortedBin&&!r.exported&&inRange(r));
+  // NEGATIVE rows: truly not located, not erroneous — subtract inventory
+  const notLocated = shortageData.filter(r=>r.located==='N'&&!r.foundInShortedBin&&!r.exported&&inRange(r));
+
+  if(!located.length&&!notLocated.length){ toast('No exportable records in selected date range','error'); return; }
+
   const rows = [['Product Code','Location Prefix','Bin','','','UOM','Quantity Adjusted','Adjustment Code','Notes','']];
+
+  // 2nd location finds — positive adjustment (add inventory at new bin)
   located.forEach(r=>{
     rows.push([
-      textCell(r.productCode),   // A — force text
-      textCell(r.division),      // B — force text
-      textCell(r.foundBin),      // C — bin numbers like A-01-01 would be read as dates otherwise
-      '', '',                    // D, E — blank
-      r.uom,                     // F — UOM
-      r.qtyLocated,              // G — numeric qty (leave as number for Apprise)
-      'GenQtyAdj',               // H
-      'Secondary Pick Location', // I
-      '',                        // J
+      textCell(r.productCode),
+      textCell(r.division),
+      textCell(r.foundBin),   // the 2nd location bin
+      '','',
+      r.uom||'EA',
+      r.qtyLocated,           // positive — adding inventory
+      'GenQtyAdj',
+      'Secondary Pick Location',
+      '',
     ]);
   });
 
-  // Prepend UTF-8 BOM so Excel opens it correctly
-  const csv = '\uFEFF' + rows.map(row=>row.map((c,i)=>{
-    const s = String(c==null?'':c);
-    // textCell values are already ="..." formatted — pass through as-is
+  // Not located — negative adjustment (subtract from shorted bin)
+  notLocated.forEach(r=>{
+    rows.push([
+      textCell(r.productCode),
+      textCell(r.division),
+      textCell(r.binShorted), // original shorted bin
+      '','',
+      r.uom||'EA',
+      -Math.abs(r.qtyShorted), // NEGATIVE — removing inventory
+      'GenQtyAdj',
+      'Confirmed Shortage — Not Located',
+      '',
+    ]);
+  });
+
+  const csv = '\uFEFF' + rows.map(row=>row.map(c=>{
+    const s=String(c==null?'':c);
     if(s.startsWith('="')) return s;
-    // Numeric columns — no quoting needed
-    if(typeof c === 'number') return s;
-    // Standard CSV quoting for everything else
-    return s.includes(',')||s.includes('"')||s.includes('\n') ? '"'+s.replace(/"/g,'""')+'"' : s;
+    if(typeof c==='number') return s;
+    return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s;
   }).join(',')).join('\r\n');
 
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
   a.href=url; a.download='Apprise_Adjustment_'+new Date().toISOString().slice(0,10)+'.csv';
   a.click(); URL.revokeObjectURL(url);
-  toast('Exported '+located.length+' rows — mark them as exported below','success');
+  toast('Exported '+located.length+' located + '+notLocated.length+' not-located rows','success');
 }
 
 // ── Stats ────────────────────────────────────────────────
-let statsDrillDiv=null, statsDrillShift=null;
+let statsDrillDiv=null, statsDrillShift=null, statsDrillType='bins';
 
 function printShortageReport(){
   const fromStr = document.getElementById('statsDateFrom')?.value;
@@ -5061,7 +5106,7 @@ function printShortageReport(){
     <table class="pr-tbl" style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:16pt">
       <thead>
         <tr>
-          ${['Division','Total','1st Shift','2nd Shift','2nd Location','⚠ Erroneous','Not Located','Error Rate'].map(h=>`<th style="background:#1a2038;color:#fff;padding:5pt 8pt;text-align:left;font-size:8pt;font-weight:600;letter-spacing:.04em">${h}</th>`).join('')}
+          ${['Division','Total','1st Shift','2nd Shift','2nd Location','⚠ Erroneous','Not Located','Picker Shortage Error Rate'].map(h=>`<th style="background:#1a2038;color:#fff;padding:5pt 8pt;text-align:left;font-size:8pt;font-weight:600;letter-spacing:.04em">${h}</th>`).join('')}
         </tr>
       </thead>
       <tbody>
@@ -5101,7 +5146,7 @@ function printShortageReport(){
     <table class="pr-tbl" style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:16pt">
       <thead>
         <tr>
-          ${['Picker','Total Shorts','2nd Location','⚠ Erroneous','Not Located','Error Rate'].map(h=>`<th style="background:#1a2038;color:#fff;padding:5pt 8pt;text-align:left;font-size:8pt;font-weight:600;letter-spacing:.04em">${h}</th>`).join('')}
+          ${['Picker','Total Shorts','2nd Location','⚠ Erroneous','Not Located','Picker Shortage Error Rate'].map(h=>`<th style="background:#1a2038;color:#fff;padding:5pt 8pt;text-align:left;font-size:8pt;font-weight:600;letter-spacing:.04em">${h}</th>`).join('')}
         </tr>
       </thead>
       <tbody>
@@ -5145,6 +5190,35 @@ function printShortageReport(){
             <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace;font-weight:700;color:#b91c1c">${rows.length}</td>
             <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-size:8.5pt">${esc(pickers)}</td>
             <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-size:8.5pt;color:#6b7280">${esc(dates)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>` : ''}
+
+    <!-- 2nd Location Finds -->
+    ${data.filter(r=>r.located==='Y'&&r.foundBin).length ? `
+    <div style="page-break-inside:avoid">
+    <div style="font-size:8pt;font-weight:700;color:#374151;letter-spacing:.1em;text-transform:uppercase;border-bottom:1pt solid #e5e7eb;padding-bottom:4pt;margin:14pt 0 8pt">2nd Location Finds — Inventory Adjustment Reference</div>
+    <div style="font-size:8.5pt;color:#6b7280;margin-bottom:8pt">All items located at a secondary bin — use for Apprise positive adjustment.</div>
+    <table class="pr-tbl" style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:16pt">
+      <thead>
+        <tr>
+          ${['Product Code','Division','Original Bin (Shorted)','2nd Location Bin','Qty Picked','IC Counted Qty','Picker','Date'].map(h=>`<th style="background:#047857;color:#fff;padding:5pt 8pt;text-align:left;font-size:8pt;font-weight:600;letter-spacing:.04em">${h}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        ${data.filter(r=>r.located==='Y'&&r.foundBin).sort((a,b)=>a.productCode.localeCompare(b.productCode)).map((r,i)=>{
+          const bg=i%2===0?'#fff':'#f0fdf4';
+          return `<tr style="background:${bg}">
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-family:'Courier New',monospace;font-weight:700;color:#1a2038">${esc(r.productCode)}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-family:'Courier New',monospace">${esc(r.division)}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-family:'Courier New',monospace;color:#b91c1c">${esc(r.binShorted||'—')}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-family:'Courier New',monospace;font-weight:700;color:#047857">${esc(r.foundBin)}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-family:'Courier New',monospace">${r.qtyLocated}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-family:'Courier New',monospace;color:${r.icQtyAtSecondLoc>0?'#047857':'#9ca3af'}">${r.icQtyAtSecondLoc>0?r.icQtyAtSecondLoc:'—'}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-size:8.5pt">${esc(r.picker||'—')}</td>
+            <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-size:8pt;color:#6b7280">${new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'})}</td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -5213,10 +5287,12 @@ function renderShortageStats(){
   // If drill-down active, filter further
   let drillData = null;
   if(statsDrillDiv || statsDrillShift){
-    drillData = data.filter(r=>
-      (!statsDrillDiv   || r.division===statsDrillDiv) &&
-      (!statsDrillShift || String(r.shift||getShift(r.timestamp))===String(statsDrillShift))
-    );
+    drillData = data.filter(r=>{
+      const divMatch   = !statsDrillDiv   || r.division===statsDrillDiv;
+      const shiftMatch = !statsDrillShift || String(r.shift||getShift(r.timestamp))===String(statsDrillShift);
+      const typeMatch  = statsDrillType==='erroneous' ? r.foundInShortedBin : true;
+      return divMatch && shiftMatch && typeMatch;
+    });
   }
 
   const total       = data.length;
@@ -5293,8 +5369,8 @@ function renderShortageStats(){
     drillHtml=`
       <div style="background:var(--panel);border:1.5px solid var(--accent);border-radius:10px;padding:14px 16px;margin-bottom:16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-          <div style="font-size:13px;font-weight:700;color:var(--accent)">🔍 Drill-Down: ${esc(dDiv)} · ${dShift}</div>
-          <button onclick="statsDrillDiv=null;statsDrillShift=null;renderShortageStats()" style="padding:3px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--muted);cursor:pointer;margin-left:auto">✕ Close</button>
+          <div style="font-size:13px;font-weight:700;color:${statsDrillType==='erroneous'?'#f59e0b':'var(--accent)'}">🔍 ${statsDrillType==='erroneous'?'⚠ Erroneous Shorts':'Bin Detail'}: ${esc(dDiv)} · ${dShift}</div>
+          <button onclick="statsDrillDiv=null;statsDrillShift=null;statsDrillType='bins';renderShortageStats()" style="padding:3px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--muted);cursor:pointer;margin-left:auto">✕ Close</button>
         </div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px">${drillData.length} shortages · ${Object.keys(binMap).length} unique bins</div>
         ${Object.entries(binMap).sort((a,b)=>b[1].length-a[1].length).map(([bin,rows])=>`
@@ -5355,10 +5431,10 @@ function renderShortageStats(){
             <td class="mono">${row.s1} <button onclick="event.stopPropagation();statsDrillDiv='${d}';statsDrillShift=1;renderShortageStats()" style="margin-left:4px;padding:1px 5px;font-size:10px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--muted)">🔍</button></td>
             <td class="mono">${row.s2} <button onclick="event.stopPropagation();statsDrillDiv='${d}';statsDrillShift=2;renderShortageStats()" style="margin-left:4px;padding:1px 5px;font-size:10px;background:var(--panel2);border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--muted)">🔍</button></td>
             <td class="mono" style="color:var(--green)">${row.located}</td>
-            <td class="mono" style="color:#f59e0b">${row.erroneous}</td>
+            <td class="mono" style="color:#f59e0b">${row.erroneous} <button onclick="event.stopPropagation();statsDrillDiv='${d}';statsDrillShift=null;statsDrillType='erroneous';renderShortageStats()" style="padding:1px 5px;font-size:10px;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);border-radius:4px;cursor:pointer;color:#f59e0b;margin-left:3px" title="Drill into erroneous shorts for this division">🔍</button></td>
             <td class="mono" style="color:var(--red)">${row.notLoc}</td>
             <td class="mono" style="color:${ep>20?'var(--red)':ep>10?'#f59e0b':'var(--muted)'}">${ep}%</td>
-            <td><button onclick="event.stopPropagation();statsDrillDiv='${d}';statsDrillShift=null;renderShortageStats()" style="padding:2px 8px;font-size:10px;background:var(--accent-l);border:1px solid var(--accent);border-radius:4px;cursor:pointer;color:var(--accent)">Bins 🔍</button></td>
+            <td><button onclick="event.stopPropagation();statsDrillDiv='${d}';statsDrillShift=null;statsDrillType='bins';renderShortageStats()" style="padding:2px 8px;font-size:10px;background:var(--accent-l);border:1px solid var(--accent);border-radius:4px;cursor:pointer;color:var(--accent)">Bins 🔍</button></td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -5391,7 +5467,7 @@ function renderShortageStats(){
         <th style="color:var(--green)">2nd Location</th>
         <th style="color:#f59e0b">⚠ Erroneous</th>
         <th style="color:var(--red)">Not Found</th>
-        <th>Err Rate</th>
+        <th>Picker Shortage Error Rate</th>
       </tr></thead>
       <tbody>${pickerRows.map(([picker,row])=>{
         const ep=row.total?Math.round(row.erroneous/row.total*100):0;
