@@ -1339,8 +1339,11 @@ body.has-banner #app{margin-top:44px}
       <button class="merge-close-btn" onclick="closePickerManager()">✕</button>
     </div>
     <div style="padding:12px 22px;border-bottom:1px solid var(--border)">
-      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Click any picker name to rename all instances across the entire shortage log.</div>
-      <input type="text" id="pickerMgrSearch" placeholder="Search pickers…" oninput="renderPickerMgrList()" class="tracker-search-inp" style="width:100%;box-sizing:border-box">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Click any picker to rename all instances. Check multiple names and click <strong>Merge Selected</strong> to consolidate into one name.</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" id="pickerMgrSearch" placeholder="Search pickers…" oninput="renderPickerMgrList()" class="tracker-search-inp" style="flex:1">
+        <button onclick="mergeSelectedPickers()" id="btnMergePickers" style="display:none;padding:5px 12px;font-size:11px;font-weight:600;background:rgba(167,139,250,.15);border:1px solid rgba(167,139,250,.4);border-radius:6px;color:var(--purple);cursor:pointer;white-space:nowrap">🔀 Merge Selected</button>
+      </div>
     </div>
     <div id="pickerMgrList" style="max-height:340px;overflow-y:auto;padding:8px 22px"></div>
     <div id="pickerRenamePanel" style="display:none;padding:14px 22px;border-top:1px solid var(--border);background:var(--panel)">
@@ -4296,6 +4299,7 @@ async function fetchShortages(){
         shortageArchived: d.shortageArchived || false,
         qtyLocated:  typeof d.qtyLocated === 'number' ? d.qtyLocated : parseInt(d.qtyLocated||0),
         icQtyAtSecondLoc: typeof d.icQtyAtSecondLoc === 'number' ? d.icQtyAtSecondLoc : parseInt(d.icQtyAtSecondLoc||0),
+        secondaryLocations: Array.isArray(d.secondaryLocations) ? d.secondaryLocations : [],
         locNotes:    d.locNotes || '',
         exported:    d.exported || false,
         shift:       d.shift || getShift(d.timestamp||''),
@@ -4450,12 +4454,9 @@ async function submitShortage(){
 
 // Inline "locate" update after the fact
 async function markLocated(id){
-  const bin    = document.getElementById('il-bin-'+id)?.value.trim().toUpperCase();
-  const qty    = parseInt(document.getElementById('il-qty-'+id)?.value||'0');
-  const icqty  = parseInt(document.getElementById('il-icqty-'+id)?.value||'0');
-  const notes  = document.getElementById('il-notes-'+id)?.value.trim();
-  if(!bin) { toast('Enter the bin where item was found','error'); return; }
-  if(!qty||qty<1) { toast('Enter qty located','error'); return; }
+  // Legacy fallback — redirects to new multi-location save
+  return saveSecondaryLocs(id);
+  const bin = ''; const qty = 0; const icqty = 0; const notes = '';
   try{
     const upd = {located:'Y', foundBin:bin, qtyLocated:qty, icQtyAtSecondLoc:icqty||0, locNotes:notes||''};
     if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
@@ -4537,6 +4538,54 @@ function openPickerManager(){
   document.getElementById('pickerMgrOverlay').style.display='flex';
 }
 
+function onPickerMergeCheck(){
+  const checked=[...document.querySelectorAll('.picker-merge-chk:checked')];
+  const btn=document.getElementById('btnMergePickers');
+  if(btn) btn.style.display=checked.length>=2?'':'none';
+}
+
+async function mergeSelectedPickers(){
+  const checked=[...document.querySelectorAll('.picker-merge-chk:checked')];
+  if(checked.length<2){ toast('Select at least 2 pickers to merge','error'); return; }
+  const names=checked.map(c=>c.dataset.name);
+  // Suggest the auto-capitalized version of the most common name as target
+  const counts={};
+  shortageData.forEach(r=>{ const p=(r.picker||'').trim(); if(names.includes(p)) counts[p]=(counts[p]||0)+1; });
+  // Sort by count desc, then pick the one that matches autoCapPicker best
+  const sorted=names.slice().sort((a,b)=>(counts[b]||0)-(counts[a]||0));
+  const suggested=autoCapPicker(sorted[0]);
+  const target=prompt(
+    'Merging '+names.length+' picker names:\n'+names.map(n=>'  • '+n+' ('+( counts[n]||0)+' records)').join('\n')+
+    '\n\nAll will be renamed to one canonical name.\nEnter the canonical name (or accept suggestion):',
+    suggested
+  );
+  if(!target||!target.trim()){ return; }
+  const canonical=autoCapPicker(target.trim());
+  // Rename all to canonical
+  const toUpdate=shortageData.filter(r=>names.includes((r.picker||'').trim()));
+  if(!toUpdate.length){ toast('No records to merge','error'); return; }
+  showLoad(`Merging ${toUpdate.length} record(s) to "${canonical}"…`);
+  let done=0, failed=0;
+  for(const r of toUpdate){
+    try{
+      if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+r.id,{picker:canonical}); }
+      r.picker=canonical;
+      done++;
+    }catch(e){ failed++; }
+  }
+  if(CFG.DEMO_MODE){
+    const s=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+    s.forEach(r=>{ if(names.includes((r.picker||'').trim())) r.picker=canonical; });
+    localStorage.setItem('shortages_demo',JSON.stringify(s));
+  }
+  hideLoad();
+  document.querySelectorAll('.picker-merge-chk').forEach(c=>c.checked=false);
+  const btn=document.getElementById('btnMergePickers'); if(btn) btn.style.display='none';
+  renderPickerMgrList();
+  renderShortageList();
+  toast(`Merged ${names.join(', ')} → "${canonical}" (${done} records)${failed?' '+failed+' failed':''}  ✓`,'success');
+}
+
 function closePickerManager(){
   document.getElementById('pickerMgrOverlay').style.display='none';
 }
@@ -4572,12 +4621,13 @@ function renderPickerMgrList(){
   }
 
   el.innerHTML=pickers.map(([name,info])=>`
-    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="selectPickerToRename('${esc(name)}')" title="Click to rename">
-      <div style="flex:1">
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+      <input type="checkbox" class="picker-merge-chk" data-name="${esc(name)}" onchange="onPickerMergeCheck()" style="width:15px;height:15px;accent-color:var(--purple);cursor:pointer;flex-shrink:0">
+      <div style="flex:1;cursor:pointer" onclick="selectPickerToRename('${esc(name)}')" title="Click to rename">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${esc(name)}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">${info.count} shortage${info.count!==1?'s':''} · Divisions: ${[...info.divisions].sort().join(', ')||'—'} · Last: ${info.lastSeen?new Date(info.lastSeen).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'}):'—'}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">${info.count} shortage${info.count!==1?'s':''} · Divs: ${[...info.divisions].sort().join(', ')||'—'} · Last: ${info.lastSeen?new Date(info.lastSeen).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'}):'—'}</div>
       </div>
-      <button style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--accent-l);border:1px solid var(--accent);border-radius:6px;color:var(--accent);cursor:pointer;flex-shrink:0">✏️ Rename</button>
+      <button onclick="selectPickerToRename('${esc(name)}')" style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--accent-l);border:1px solid var(--accent);border-radius:6px;color:var(--accent);cursor:pointer;flex-shrink:0">✏️ Rename</button>
     </div>`).join('');
 }
 
@@ -4819,8 +4869,10 @@ function renderShortageList(){
     const shiftLbl = `Shift ${r.shift||getShift(r.timestamp)}`;
     const locDetails = (()=>{
       let d='';
-      if(r.located==='Y' && r.foundBin)
-        d+=`<div style="margin-top:6px;font-size:12px;color:var(--green)">✓ 2nd Location: <span style="font-family:var(--mono);font-weight:600">${esc(r.foundBin)}</span> · Picked: <strong>${r.qtyLocated}</strong> ${esc(r.uom)}${r.icQtyAtSecondLoc!=null&&r.icQtyAtSecondLoc>0?' · IC Counted: <strong>'+r.icQtyAtSecondLoc+'</strong>':''}${r.locNotes?' · '+esc(r.locNotes):''}</div>`;
+      if(r.located==='Y'){
+        const locs = Array.isArray(r.secondaryLocations)&&r.secondaryLocations.length ? r.secondaryLocations : (r.foundBin?[{bin:r.foundBin,qty:r.qtyLocated,icQty:r.icQtyAtSecondLoc||0,notes:r.locNotes||''}]:[]);
+        if(locs.length) d+=locs.map((loc,i)=>`<div style="margin-top:4px;font-size:12px;color:var(--green)">✓ Location ${locs.length>1?i+1+': ':''}<span style="font-family:var(--mono);font-weight:600">${esc(loc.bin)}</span> · Picked: <strong>${loc.qty}</strong>${loc.icQty>0?' · IC Counted: <strong>'+loc.icQty+'</strong>':''}${loc.notes?' · '+esc(loc.notes):''}</div>`).join('');
+      }
       if(r.foundInShortedBin)
         d+=`<div style="margin-top:4px;font-size:12px;color:#f59e0b">⚠ Also found in original shorted bin <span style="font-family:var(--mono);font-weight:600">${esc(r.binShorted)}</span> — stock was present in both locations</div>`;
       return d;
@@ -4833,13 +4885,15 @@ function renderShortageList(){
         ${showMarkLocated ? `<button class="locate-btn" onclick="showInlineLocate('${r.id}')">📍 Mark as Located</button>` : ''}
         ${showFoundInBin  ? `<button class="locate-btn" onclick="markFoundInShortedBin('${r.id}')" style="border-color:rgba(245,158,11,.4);color:#f59e0b" title="Item was also found in the original shorted bin">⚠ Found in Shorted Bin</button>` : ''}
       </div>
-      <div class="locate-inline" id="il-${r.id}" style="display:none">
-        <div style="width:100%;font-size:10px;font-weight:700;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">2nd Location Details</div>
-        <div class="sf-field" style="min-width:120px"><label>Found In Bin <span class="req">*</span></label><input id="il-bin-${r.id}" type="text" style="text-transform:uppercase" placeholder="e.g. B-03-02"></div>
-        <div class="sf-field" style="min-width:80px"><label>Qty Picked <span class="req">*</span></label><input id="il-qty-${r.id}" type="number" min="1" placeholder="0"></div>
-        <div class="sf-field" style="min-width:80px"><label>IC Counted Qty</label><input id="il-icqty-${r.id}" type="number" min="0" placeholder="0" title="How many IC counted in this 2nd location bin"></div>
-        <div class="sf-field" style="flex:2;min-width:150px"><label>Notes</label><input id="il-notes-${r.id}" type="text" placeholder="Optional"></div>
-        <button onclick="markLocated('${r.id}')" style="padding:6px 14px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;align-self:flex-end;white-space:nowrap">Save Location</button>
+      <div class="locate-inline" id="il-${r.id}" style="display:none;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:10px;font-weight:700;color:var(--green);letter-spacing:.08em;text-transform:uppercase">Secondary Locations</div>
+          <button onclick="addSecondaryLocRow('${r.id}')" style="padding:2px 10px;font-size:11px;font-weight:600;background:var(--accent-l);border:1px solid var(--accent);border-radius:5px;color:var(--accent);cursor:pointer">+ Add Location</button>
+        </div>
+        <div id="il-rows-${r.id}"></div>
+        <div style="display:flex;justify-content:flex-end;margin-top:4px">
+          <button onclick="saveSecondaryLocs('${r.id}')" style="padding:6px 16px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Save All Locations</button>
+        </div>
       </div>`;
     })();
     const exportChk = (role==='manager'||role==='clerk') && r.located==='Y'
@@ -4904,7 +4958,79 @@ async function markFoundInShortedBin(id){
 
 function showInlineLocate(id){
   const el = document.getElementById('il-'+id);
-  if(el) el.style.display = el.style.display==='none' ? '' : 'none';
+  if(!el) return;
+  const isHidden = el.style.display==='none'||el.style.display==='';
+  el.style.display = isHidden ? 'flex' : 'none';
+  if(isHidden){
+    // Init with existing secondary locations or one blank row
+    const rec = shortageData.find(r=>r.id===id);
+    const existing = rec && Array.isArray(rec.secondaryLocations) && rec.secondaryLocations.length
+      ? rec.secondaryLocations
+      : [];
+    const rowsEl = document.getElementById('il-rows-'+id);
+    if(rowsEl){
+      rowsEl.innerHTML='';
+      if(existing.length){
+        existing.forEach((_,i)=>addSecondaryLocRow(id,existing[i]));
+      } else {
+        addSecondaryLocRow(id);
+      }
+    }
+  }
+}
+
+let _secLocCounter=0;
+function addSecondaryLocRow(id, prefill){
+  _secLocCounter++;
+  const rowId='slr-'+_secLocCounter;
+  const rowsEl=document.getElementById('il-rows-'+id);
+  if(!rowsEl) return;
+  const div=document.createElement('div');
+  div.id=rowId;
+  div.style.cssText='display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;background:var(--panel);border-radius:6px;padding:8px 10px';
+  div.innerHTML=`
+    <div class="sf-field" style="min-width:120px"><label style="font-size:11px">Bin <span class="req">*</span></label><input type="text" class="sl-bin" style="text-transform:uppercase;border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;background:var(--panel2);color:var(--text)" placeholder="e.g. B-03-02" value="${esc(prefill?.bin||'')}"></div>
+    <div class="sf-field" style="min-width:80px"><label style="font-size:11px">Qty Picked <span class="req">*</span></label><input type="number" class="sl-qty" min="1" style="border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;background:var(--panel2);color:var(--text)" placeholder="0" value="${prefill?.qty||''}"></div>
+    <div class="sf-field" style="min-width:80px"><label style="font-size:11px">IC Counted</label><input type="number" class="sl-icqty" min="0" style="border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;background:var(--panel2);color:var(--text)" placeholder="0" value="${prefill?.icQty||''}"></div>
+    <div class="sf-field" style="flex:2;min-width:130px"><label style="font-size:11px">Notes</label><input type="text" class="sl-notes" style="border:1.5px solid var(--border);border-radius:6px;padding:5px 8px;font-size:12px;background:var(--panel2);color:var(--text)" placeholder="Optional" value="${esc(prefill?.notes||'')}"></div>
+    <button onclick="document.getElementById('${rowId}').remove()" style="padding:5px 8px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:5px;font-size:12px;color:var(--red);cursor:pointer;align-self:flex-end;flex-shrink:0" title="Remove this location">✕</button>`;
+  rowsEl.appendChild(div);
+}
+
+async function saveSecondaryLocs(id){
+  const rowsEl=document.getElementById('il-rows-'+id);
+  if(!rowsEl){ toast('Location panel not found','error'); return; }
+  const rows=[...rowsEl.children];
+  const locs=[];
+  let hasError=false;
+  rows.forEach(row=>{
+    const bin=(row.querySelector('.sl-bin')?.value||'').trim().toUpperCase();
+    const qty=parseInt(row.querySelector('.sl-qty')?.value||'0');
+    const icQty=parseInt(row.querySelector('.sl-icqty')?.value||'0');
+    const notes=(row.querySelector('.sl-notes')?.value||'').trim();
+    if(!bin||!qty){ hasError=true; return; }
+    locs.push({bin,qty,icQty:icQty||0,notes});
+  });
+  if(hasError){ toast('Fill in bin and qty on all location rows','error'); return; }
+  if(!locs.length){ toast('Add at least one location','error'); return; }
+  try{
+    // Primary legacy fields stay as first location for backwards compat
+    const first=locs[0];
+    const upd={
+      located:'Y',
+      foundBin:first.bin,
+      qtyLocated:first.qty,
+      icQtyAtSecondLoc:first.icQty,
+      locNotes:first.notes,
+      secondaryLocations:locs,  // all locations stored here
+    };
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    const rec=shortageData.find(r=>r.id===id);
+    if(rec) Object.assign(rec,upd);
+    document.getElementById('il-'+id).style.display='none';
+    toast(locs.length+' location(s) saved ✓','success');
+    renderShortageList();
+  }catch(e){ toast('Save failed: '+e.message,'error'); }
 }
 
 async function markNotLocated(id){
