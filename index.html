@@ -1288,7 +1288,14 @@ body.has-banner #app{margin-top:44px}
       <input type="text" id="shortageSearch" placeholder="Search by product, order, picker, division…" oninput="renderShortageList()" class="tracker-search-inp" style="flex:1;min-width:200px">
       <select id="shortageFilterDiv" onchange="renderShortageList()" class="tracker-sort-sel"><option value="">All Divisions</option><option>GT</option><option>NH</option><option>BC</option><option>FS</option><option>EE</option><option>VP</option><option>TP</option><option>CI</option><option>KA</option></select>
       <select id="shortageFilterLoc" onchange="renderShortageList()" class="tracker-sort-sel"><option value="">All</option><option value="Y">Located</option><option value="N">Not Located</option><option value="pending">Pending</option></select>
-      <select id="shortageFilterArchive" onchange="onShortageArchiveFilterChange()" class="tracker-sort-sel"><option value="active">Active</option><option value="archived">📦 Archived</option><option value="all">All</option></select>
+      <select id="shortageFilterArchive" onchange="renderShortageList()" class="tracker-sort-sel"><option value="active">Active</option><option value="archived">📦 Archived</option><option value="all">All</option></select>
+      <div id="shortageDateFilterWrap" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:5px 8px">
+        <span style="font-size:11px;color:var(--muted);white-space:nowrap">Shortage date:</span>
+        <input type="date" id="shortageDateFrom" onchange="renderShortageList()" class="tracker-search-inp" style="max-width:138px;padding:6px 9px" title="Filter shortages from this date">
+        <span style="font-size:11px;color:var(--muted)">to</span>
+        <input type="date" id="shortageDateTo" onchange="renderShortageList()" class="tracker-search-inp" style="max-width:138px;padding:6px 9px" title="Filter shortages through this date">
+        <button class="refresh-btn" onclick="clearShortageDateFilters()" style="padding:6px 9px;font-size:11px" title="Clear shortage date filters">Clear</button>
+      </div>
       <select id="shortageSort" onchange="renderShortageList()" class="tracker-sort-sel">
         <option value="date-desc">Newest First</option>
         <option value="date-asc">Oldest First</option>
@@ -1304,9 +1311,8 @@ body.has-banner #app{margin-top:44px}
         <button class="refresh-btn" onclick="generateAppriseExport()" id="btnExport" style="background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:var(--green)">⬇ Apprise Export</button>
       </div>
       <div id="shortageClearControls" style="display:none;gap:6px;align-items:center">
-        <button class="refresh-btn" onclick="clearExportedShortages()" style="background:rgba(107,116,148,.12);border-color:var(--border);color:var(--muted)" title="Move all rows already marked as exported to the archive collection">📦 Archive Exported</button>
+        <button class="refresh-btn" onclick="clearExportedShortages()" style="background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.3);color:var(--red)" title="Remove all rows already marked as exported to Apprise">🗑 Clear Exported</button>
         <button class="refresh-btn" onclick="archiveSelectedShortages()" style="background:rgba(107,116,148,.12);border-color:var(--border);color:var(--muted)">📦 Archive Selected</button>
-        <button class="refresh-btn" onclick="archiveFilteredShortages()" style="background:rgba(79,131,245,.12);border-color:rgba(79,131,245,.35);color:var(--accent)" title="Archive every row currently matching the active filters">📦 Archive Filtered Active</button>
         <button class="refresh-btn" onclick="clearSelectedShortages()" id="btnClearSelected" style="display:none;background:rgba(248,113,113,.12);border-color:rgba(248,113,113,.3);color:var(--red)">🗑 Delete Selected (<span id="clearSelCount">0</span>)</button>
       </div>
     </div>
@@ -1328,7 +1334,6 @@ body.has-banner #app{margin-top:44px}
       <input type="date" id="statsDateTo" onchange="renderShortageStats()" class="tracker-search-inp" style="max-width:160px">
       <select id="statsFilterDiv" onchange="renderShortageStats()" class="tracker-sort-sel"><option value="">All Divisions</option><option>GT</option><option>NH</option><option>BC</option><option>FS</option><option>EE</option><option>VP</option><option>TP</option><option>CI</option><option>KA</option></select>
       <select id="statsFilterShift" onchange="renderShortageStats()" class="tracker-sort-sel"><option value="">All Shifts</option><option value="1">1st Shift (6A–3:30P)</option><option value="2">2nd Shift (3:30P–12A)</option></select>
-      <select id="statsArchiveScope" onchange="onStatsArchiveScopeChange()" class="tracker-sort-sel"><option value="active">Active Only</option><option value="archived">Archived History</option><option value="all">Active + Archived</option></select>
       <button class="refresh-btn" onclick="printShortageReport()" style="margin-left:auto">🖨 Print Report</button>
       <button class="refresh-btn" onclick="printICCheckSheet()" style="background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.4);color:#f59e0b">📋 IC Check Sheet</button>
       <button class="refresh-btn" onclick="openPickerManager()" id="btnPickerMgr" style="display:none;background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.4);color:var(--purple)">👤 Manage Pickers</button>
@@ -4116,12 +4121,8 @@ async function reactivateTicket(id){
    SHORTAGE TRACKING
    Storage: Firestore collection 'shortages'
    ═══════════════════════════════════════════════════════ */
-let shortageData = [];          // active shortage records loaded from Firestore collection: shortages
-let shortageArchiveData = [];   // historical shortage records loaded on demand from collection: shortages_archive
-let shortageArchiveLoaded = false;
+let shortageData = [];   // loaded from Firestore
 let shortageView = 'list'; // 'list' | 'stats'
-const SHORTAGE_ACTIVE_COLLECTION = 'shortages';
-const SHORTAGE_ARCHIVE_COLLECTION = 'shortages_archive';
 
 function loadShortageScreen(){
   // Prevent duplicate intervals
@@ -4178,11 +4179,6 @@ async function refreshShortageData(){
   readCacheClear('shortages');
   showLoad('Refreshing shortage data…');
   await fetchShortages(true);
-  const archF = document.getElementById('shortageFilterArchive')?.value||'active';
-  const statsScope = document.getElementById('statsArchiveScope')?.value||'active';
-  if(archF==='archived'||archF==='all'||statsScope==='archived'||statsScope==='all'){
-    await fetchArchivedShortages(true);
-  }
   hideLoad();
   if(shortageView==='stats') renderShortageStats();
   else renderShortageList();
@@ -4201,100 +4197,12 @@ function getShift(dateStr){
    SHORTAGE CLEAR / DELETE
    ═══════════════════════════════════════════════════════ */
 function showShortageClearControls(){
-  // Show archive controls for IC team and manager; hide for clerk
+  // Show clear controls for IC team and manager; hide for clerk
   const ctrl = document.getElementById('shortageClearControls');
   const selRow = document.getElementById('shortageSelRow');
   const canClearRole = (role==='icteam'||role==='manager');
   if(ctrl)   ctrl.style.display   = canClearRole ? 'flex' : 'none';
   if(selRow) selRow.style.display = canClearRole ? 'flex' : 'none';
-}
-
-function normalizeShortageDoc(d, archivedSource){
-  return {
-    id:          d._id || d.id || '',
-    timestamp:   d.timestamp || '',
-    name:        d.name || '',
-    division:    d.division || '',
-    picker:      autoCapPicker(d.picker || ''),
-    orderNumber: d.orderNumber || '',
-    binShorted:  d.binShorted || '',
-    productCode: d.productCode || '',
-    qtyShorted:  typeof d.qtyShorted === 'number' ? d.qtyShorted : parseInt(d.qtyShorted||0),
-    uom:         d.uom || 'EA',
-    located:     d.located || 'pending',
-    foundBin:    d.foundBin || '',
-    foundInShortedBin: !!d.foundInShortedBin,
-    binReplenished: !!d.binReplenished,
-    shortageArchived: archivedSource ? true : !!d.shortageArchived,
-    archivedAt: d.archivedAt || '',
-    archivedBy: d.archivedBy || '',
-    archiveReason: d.archiveReason || '',
-    qtyLocated:  typeof d.qtyLocated === 'number' ? d.qtyLocated : parseInt(d.qtyLocated||0),
-    icQtyAtSecondLoc: typeof d.icQtyAtSecondLoc === 'number' ? d.icQtyAtSecondLoc : parseInt(d.icQtyAtSecondLoc||0),
-    secondaryLocations: Array.isArray(d.secondaryLocations) ? d.secondaryLocations : [],
-    icErroneousCounts: Array.isArray(d.icErroneousCounts) ? d.icErroneousCounts : [],
-    locNotes:    d.locNotes || '',
-    exported:    !!d.exported,
-    shift:       d.shift || getShift(d.timestamp||''),
-    shiftOverride: !!d.shiftOverride,
-  };
-}
-
-function shortageHasSecondLocationEvidence(r){
-  const secondary = Array.isArray(r.secondaryLocations) ? r.secondaryLocations : [];
-  const hasSecondaryArray = secondary.some(loc => (loc.bin||'').trim() && (Number(loc.qty)||Number(loc.icQty)||0) > 0);
-  const hasLegacySecondBin = String(r.foundBin||'').trim() && (Number(r.qtyLocated)||Number(r.icQtyAtSecondLoc)||0) > 0;
-  return r.located === 'Y' || hasSecondaryArray || hasLegacySecondBin;
-}
-
-function isErroneousBackorder(r){
-  // Picker shorted the original bin, IC later found inventory in that same bin,
-  // and there is no recorded second-location fill. That means the order line likely stayed short/backordered.
-  return !!r.foundInShortedBin && !shortageHasSecondLocationEvidence(r);
-}
-
-function getShortageDataset(scope){
-  if(scope === 'archived') return [...shortageArchiveData];
-  if(scope === 'all') return [...shortageData, ...shortageArchiveData];
-  return [...shortageData];
-}
-
-function getFilteredVisibleShortages(){
-  const q      = (document.getElementById('shortageSearch')?.value||'').toLowerCase();
-  const divF   = document.getElementById('shortageFilterDiv')?.value||'';
-  const locF   = document.getElementById('shortageFilterLoc')?.value||'';
-  const sort   = document.getElementById('shortageSort')?.value||'date-desc';
-  const archF  = document.getElementById('shortageFilterArchive')?.value||'active';
-  let data = getShortageDataset(archF);
-  if(q)    data=data.filter(r=>[r.productCode,r.orderNumber,r.picker,r.division,r.name,r.binShorted].join(' ').toLowerCase().includes(q));
-  if(divF) data=data.filter(r=>r.division===divF);
-  if(locF) data=data.filter(r=>r.located===locF||(locF==='pending'&&r.located==='pending'));
-  if(sort==='date-desc') data.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-  else if(sort==='date-asc')   data.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-  else if(sort==='product')    data.sort((a,b)=>(a.productCode||'').localeCompare(b.productCode||''));
-  else if(sort==='division')   data.sort((a,b)=>(a.division||'').localeCompare(b.division||''));
-  else if(sort==='order')      data.sort((a,b)=>(a.orderNumber||'').localeCompare(b.orderNumber||''));
-  return data;
-}
-
-async function onShortageArchiveFilterChange(){
-  const archF = document.getElementById('shortageFilterArchive')?.value||'active';
-  if((archF==='archived'||archF==='all') && !shortageArchiveLoaded){
-    showLoad('Loading archive history…');
-    await fetchArchivedShortages(false);
-    hideLoad();
-  }
-  renderShortageList();
-}
-
-async function onStatsArchiveScopeChange(){
-  const scope = document.getElementById('statsArchiveScope')?.value||'active';
-  if((scope==='archived'||scope==='all') && !shortageArchiveLoaded){
-    showLoad('Loading archive history…');
-    await fetchArchivedShortages(false);
-    hideLoad();
-  }
-  renderShortageStats();
 }
 
 function toggleSelectAllShortages(chk){
@@ -4327,43 +4235,64 @@ async function deleteShortageRow(id){
   }catch(e){ toast('Delete failed: '+e.message,'error'); }
 }
 
-async function archiveSelectedShortages(){
-  const ids=[...document.querySelectorAll('.shortage-row-chk:checked')].map(c=>c.dataset.id);
-  if(!ids.length){ toast('Select rows to archive','error'); return; }
-  if(!confirm(`Archive ${ids.length} selected shortage record(s)? They will move out of the active Firestore collection and will only load during historical pulls.`)) return;
-  showLoad(`Archiving ${ids.length} record(s)…`);
+function getShortageRowsMatchingCurrentFilters(){
+  const q      = (document.getElementById('shortageSearch')?.value||'').toLowerCase();
+  const divF   = document.getElementById('shortageFilterDiv')?.value||'';
+  const locF   = document.getElementById('shortageFilterLoc')?.value||'';
+  const archF  = document.getElementById('shortageFilterArchive')?.value||'active';
+  const dateFrom = document.getElementById('shortageDateFrom')?.value||'';
+  const dateTo   = document.getElementById('shortageDateTo')?.value||'';
+  let data=[...shortageData];
+  if(archF==='active') data=data.filter(r=>!r.shortageArchived);
+  else if(archF==='archived') data=data.filter(r=>r.shortageArchived);
+  if(q) data=data.filter(r=>[r.productCode,r.orderNumber,r.picker,r.division,r.name,r.binShorted].join(' ').toLowerCase().includes(q));
+  if(divF) data=data.filter(r=>r.division===divF);
+  if(locF) data=data.filter(r=>r.located===locF||(locF==='pending'&&r.located==='pending'));
+  if(dateFrom || dateTo) data=data.filter(r=>shortageMatchesDateRange(r,dateFrom,dateTo));
+  return data;
+}
+
+async function archiveFilteredShortages(){
+  const rows=getShortageRowsMatchingCurrentFilters().filter(r=>!r.shortageArchived);
+  const from=document.getElementById('shortageDateFrom')?.value||'';
+  const to=document.getElementById('shortageDateTo')?.value||'';
+  if(!rows.length){ toast('No active shortages match the current filters','error'); return; }
+  const dateMsg=(from||to) ? `\nDate filter: ${from||'start'} to ${to||'today'}` : '';
+  if(!confirm(`Archive ${rows.length} active shortage record(s) matching the current filters?${dateMsg}\n\nThey will leave the Active view and move to Archived History.`)) return;
+  showLoad(`Archiving ${rows.length} filtered record(s)…`);
   let done=0;
-  for(const id of ids){
-    try{ if(await archiveShortageRecord(id,'Selected archive')) done++; }
-    catch(e){ console.error('Archive failed for '+id,e); }
+  for(const r of rows){
+    try{
+      if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+r.id,{shortageArchived:true, archivedAt:new Date().toISOString(), archivedBy:role||'unknown', archiveReason:'Filtered date archive'}); }
+      const rec=shortageData.find(x=>x.id===r.id);
+      if(rec){ rec.shortageArchived=true; rec.archivedAt=new Date().toISOString(); rec.archivedBy=role||'unknown'; rec.archiveReason='Filtered date archive'; }
+      done++;
+    }catch(e){ console.error('Archive failed for '+r.id,e); }
   }
   hideLoad();
   document.querySelectorAll('.shortage-row-chk').forEach(c=>c.checked=false);
   onShortageRowCheck();
   renderShortageList();
-  if(shortageView==='stats') renderShortageStats();
-  toast(done+' record(s) archived ✓','success');
+  toast(done+' filtered record(s) archived ✓','success');
 }
 
-async function archiveFilteredShortages(){
-  const archF = document.getElementById('shortageFilterArchive')?.value||'active';
-  if(archF!=='active'){
-    toast('Archive Filtered Active only works while the list is set to Active','error');
-    return;
-  }
-  const rows=getFilteredVisibleShortages().filter(r=>!r.shortageArchived);
-  if(!rows.length){ toast('No active filtered records to archive','error'); return; }
-  if(!confirm(`Archive ${rows.length} active shortage record(s) matching the current filters?\n\nThis moves them to shortage history so they stop loading on the active dashboard.`)) return;
-  showLoad(`Archiving ${rows.length} filtered record(s)…`);
+async function archiveSelectedShortages(){
+  const ids=[...document.querySelectorAll('.shortage-row-chk:checked')].map(c=>c.dataset.id);
+  if(!ids.length){ toast('Select rows to archive','error'); return; }
+  showLoad(`Archiving ${ids.length} record(s)…`);
   let done=0;
-  for(const r of rows){
-    try{ if(await archiveShortageRecord(r.id,'Filtered active archive')) done++; }
-    catch(e){ console.error('Archive failed for '+r.id,e); }
+  for(const id of ids){
+    try{
+      if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id,{shortageArchived:true}); }
+      const rec=shortageData.find(r=>r.id===id); if(rec) rec.shortageArchived=true;
+      done++;
+    }catch(e){ console.error('Archive failed for '+id,e); }
   }
   hideLoad();
+  document.querySelectorAll('.shortage-row-chk').forEach(c=>c.checked=false);
+  onShortageRowCheck();
   renderShortageList();
-  if(shortageView==='stats') renderShortageStats();
-  toast(done+' filtered record(s) archived ✓','success');
+  toast(done+' record(s) archived ✓','success');
 }
 
 async function clearSelectedShortages(){
@@ -4385,19 +4314,24 @@ async function clearSelectedShortages(){
 }
 
 async function clearExportedShortages(){
-  const toArchive=shortageData.filter(r=>r.exported);
-  if(!toArchive.length){ toast('No exported active records to archive','error'); return; }
-  if(!confirm(`Archive ${toArchive.length} exported shortage record(s)?\n\nThey will move to shortage history and stop loading on the active dashboard.`)) return;
-  showLoad('Archiving exported records…');
+  const toDelete=shortageData.filter(r=>r.exported);
+  if(!toDelete.length){ toast('No exported records to clear','error'); return; }
+  if(!confirm(`Clear ${toDelete.length} exported shortage record(s)? This cannot be undone.`)) return;
+  showLoad('Clearing exported records…');
   let done=0;
-  for(const r of toArchive){
-    try{ if(await archiveShortageRecord(r.id,'Exported to Apprise archive')) done++; }
-    catch(e){ console.error('Archive failed for '+r.id,e); }
+  for(const r of toDelete){
+    try{
+      if(!CFG.DEMO_MODE){ await fsDelete('shortages/'+r.id); }
+      done++;
+    }catch(e){ console.error('Delete failed for '+r.id,e); }
+  }
+  shortageData=shortageData.filter(r=>!r.exported);
+  if(CFG.DEMO_MODE){
+    localStorage.setItem('shortages_demo',JSON.stringify(shortageData));
   }
   hideLoad();
+  toast(done+' exported record(s) cleared ✓','success');
   renderShortageList();
-  if(shortageView==='stats') renderShortageStats();
-  toast(done+' exported record(s) archived ✓','success');
 }
 
 function openShortageEdit(id){
@@ -4483,69 +4417,44 @@ async function fetchShortages(forceRefresh){
   try{
     if(CFG.DEMO_MODE){
       const saved = localStorage.getItem('shortages_demo');
-      shortageData = saved ? JSON.parse(saved).map(r=>normalizeShortageDoc(r,false)) : [];
+      shortageData = saved ? JSON.parse(saved) : [];
     } else {
-      const cached = readCacheGet('shortages_active_latest');
+      const cached = readCacheGet('shortages_latest');
       if(cached && forceRefresh!==true){
-        shortageData = cached.map(r=>normalizeShortageDoc(r,false));
+        shortageData = cached;
         renderShortageList();
         return;
       }
-      // Active dashboard pulls ONLY the active collection. Archived records are moved out
-      // of this collection so normal dashboard use does not keep reading hundreds of old rows.
-      const docs = await fsQuery(SHORTAGE_ACTIVE_COLLECTION, null, 'timestamp', 600);
-      shortageData = docs.map(d=>normalizeShortageDoc(d,false));
-      readCacheSet('shortages_active_latest', shortageData);
+      const docs = await fsQuery('shortages', null, 'timestamp', 600);
+      const rawDocs = docs.map(d=>({
+        id:          d._id || d.id || '',
+        timestamp:   d.timestamp || '',
+        name:        d.name || '',
+        division:    d.division || '',
+        picker:      d.picker || '',
+        orderNumber: d.orderNumber || '',
+        binShorted:  d.binShorted || '',
+        productCode: d.productCode || '',
+        qtyShorted:  typeof d.qtyShorted === 'number' ? d.qtyShorted : parseInt(d.qtyShorted||0),
+        uom:         d.uom || '',
+        located:     d.located || 'pending',  // 'Y','N','pending'
+        foundBin:    d.foundBin || '',
+        foundInShortedBin: d.foundInShortedBin || false,
+        binReplenished: d.binReplenished || false,
+        shortageArchived: d.shortageArchived || false,
+        qtyLocated:  typeof d.qtyLocated === 'number' ? d.qtyLocated : parseInt(d.qtyLocated||0),
+        icQtyAtSecondLoc: typeof d.icQtyAtSecondLoc === 'number' ? d.icQtyAtSecondLoc : parseInt(d.icQtyAtSecondLoc||0),
+        secondaryLocations: Array.isArray(d.secondaryLocations) ? d.secondaryLocations : [],
+        locNotes:    d.locNotes || '',
+        exported:    d.exported || false,
+        shift:       d.shift || getShift(d.timestamp||''),
+      }));
+      // Auto-normalize picker capitalization in memory (non-destructive — just display)
+      shortageData = rawDocs.map(r=>({...r, picker: autoCapPicker(r.picker||'')}));
+      readCacheSet('shortages_latest', shortageData);
     }
     renderShortageList();
   }catch(e){ toast('Could not load shortages: '+e.message,'error'); }
-}
-
-async function fetchArchivedShortages(forceRefresh){
-  try{
-    if(CFG.DEMO_MODE){
-      const saved = localStorage.getItem('shortages_archive_demo');
-      shortageArchiveData = saved ? JSON.parse(saved).map(r=>normalizeShortageDoc(r,true)) : [];
-    } else {
-      const cached = readCacheGet('shortages_archive_latest');
-      if(cached && forceRefresh!==true){
-        shortageArchiveData = cached.map(r=>normalizeShortageDoc(r,true));
-        shortageArchiveLoaded = true;
-        return;
-      }
-      const docs = await fsQuery(SHORTAGE_ARCHIVE_COLLECTION, null, 'timestamp', 1000);
-      shortageArchiveData = docs.map(d=>normalizeShortageDoc(d,true));
-      readCacheSet('shortages_archive_latest', shortageArchiveData);
-    }
-    shortageArchiveLoaded = true;
-  }catch(e){ toast('Could not load archived shortages: '+e.message,'error'); }
-}
-
-async function archiveShortageRecord(id, reason){
-  const rec = shortageData.find(r=>r.id===id);
-  if(!rec) return false;
-  const archivedRec = {
-    ...rec,
-    shortageArchived:true,
-    archivedAt:new Date().toISOString(),
-    archivedBy:role||'unknown',
-    archiveReason:reason||'Manual archive',
-  };
-  if(!CFG.DEMO_MODE){
-    await fsPatch(SHORTAGE_ARCHIVE_COLLECTION+'/'+id, archivedRec);
-    await fsDelete(SHORTAGE_ACTIVE_COLLECTION+'/'+id);
-  } else {
-    const active=JSON.parse(localStorage.getItem('shortages_demo')||'[]').filter(r=>r.id!==id);
-    const archive=JSON.parse(localStorage.getItem('shortages_archive_demo')||'[]').filter(r=>r.id!==id);
-    archive.unshift(archivedRec);
-    localStorage.setItem('shortages_demo',JSON.stringify(active));
-    localStorage.setItem('shortages_archive_demo',JSON.stringify(archive));
-  }
-  shortageData = shortageData.filter(r=>r.id!==id);
-  shortageArchiveData = [normalizeShortageDoc(archivedRec,true), ...shortageArchiveData.filter(r=>r.id!==id)];
-  shortageArchiveLoaded = true;
-  readCacheClear('shortages');
-  return true;
 }
 
 let sfLineCount = 0;
@@ -4652,7 +4561,6 @@ async function submitShortage(){
       located:     'N',
       foundBin:    '', qtyLocated:0, locNotes:'',
       exported:    false,
-      shortageArchived: false,
       shift,
       // Store shift override flag so stats show correctly
       shiftOverride: !!shiftOver,
@@ -4915,16 +4823,20 @@ async function confirmPickerRename(){
 }
 
 async function archiveShortageRow(id){
-  if(!confirm('Archive this shortage record? It will move to historical shortage archive and stop loading on the active dashboard.')) return;
   try{
-    if(await archiveShortageRecord(id,'Single row archive')){
-      renderShortageList();
-      if(shortageView==='stats') renderShortageStats();
-      toast('Record archived ✓','success');
+    const upd={shortageArchived:true};
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    const rec=shortageData.find(r=>r.id===id);
+    if(rec) rec.shortageArchived=true;
+    else {
+      const s=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
+      const i=s.findIndex(r=>r.id===id);
+      if(i>=0){ s[i].shortageArchived=true; localStorage.setItem('shortages_demo',JSON.stringify(s)); }
     }
+    renderShortageList();
+    toast('Archived ✓','success');
   }catch(e){ toast('Archive failed: '+e.message,'error'); }
 }
-
 
 async function unarchiveShortageRow(id){
   try{
@@ -5064,17 +4976,56 @@ async function toggleExported(id, checked){
   }catch(e){ toast('Could not update export flag','error'); }
 }
 
+function shortageLocalDateKey(r){
+  const raw = r?.timestamp || r?.createdAt || r?.dateTime || r?.date || '';
+  const d = raw ? new Date(raw) : null;
+  if(!d || Number.isNaN(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function shortageMatchesDateRange(r, fromDate, toDate){
+  if(!fromDate && !toDate) return true;
+  const key = shortageLocalDateKey(r);
+  if(!key) return false;
+  if(fromDate && key < fromDate) return false;
+  if(toDate && key > toDate) return false;
+  return true;
+}
+
+function clearShortageDateFilters(){
+  const from=document.getElementById('shortageDateFrom');
+  const to=document.getElementById('shortageDateTo');
+  if(from) from.value='';
+  if(to) to.value='';
+  renderShortageList();
+}
+
 // ── Render list ──────────────────────────────────────────
 function renderShortageList(){
-  const archF = document.getElementById('shortageFilterArchive')?.value||'active';
-  let data = getFilteredVisibleShortages();
-  if((archF==='archived'||archF==='all') && !shortageArchiveLoaded){
-    const el = document.getElementById('shortageListArea');
-    if(el) el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Archived history is not loaded yet. Use the archive dropdown again or Refresh Data.</div>';
-    return;
-  }
+  const q      = (document.getElementById('shortageSearch')?.value||'').toLowerCase();
+  const divF   = document.getElementById('shortageFilterDiv')?.value||'';
+  const locF   = document.getElementById('shortageFilterLoc')?.value||'';
+  const sort   = document.getElementById('shortageSort')?.value||'date-desc';
+  const dateFrom = document.getElementById('shortageDateFrom')?.value||'';
+  const dateTo   = document.getElementById('shortageDateTo')?.value||'';
+
+  let data = getShortageRowsMatchingCurrentFilters();
+
+  if(sort==='date-desc') data.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  else if(sort==='date-asc')   data.sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+  else if(sort==='product')    data.sort((a,b)=>a.productCode.localeCompare(b.productCode));
+  else if(sort==='division')   data.sort((a,b)=>a.division.localeCompare(b.division));
+  else if(sort==='order')      data.sort((a,b)=>(a.orderNumber||'').localeCompare(b.orderNumber||''));
 
   const el = document.getElementById('shortageListArea');
+  const selCount = document.getElementById('shortageSelCount');
+  if(selCount && !document.querySelector('.shortage-row-chk:checked')){
+    const dateTxt = (dateFrom||dateTo) ? ` · date filter ${dateFrom||'start'} to ${dateTo||'today'}` : '';
+    selCount.textContent = `${data.length} visible${dateTxt}`;
+  }
   if(!data.length){ el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">No shortages found</div>'; return; }
 
   el.innerHTML = data.map(r=>{
@@ -5085,7 +5036,6 @@ function renderShortageList(){
       else if(r.located==='N') badges+=`<span class="sr-badge not-located">✗ Not Located</span>`;
       else badges+=`<span class="sr-badge pending">⏳ Pending</span>`;
       if(r.foundInShortedBin) badges+=` <span class="sr-badge" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)">⚠ Also in Shorted Bin</span>`;
-      if(isErroneousBackorder(r)) badges+=` <span class="sr-badge" style="background:rgba(220,38,38,.15);color:#dc2626;border:1px solid rgba(220,38,38,.35)">Backorder Risk</span>`;
       return badges;
     })();
     const expBadge = r.exported ? `<span class="sr-badge exported">✓ Exported</span>` : '';
@@ -5535,7 +5485,6 @@ function printShortageReport(){
   const toStr   = document.getElementById('statsDateTo')?.value;
   const divF    = document.getElementById('statsFilterDiv')?.value||'';
   const shiftF  = document.getElementById('statsFilterShift')?.value||'';
-  const scope   = document.getElementById('statsArchiveScope')?.value||'active';
 
   const from = fromStr ? new Date(fromStr+'T00:00:00') : new Date(0);
   const to   = toStr   ? new Date(toStr  +'T23:59:59') : new Date();
@@ -5544,7 +5493,7 @@ function printShortageReport(){
   const shiftLabel = shiftF==='1'?'1st Shift (6am–3:30pm)':shiftF==='2'?'2nd Shift (3:30pm–12am)':'All Shifts';
   const divLabel   = divF ? divF+' — '+(DIV_NAMES[divF]||divF) : 'All Divisions';
 
-  let data = getShortageDataset(scope).filter(r=>{
+  let data = shortageData.filter(r=>{
     const d=new Date(r.timestamp);
     return d>=from && d<=to
       && (!divF   || r.division===divF)
@@ -5558,7 +5507,7 @@ function printShortageReport(){
   const notLoc     = data.filter(r=>r.located==='N'&&!r.foundInShortedBin).length;  // truly not found anywhere
   // Erroneous fully-shorted: marked erroneous (found in shorted bin) but NOT located in 2nd bin
   // These mean the picker shorted item that was there, didn't find it anywhere else → customer shorted
-  const errFullyShorted = data.filter(isErroneousBackorder).length;
+  const errFullyShorted = data.filter(r=>r.foundInShortedBin&&r.located!=='Y').length;
   const pending    = data.filter(r=>r.located==='pending').length;
   const shift1c    = data.filter(r=>(r.shift||getShift(r.timestamp))===1).length;
   const shift2c    = data.filter(r=>(r.shift||getShift(r.timestamp))===2).length;
@@ -5637,7 +5586,6 @@ function printShortageReport(){
         ['Total Shortages',total,'#1a2038'],
         ['2nd Location Found',located2nd+'  ('+locPct+'%)','#047857'],
         ['⚠ Erroneous Shorts',erroneous+'  ('+errPct+'%)','#92400e'],
-        ['Erroneous Backorders',errFullyShorted,'#b91c1c'],
         ['Not Located',notLoc,'#b91c1c'],
         ['Pending Resolution',pending,'#92400e'],
         ['1st Shift',shift1c,'#1d4ed8'],
@@ -5730,7 +5678,7 @@ function printShortageReport(){
       </thead>
       <tbody>
         ${duplicates.map(([key,rows],i)=>{
-          const [bin,code]=key.split('::');
+          const [bin,code]=key.split('|');
           const pickers=[...new Set(rows.map(r=>r.picker))].join(', ');
           const dates=[...new Set(rows.map(r=>new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit'})))].join(', ');
           const bg=i%2===0?'#fff5f5':'#fee2e2';
@@ -5770,33 +5718,6 @@ function printShortageReport(){
             <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-family:'Courier New',monospace;color:${r.icQtyAtSecondLoc>0?'#047857':'#9ca3af'}">${r.icQtyAtSecondLoc>0?r.icQtyAtSecondLoc:'—'}</td>
             <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-size:8.5pt">${esc(r.picker||'—')}</td>
             <td style="padding:4pt 8pt;border-bottom:.5pt solid #dcfce7;font-size:8pt;color:#6b7280">${new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'})}</td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-    </div>` : ''}
-
-
-    ${ data.filter(isErroneousBackorder).length ? `
-    <div style="page-break-before:always;page-break-inside:avoid">
-    <div style="font-size:8pt;font-weight:700;color:#7f1d1d;letter-spacing:.1em;text-transform:uppercase;border-bottom:1pt solid #fecaca;padding-bottom:4pt;margin:14pt 0 8pt">Erroneous Shortages That Likely Became Backorders</div>
-    <div style="font-size:8.5pt;color:#6b7280;margin-bottom:8pt">These records were found by IC in the original shorted bin, but no secondary location fill was recorded. The item was available in the correct bin, but the customer line likely stayed short/backordered.</div>
-    <table class="pr-tbl" style="width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:16pt">
-      <thead><tr>${['Product Code','Division','Shorted Bin','Qty Shorted','IC Qty Found','UOM','Pick Demand','Picker','Date'].map(h=>`<th style="background:#7f1d1d;color:#fff;padding:5pt 8pt;text-align:left;font-size:8pt;font-weight:600;letter-spacing:.04em">${h}</th>`).join('')}</tr></thead>
-      <tbody>
-        ${data.filter(isErroneousBackorder).sort((a,b)=>(a.binShorted||'').localeCompare(b.binShorted||'')).map((r,i)=>{
-          const c=Array.isArray(r.icErroneousCounts)&&r.icErroneousCounts.length?r.icErroneousCounts[r.icErroneousCounts.length-1]:{};
-          const bg=i%2===0?'#fff5f5':'#fee2e2';
-          return `<tr style="background:${bg}">
-            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace;font-weight:700;color:#1a2038">${esc(r.productCode)}</td>
-            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace">${esc(r.division)}</td>
-            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace;font-weight:700;color:#7f1d1d">${esc(r.binShorted||'—')}</td>
-            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace">${r.qtyShorted||0}</td>
-            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace;font-weight:700;color:#7f1d1d">${c.qty||r.qtyShorted||'—'}</td>
-            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace">${esc(c.uom||r.uom||'EA')}</td>
-            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-family:'Courier New',monospace">${esc(r.orderNumber||'—')}</td>
-            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-size:8.5pt">${esc(r.picker||'—')}</td>
-            <td style="padding:4pt 8pt;border-bottom:.5pt solid #fecaca;font-size:8pt;color:#6b7280">${new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'})}</td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -5851,12 +5772,11 @@ function renderShortageStats(){
   const toStr   = document.getElementById('statsDateTo')?.value;
   const divF    = document.getElementById('statsFilterDiv')?.value||'';
   const shiftF  = document.getElementById('statsFilterShift')?.value||'';
-  const scope   = document.getElementById('statsArchiveScope')?.value||'active';
 
   const from = fromStr ? new Date(fromStr+'T00:00:00') : new Date(0);
   const to   = toStr   ? new Date(toStr  +'T23:59:59') : new Date();
 
-  let data = getShortageDataset(scope).filter(r=>{
+  let data = shortageData.filter(r=>{
     const d = new Date(r.timestamp);
     return d>=from && d<=to
       && (!divF   || r.division===divF)
@@ -5877,7 +5797,6 @@ function renderShortageStats(){
   const total       = data.length;
   const located2nd  = data.filter(r=>r.located==='Y'&&!r.foundInShortedBin).length;
   const erroneous   = data.filter(r=>r.foundInShortedBin).length;
-  const errFullyShorted = data.filter(isErroneousBackorder).length;
   const notLoc      = data.filter(r=>r.located==='N'&&!r.foundInShortedBin).length;
   const pending     = data.filter(r=>r.located==='pending').length;
   const exported    = data.filter(r=>r.exported).length;
@@ -5973,7 +5892,7 @@ function renderShortageStats(){
 
   el.innerHTML = `
     ${drillHtml}
-    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">Shortage Statistics${divF?' — '+divF:''}${shiftF?' — Shift '+shiftF:''}${scope==='archived'?' — Archived':scope==='all'?' — Active + Archived':''}</div>
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:12px">Shortage Statistics${divF?' — '+divF:''}${shiftF?' — Shift '+shiftF:''}</div>
 
     <!-- Summary cards -->
     <div class="shortage-stat-grid">
