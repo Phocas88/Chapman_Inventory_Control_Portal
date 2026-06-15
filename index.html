@@ -5639,8 +5639,10 @@ function printShortageReport(){
         ['⚠ Erroneous Shorts',erroneous+'  ('+errPct+'%)','#92400e'],
         ['Erroneous Backorders',errFullyShorted,'#b91c1c'],
         ['Not Located',notLoc,'#b91c1c'],
+        ['Pending Resolution',pending,'#92400e'],
         ['1st Shift',shift1c,'#1d4ed8'],
         ['2nd Shift',shift2c,'#1d4ed8'],
+        ['Exported to Apprise',data.filter(r=>r.exported).length,'#047857'],
       ].map(([lbl,val,color])=>`
         <div style="border:1pt solid #d1d5db;border-radius:4pt;padding:10pt;background:#f9fafb;text-align:center;break-inside:avoid">
           <div style="font-size:20pt;font-weight:700;color:${color};line-height:1.1">${val}</div>
@@ -5728,7 +5730,7 @@ function printShortageReport(){
       </thead>
       <tbody>
         ${duplicates.map(([key,rows],i)=>{
-          const [bin,code]=key.split('|');
+          const [bin,code]=key.split('::');
           const pickers=[...new Set(rows.map(r=>r.picker))].join(', ');
           const dates=[...new Set(rows.map(r=>new Date(r.timestamp).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit'})))].join(', ');
           const bg=i%2===0?'#fff5f5':'#fee2e2';
