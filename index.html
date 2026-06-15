@@ -4317,7 +4317,7 @@ function onShortageRowCheck(){
 
 async function deleteShortageRow(id){
   try{
-    if(!CFG.DEMO_MODE){ await fsDelete(SHORTAGE_ACTIVE_COLLECTION+'/'+id); }
+    if(!CFG.DEMO_MODE){ await fsDelete('shortages/'+id); }
     else {
       const saved=JSON.parse(localStorage.getItem('shortages_demo')||'[]');
       localStorage.setItem('shortages_demo',JSON.stringify(saved.filter(r=>r.id!==id)));
@@ -4369,18 +4369,18 @@ async function archiveFilteredShortages(){
 async function clearSelectedShortages(){
   const ids=[...document.querySelectorAll('.shortage-row-chk:checked')].map(c=>c.dataset.id);
   if(!ids.length) return;
-  if(!confirm(`Delete ${ids.length} selected active shortage record(s)? This is permanent. Use Archive instead if you may need the records later.`)) return;
-  showLoad('Deleting selected records…');
+  if(!confirm(`Delete ${ids.length} selected shortage record(s)? This cannot be undone.`)) return;
+  showLoad('Clearing…');
   let done=0;
   for(const id of ids){
     try{
-      if(!CFG.DEMO_MODE){ await fsDelete(SHORTAGE_ACTIVE_COLLECTION+'/'+id); }
+      if(!CFG.DEMO_MODE){ await fsDelete('shortages/'+id); }
       shortageData=shortageData.filter(r=>r.id!==id);
       done++;
     }catch(e){ console.error('Delete failed for '+id,e); }
   }
   hideLoad();
-  toast(done+' record(s) deleted','success');
+  toast(done+' record(s) cleared ✓','success');
   renderShortageList();
 }
 
@@ -4402,7 +4402,7 @@ async function clearExportedShortages(){
 
 function openShortageEdit(id){
   const r = shortageData.find(x=>x.id===id);
-  if(!r){ toast('Archived history records must be moved back to active before editing','error'); return; }
+  if(!r) return;
   document.getElementById('seId').value          = id;
   document.getElementById('seDivision').value    = r.division||'';
   document.getElementById('sePicker').value      = r.picker||'';
@@ -4927,31 +4927,14 @@ async function archiveShortageRow(id){
 
 
 async function unarchiveShortageRow(id){
-  const rec = shortageArchiveData.find(r=>r.id===id);
-  if(!rec){ toast('Archived record not loaded','error'); return; }
-  if(!confirm('Move this record back to the active shortage tracker? It will begin loading with active shortages again.')) return;
-  const activeRec = {...rec, shortageArchived:false, unarchivedAt:new Date().toISOString(), unarchivedBy:role||'unknown'};
-  delete activeRec.archivedAt;
-  delete activeRec.archivedBy;
-  delete activeRec.archiveReason;
   try{
-    if(!CFG.DEMO_MODE){
-      await fsPatch(SHORTAGE_ACTIVE_COLLECTION+'/'+id, activeRec);
-      await fsDelete(SHORTAGE_ARCHIVE_COLLECTION+'/'+id);
-    } else {
-      const archive=JSON.parse(localStorage.getItem('shortages_archive_demo')||'[]').filter(r=>r.id!==id);
-      const active=JSON.parse(localStorage.getItem('shortages_demo')||'[]').filter(r=>r.id!==id);
-      active.unshift(activeRec);
-      localStorage.setItem('shortages_archive_demo',JSON.stringify(archive));
-      localStorage.setItem('shortages_demo',JSON.stringify(active));
-    }
-    shortageArchiveData=shortageArchiveData.filter(r=>r.id!==id);
-    shortageData.unshift(normalizeShortageDoc(activeRec,false));
-    readCacheClear('shortages');
+    const upd={shortageArchived:false};
+    if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
+    const rec=shortageData.find(r=>r.id===id);
+    if(rec) rec.shortageArchived=false;
     renderShortageList();
-    if(shortageView==='stats') renderShortageStats();
-    toast('Moved back to active tracker ✓','success');
-  }catch(e){ toast('Unarchive failed: '+e.message,'error'); }
+    toast('Unarchived ✓','success');
+  }catch(e){ toast('Unarchive failed','error'); }
 }
 
 async function toggleReplenished(id, checked){
@@ -5656,10 +5639,8 @@ function printShortageReport(){
         ['⚠ Erroneous Shorts',erroneous+'  ('+errPct+'%)','#92400e'],
         ['Erroneous Backorders',errFullyShorted,'#b91c1c'],
         ['Not Located',notLoc,'#b91c1c'],
-        ['Pending Resolution',pending,'#92400e'],
         ['1st Shift',shift1c,'#1d4ed8'],
         ['2nd Shift',shift2c,'#1d4ed8'],
-        ['Exported to Apprise',data.filter(r=>r.exported).length,'#047857'],
       ].map(([lbl,val,color])=>`
         <div style="border:1pt solid #d1d5db;border-radius:4pt;padding:10pt;background:#f9fafb;text-align:center;break-inside:avoid">
           <div style="font-size:20pt;font-weight:700;color:${color};line-height:1.1">${val}</div>
