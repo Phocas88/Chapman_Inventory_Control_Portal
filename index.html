@@ -704,6 +704,12 @@ body.has-banner #app{margin-top:44px}
 .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 .loading-overlay p{font-size:12px;color:var(--muted)}
 ::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* IC Portal patch: shortage stats, IC counts, restock routing */
+#restockScreen.active{display:flex;flex-direction:column;min-height:calc(100vh - 54px);background:var(--bg);overflow:hidden}
+@media(max-width:720px){#restockScreen .sf-field{min-width:100%!important}.stats-wrap{padding:18px 12px}.stats-section{overflow:auto}}
+@media print{.print-page-break{page-break-before:always!important}.no-break{break-inside:avoid!important;page-break-inside:avoid!important} table{page-break-inside:auto!important} tr{page-break-inside:avoid!important;page-break-after:auto!important} thead{display:table-header-group!important}}
+
 </style>
 </head>
 <body>
@@ -821,7 +827,7 @@ body.has-banner #app{margin-top:44px}
     </div>
     <div class="tracker-actions">
       <button class="new-inquiry-btn" onclick="showScreen('form')">+ New Inquiry</button>
-      <button class="tracker-refresh-btn" id="trackerRefreshBtn" onclick="loadTrackerTix()">
+      <button class="tracker-refresh-btn" id="trackerRefreshBtn" onclick="loadTrackerTix(true)">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         Refresh
       </button>
@@ -1210,6 +1216,7 @@ body.has-banner #app{margin-top:44px}
       </div>
       <button class="refresh-btn" onclick="switchShortageView('stats')" id="btnShowStats" style="margin-left:auto">📊 Stats</button>
       <button class="refresh-btn" onclick="switchShortageView('list')" id="btnShowList">📋 All Shortages</button>
+      <button class="refresh-btn" onclick="refreshShortageData()" id="btnRefreshShortages">↻ Refresh Data</button>
     </div>
 
     <div class="shortage-form-body">
@@ -1327,8 +1334,6 @@ body.has-banner #app{margin-top:44px}
     <div id="shortageStatsArea" class="printable"></div>
   </div>
 </div>
-
-</div><!-- #app -->
 
 <!-- ═══════════ RESTOCK / REPLENISHMENT REPORT SCREEN ═══════════ -->
 <div class="screen" id="restockScreen">
@@ -1992,7 +1997,7 @@ function doLogin(target){
     role='clerk'; currentDiv='';
     allTix=[];
     setChip('📋 Outbound Clerk','clerk');
-    setNav('none','none','none','none','none','none','none');
+    setNav('none','none','none','none','none','','none');
     document.getElementById('globalStats').classList.remove('show');
     loadBanner(); saveSession(target);
     loadShortageScreen();
@@ -2091,14 +2096,20 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const target = document.getElementById(id+'Screen');
   if(target) target.classList.add('active');
-  ['navTracker','navForm','navDash','navStats','navOps'].forEach(n=>{
+  ['navTracker','navForm','navDash','navStats','navOps','navShortage','navRestock'].forEach(n=>{
     const el=document.getElementById(n); if(el) el.classList.remove('active');
   });
-  const map={tracker:'navTracker',form:'navForm',dash:'navDash',stats:'navStats',ops:'navOps'};
+  const map={tracker:'navTracker',form:'navForm',dash:'navDash',stats:'navStats',ops:'navOps',shortage:'navShortage',restock:'navRestock'};
   if(map[id]&&document.getElementById(map[id])) document.getElementById(map[id]).classList.add('active');
   if(id==='form') setupForm();
-  if(id==='stats') renderStatsScreen();
+  if(id==='stats'){
+    if((role==='manager'||role==='icteam'||role==='dockmanager') && (!allTix||!allTix.length)){
+      loadTix().then(()=>renderStatsScreen()).catch(()=>renderStatsScreen());
+    } else renderStatsScreen();
+  }
   if(id==='ops') loadOpsAlerts();
+  if(id==='shortage') loadShortageScreen();
+  if(id==='restock') loadRestockScreen();
   if(id==='tracker' && role==='division' && allTix.length>0) renderTrackerCards(allTix);
 }
 
@@ -2194,7 +2205,7 @@ async function loadOpsAlerts(forceRefresh){
     } else {
       // Always fetch fresh from Firestore — allTix may be empty if Ops logged in directly
       showLoad('Loading allocation alerts…');
-      const tickets = await fsLoadTickets();
+      const tickets = await fsLoadTickets(forceRefresh===true);
       hideLoad();
       opsAlerts = tickets.filter(t=>{
         const flags = Array.isArray(t.allocFlags) ? t.allocFlags :
@@ -3176,9 +3187,9 @@ function resetForm(){
 /* ═══════════════════════════════════════════════════════
    TRACKER
    ═══════════════════════════════════════════════════════ */
-async function loadTrackerTix(){
+async function loadTrackerTix(forceRefresh){
   const btn=document.getElementById('trackerRefreshBtn');
-  const isForce=btn&&btn.classList.contains('spinning');
+  const isForce=forceRefresh===true;
   if(btn)btn.classList.add('spinning');
   showLoad('Loading your tickets…');
   document.getElementById('trackerEyebrow').textContent=DIV_NAMES[currentDiv];
@@ -3188,16 +3199,17 @@ async function loadTrackerTix(){
       await delay(400);
       allTix = DEMO_TIX.filter(t=>t.division===currentDiv);
     } else {
-      const cacheKey='tix_'+currentDiv;
-      const cached=sessionGet(cacheKey);
+      const cacheKey='tickets_div_'+currentDiv;
+      const cached=readCacheGet(cacheKey) || sessionGet(cacheKey);
       if(cached&&!isForce){
         allTix=cached;
       } else {
-        // Query Firestore for this division's tickets only
-        const tickets = await fsQuery('tickets',[{field:'division',value:currentDiv}],null,200);
+        // Query Firestore for this division's tickets only. Manual Refresh bypasses cache.
+        const tickets = await fsQuery('tickets',[{field:'division',value:currentDiv}],null,250);
         allTix = tickets.map(normalizeTicket).filter(t=>t.division===currentDiv);
         allTix.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)); // sort client-side
         sessionSet(cacheKey,allTix);
+        readCacheSet(cacheKey,allTix);
       }
     }
     renderTrackerCards(allTix); updTrackerStats(allTix); loadGlobalStats();
@@ -3354,12 +3366,12 @@ async function loadTix(forceRefresh){
       const all=[...DEMO_TIX];
       allTix = role==='dockmanager' ? all.filter(t=>isDockTicket(t)) : all;
     } else {
-      const cacheKey='tix_ic';
-      const cached=sessionGet(cacheKey);
+      const cacheKey='tickets_ic_all';
+      const cached=readCacheGet(cacheKey) || sessionGet(cacheKey);
       if(cached&&!forceRefresh){
         allTix=cached;
       } else {
-        let tickets = await fsLoadTickets();
+        let tickets = await fsLoadTickets(forceRefresh===true);
         // Normalize productEntries
         tickets.forEach(t=>{
           if(t.productEntries && typeof t.productEntries==='string' && t.productEntries.trim().startsWith('[')){
@@ -3370,6 +3382,7 @@ async function loadTix(forceRefresh){
         if(role==='dockmanager') tickets=tickets.filter(t=>isDockTicket(t));
         allTix=tickets;
         sessionSet(cacheKey,allTix);
+        readCacheSet(cacheKey,allTix);
       }
     }
     document.getElementById('dockMgrBanner').style.display=role==='dockmanager'?'':'none';
@@ -4111,14 +4124,19 @@ function loadShortageScreen(){
     setInterval(updateShortageDateTime, 30000);
     window._shortageTimerRunning = true;
   }
-  // Hide entry form for IC/manager — they only review, not submit
+  // Keep the shortage header visible for every shortage role so Stats/List never disappears.
+  // Hide only the entry body for IC Manager and IC Team.
   const formPanel = document.getElementById('shortageFormWrap');
-  if(formPanel) formPanel.style.display = (role==='clerk') ? '' : 'none';
+  const formBody = formPanel ? formPanel.querySelector('.shortage-form-body') : null;
+  if(formPanel) formPanel.style.display = '';
+  if(formBody) formBody.style.display = (role==='clerk') ? '' : 'none';
+  const titleEl = formPanel ? formPanel.querySelector('.shortage-form-header div div:nth-child(2)') : null;
+  if(titleEl) titleEl.textContent = (role==='clerk') ? 'Shortage Entry' : 'Shortage Review';
   const pickerMgrBtn = document.getElementById('btnPickerMgr');
   if(pickerMgrBtn) pickerMgrBtn.style.display = role==='manager' ? '' : 'none';
   showShortageClearControls();
-  // Auto-add first product line for clerk
-  if(role==='clerk') addProductLine();
+  // Auto-add first product line for clerk only when the form is empty
+  if(role==='clerk' && document.getElementById('sfProductLines') && !document.getElementById('sfProductLines').children.length) addProductLine();
   // Set default date range for stats (last 30 days)
   const now = new Date();
   const from30 = new Date(now); from30.setDate(from30.getDate()-30);
@@ -4127,7 +4145,7 @@ function loadShortageScreen(){
   if(toEl && !toEl.value) toEl.value = now.toISOString().slice(0,10);
   if(frEl && !frEl.value) frEl.value = from30.toISOString().slice(0,10);
   // Load data then show appropriate default view
-  fetchShortages().then(()=>{
+  fetchShortages(false).then(()=>{
     if(role==='manager' || role==='icteam'){
       // IC/manager land on stats by default
       switchShortageView('stats');
@@ -4148,6 +4166,16 @@ function switchShortageView(v){
   document.getElementById('shortageStatsWrap').style.display = v==='stats' ? 'block':'none';
   if(v==='stats') renderShortageStats();
   if(v==='list')  renderShortageList();
+}
+
+async function refreshShortageData(){
+  readCacheClear('shortages');
+  showLoad('Refreshing shortage data…');
+  await fetchShortages(true);
+  hideLoad();
+  if(shortageView==='stats') renderShortageStats();
+  else renderShortageList();
+  toast('Shortage data refreshed ✓','success');
 }
 
 function getShift(dateStr){
@@ -4337,13 +4365,19 @@ async function saveShortageEdit(){
   }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
 }
 
-async function fetchShortages(){
+async function fetchShortages(forceRefresh){
   try{
     if(CFG.DEMO_MODE){
       const saved = localStorage.getItem('shortages_demo');
       shortageData = saved ? JSON.parse(saved) : [];
     } else {
-      const docs = await fsQuery('shortages', null, 'timestamp', 2000);
+      const cached = readCacheGet('shortages_latest');
+      if(cached && forceRefresh!==true){
+        shortageData = cached;
+        renderShortageList();
+        return;
+      }
+      const docs = await fsQuery('shortages', null, 'timestamp', 600);
       const rawDocs = docs.map(d=>({
         id:          d._id || d.id || '',
         timestamp:   d.timestamp || '',
@@ -4369,6 +4403,7 @@ async function fetchShortages(){
       }));
       // Auto-normalize picker capitalization in memory (non-destructive — just display)
       shortageData = rawDocs.map(r=>({...r, picker: autoCapPicker(r.picker||'')}));
+      readCacheSet('shortages_latest', shortageData);
     }
     renderShortageList();
   }catch(e){ toast('Could not load shortages: '+e.message,'error'); }
@@ -4936,8 +4971,12 @@ function renderShortageList(){
         const locs = Array.isArray(r.secondaryLocations)&&r.secondaryLocations.length ? r.secondaryLocations : (r.foundBin?[{bin:r.foundBin,qty:r.qtyLocated,icQty:r.icQtyAtSecondLoc||0,notes:r.locNotes||''}]:[]);
         if(locs.length) d+=locs.map((loc,i)=>`<div style="margin-top:4px;font-size:12px;color:var(--green)">✓ Location ${locs.length>1?i+1+': ':''}<span style="font-family:var(--mono);font-weight:600">${esc(loc.bin)}</span> · Picked: <strong>${loc.qty}</strong>${loc.icQty>0?' · IC Counted: <strong>'+loc.icQty+'</strong>':''}${loc.notes?' · '+esc(loc.notes):''}</div>`).join('');
       }
-      if(r.foundInShortedBin)
-        d+=`<div style="margin-top:4px;font-size:12px;color:#f59e0b">⚠ Also found in original shorted bin <span style="font-family:var(--mono);font-weight:600">${esc(r.binShorted)}</span> — stock was present in both locations</div>`;
+      if(r.foundInShortedBin){
+        d+=`<div style="margin-top:4px;font-size:12px;color:#f59e0b">⚠ Also found in original shorted bin <span style="font-family:var(--mono);font-weight:600">${esc(r.binShorted)}</span> — stock was present in the bin that was shorted</div>`;
+        if(Array.isArray(r.icErroneousCounts)&&r.icErroneousCounts.length){
+          d+=r.icErroneousCounts.map(c=>`<div style="margin-top:3px;font-size:11px;color:#f59e0b">IC Count: <span style="font-family:var(--mono);font-weight:700">${esc(c.productCode||r.productCode)}</span> · Bin <span style="font-family:var(--mono);font-weight:700">${esc(c.bin||r.binShorted)}</span> · Qty <strong>${c.qty}</strong> ${esc(c.uom||r.uom||'EA')}</div>`).join('');
+        }
+      }
       return d;
     })();
     const locateBtn = (()=>{
@@ -4946,7 +4985,7 @@ function renderShortageList(){
       if(!showMarkLocated && !showFoundInBin) return '';
       return `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
         ${showMarkLocated ? `<button class="locate-btn" onclick="showInlineLocate('${r.id}')">📍 Mark as Located</button>` : ''}
-        ${showFoundInBin  ? `<button class="locate-btn" onclick="markFoundInShortedBin('${r.id}')" style="border-color:rgba(245,158,11,.4);color:#f59e0b" title="Item was also found in the original shorted bin">⚠ Found in Shorted Bin</button>` : ''}
+        ${showFoundInBin  ? `<button class="locate-btn" onclick="markFoundInShortedBin('${r.id}')" style="border-color:rgba(245,158,11,.4);color:#f59e0b" title="Item was also found in the original shorted bin">⚠ Found in Shorted Bin / Count</button>` : ''}
       </div>
       <div class="locate-inline" id="il-${r.id}" style="display:none;flex-direction:column;gap:8px">
         <div style="display:flex;align-items:center;justify-content:space-between">
@@ -5007,14 +5046,34 @@ function renderShortageList(){
 }
 
 async function markFoundInShortedBin(id){
-  if(!confirm('Mark as found in the original shorted bin?\n\nThis means the item WAS in the bin but the picker missed it — an erroneous short.')) return;
+  const rec=shortageData.find(r=>r.id===id);
+  if(!rec){ toast('Shortage record not found','error'); return; }
+  if(!confirm('Mark as found in the original shorted bin?\n\nThis means the item WAS in the bin but the picker missed it. You can also record the IC count now.')) return;
+  const qtyRaw = prompt('How many units did IC locate in the shorted bin?', rec.qtyShorted || '');
+  if(qtyRaw===null) return;
+  const qty = Number(qtyRaw);
+  if(!qty || qty<0){ toast('Enter a valid qty found','error'); return; }
+  const uom = (prompt('UOM found?', rec.uom || 'EA') || rec.uom || 'EA').trim().toUpperCase();
+  const countRec={
+    id:'ICC-'+Date.now(),
+    shortageId:id,
+    productCode:rec.productCode||'',
+    bin:rec.binShorted||'',
+    qty,
+    uom,
+    notes:'Found in original shorted bin',
+    timestamp:new Date().toISOString(),
+    loggedBy:role||'icteam'
+  };
+  const icFields=Array.isArray(rec.icErroneousCounts)?[...rec.icErroneousCounts,countRec]:[countRec];
   try{
-    // Only set foundInShortedBin flag — preserve existing located/2nd-location status
-    const upd={foundInShortedBin:true};
+    const upd={foundInShortedBin:true, icErroneousCounts:icFields};
     if(!CFG.DEMO_MODE){ await fsPatch('shortages/'+id, upd); }
-    const rec=shortageData.find(r=>r.id===id);
-    if(rec) Object.assign(rec,upd);
-    toast('Marked as erroneous short ✓','success');
+    Object.assign(rec,upd);
+    icCountsData.unshift(countRec);
+    sessionSet('icCounts',icCountsData);
+    renderICCountsLog();
+    toast('Erroneous short count saved ✓','success');
     renderShortageList();
   }catch(e){ toast('Update failed: '+e.message,'error'); }
 }
@@ -5395,7 +5454,7 @@ function printShortageReport(){
 
   const binProductMap={};
   data.forEach(r=>{
-    const key=r.binShorted+'|'+r.productCode;
+    const key=r.binShorted+'::'+r.productCode;
     if(!binProductMap[key]) binProductMap[key]=[];
     binProductMap[key].push(r);
   });
@@ -6354,18 +6413,35 @@ function dlAtt(name,b64,type){if(!b64){toast('No file data','error');return;}try
    SESSION CACHE — reduces GAS calls on repeat loads
    Cache expires after 5 minutes
    ═══════════════════════════════════════════════════════ */
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-function sessionSet(key, data){
-  try { sessionStorage.setItem(key, JSON.stringify({data, ts: Date.now()})); } catch(e){}
+const CACHE_TTL = 30 * 60 * 1000; // 30 minutes. Manual Refresh bypasses this cache.
+const READ_CACHE_PREFIX = 'icp_readcache_';
+
+function cacheSetRaw(storage, key, data){
+  try { storage.setItem(key, JSON.stringify({data, ts: Date.now()})); } catch(e){}
 }
-function sessionGet(key){
+function cacheGetRaw(storage, key, ttl){
   try {
-    const raw = sessionStorage.getItem(key);
+    const raw = storage.getItem(key);
     if(!raw) return null;
-    const {data, ts} = JSON.parse(raw);
-    if(Date.now() - ts > CACHE_TTL) { sessionStorage.removeItem(key); return null; }
-    return data;
+    const parsed = JSON.parse(raw);
+    if(!parsed || !parsed.ts) return null;
+    if(Date.now() - parsed.ts > ttl) { storage.removeItem(key); return null; }
+    return parsed.data;
   } catch(e){ return null; }
+}
+function sessionSet(key, data){ cacheSetRaw(sessionStorage, key, data); }
+function sessionGet(key){ return cacheGetRaw(sessionStorage, key, CACHE_TTL); }
+function readCacheSet(key, data){ cacheSetRaw(localStorage, READ_CACHE_PREFIX + key, data); }
+function readCacheGet(key){ return cacheGetRaw(localStorage, READ_CACHE_PREFIX + key, CACHE_TTL); }
+function readCacheClear(prefix){
+  try {
+    Object.keys(localStorage)
+      .filter(k=>k.startsWith(READ_CACHE_PREFIX) && (!prefix || k.includes(prefix)))
+      .forEach(k=>localStorage.removeItem(k));
+    Object.keys(sessionStorage)
+      .filter(k=>!prefix || k.includes(prefix))
+      .forEach(k=>sessionStorage.removeItem(k));
+  } catch(e){}
 }
 function sessionClear(){
   try {
@@ -6404,7 +6480,10 @@ async function fsPatch(path, fields){
     console.error('FS PATCH failed:', r.status, t.substring(0,300));
     throw new Error('FS PATCH '+r.status+': '+t.substring(0,100));
   }
-  return r.json();
+  const out = await r.json();
+  if(path.startsWith('tickets/')) readCacheClear('tickets');
+  if(path.startsWith('shortages/')) readCacheClear('shortages');
+  return out;
 }
 
 async function fsQuery(collectionId, filters, orderBy, limit){
@@ -6443,6 +6522,8 @@ async function fsQuery(collectionId, filters, orderBy, limit){
 async function fsDelete(path){
   const r = await fetch(FS_BASE+'/'+path+FS_KEY, {method:'DELETE'});
   if(!r.ok && r.status!==404){ const t=await r.text(); throw new Error('FS DELETE '+r.status+': '+t.substring(0,100)); }
+  if(path.startsWith('tickets/')) readCacheClear('tickets');
+  if(path.startsWith('shortages/')) readCacheClear('shortages');
 }
 
 // Firestore field type converters
@@ -6514,9 +6595,14 @@ async function generateTicketId(){
 }
 
 // Load all tickets from Firestore (replaces gasGet getTickets)
-async function fsLoadTickets(){
-  const docs = await fsQuery('tickets', null, 'timestamp', 1000);
-  return docs.map(normalizeTicket);
+async function fsLoadTickets(forceRefresh){
+  const cacheKey='tickets_all_latest';
+  const cached=readCacheGet(cacheKey);
+  if(cached && !forceRefresh) return cached;
+  const docs = await fsQuery('tickets', null, 'timestamp', 500);
+  const tickets = docs.map(normalizeTicket);
+  readCacheSet(cacheKey, tickets);
+  return tickets;
 }
 
 // Load messages subcollection for a ticket
@@ -6562,6 +6648,7 @@ async function fsSaveTicket(inquiryId, fields){
     });
     if(!r.ok){const t=await r.text();throw new Error('FS PATCH (complex) '+r.status+': '+t.substring(0,100));}
   }
+  readCacheClear('tickets');
 }
 
 // Append a message to the ticket's messages subcollection
