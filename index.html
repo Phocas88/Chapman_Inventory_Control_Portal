@@ -732,7 +732,7 @@ body.has-banner #app{margin-top:44px}
     <button class="nav-btn" onclick="showScreen('dash')"    id="navDash"    style="display:none">Dashboard</button>
     <button class="nav-btn" onclick="showScreen('stats')"   id="navStats"   style="display:none">📊 Stats</button>
     <button class="nav-btn" onclick="if(role==='ops'||role==='icteam'||role==='manager')showScreen('ops')" id="navOps" style="display:none">⚙️ Ops</button>
-    <button class="nav-btn" onclick="loadShortageScreen();showScreen('shortage')" id="navShortage" style="display:none">📋 Shortages</button>
+    <button class="nav-btn" onclick="loadShortageScreen();showScreen('shortage')" id="navShortage" style="display:none">📋 Shortage Review</button>
     <button class="nav-btn" onclick="loadRestockScreen();showScreen('restock')" id="navRestock" style="display:none">📦 Restock</button>
     <button id="allocBell" class="alloc-bell" onclick="showScreen('ops')" style="display:none" title="Allocation confirmed by Ops — click to view">🔔 <span id="allocBellCount">0</span></button>
     <button class="nav-btn" id="themeToggle" onclick="toggleTheme()" title="Switch light/dark mode" style="padding:4px 8px;font-size:14px;line-height:1">🌙</button>
@@ -788,9 +788,9 @@ body.has-banner #app{margin-top:44px}
       <button class="ic-login-btn ops" onclick="goPin('ops')">
         <div><div class="ib-title">Operations Manager</div><div class="ib-sub">View &amp; release allocated items</div></div>
       </button>
-      <button class="ic-login-btn" style="grid-column:1/-1" onclick="goPin('clerk')">
-        <div><div class="ib-title">Outbound Clerk</div><div class="ib-sub">Shortage entry &amp; location tracking</div></div>
-      </button>
+      <a class="ic-login-btn" href="https://phocas88.github.io/pick_shortages/" target="_blank" style="grid-column:1/-1;text-decoration:none;border-color:rgba(251,146,60,.4);background:var(--orange-l,rgba(251,146,60,.1))">
+        <div><div class="ib-title" style="color:#fb923c">&#128202; Shortage &amp; Over Pull Portal</div><div class="ib-sub">Opens the standalone shortage app (new tab)</div></div>
+      </a>
     </div>
   </div>
 </div>
@@ -1212,7 +1212,7 @@ body.has-banner #app{margin-top:44px}
     <div class="shortage-form-header">
       <div>
         <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:2px">Outbound</div>
-        <div style="font-size:17px;font-weight:700;color:var(--text)">Shortage Entry</div>
+        <div style="font-size:17px;font-weight:700;color:var(--text)" id="shortageScreenTitle">Shortage Review</div>
       </div>
       <button class="refresh-btn" onclick="switchShortageView('stats')" id="btnShowStats" style="margin-left:auto">📊 Stats</button>
       <button class="refresh-btn" onclick="switchShortageView('list')" id="btnShowList">📋 All Shortages</button>
@@ -1836,7 +1836,6 @@ const CFG = {
   PIN_MANAGER:    '1988',
   PIN_DOCK_MGR:   '2244',   // Christian Prater — Inbound Dock Manager
   PIN_OPS:        '1122',   // Operations — views allocation alerts
-  PIN_CLERK:      '3366',   // Outbound Clerk — shortage entry screen
   DIV_PINS: { GT:'4411',NH:'4422',FS:'4433',EE:'4444',BC:'4455',VP:'4466',TP:'4477',CI:'4488',KA:'5000' },
   MAX_FILES: 5, MAX_MB: 10,
 };
@@ -1904,8 +1903,8 @@ function goPin(target){
     b.textContent='⚙️ Operations';
     b.style.cssText='background:var(--purple-l);color:var(--purple);border:1.5px solid rgba(124,58,237,.2)';
     document.getElementById('pinSub').textContent='Enter your Operations PIN';
-  } else if(target==='clerk'){
-    b.textContent='📋 Outbound Clerk';
+  } else if(target==='clerk_disabled_noop'){
+    b.textContent='Outbound Clerk';
     b.style.cssText='background:var(--panel2);color:var(--text);border:1.5px solid var(--border)';
     document.getElementById('pinSub').textContent='Enter your Clerk PIN';
   } else {
@@ -1947,7 +1946,7 @@ function chkPin(){
   else if(pinTarget==='icteam')     exp=CFG.PIN_ICTEAM;
   else if(pinTarget==='dockmanager')exp=CFG.PIN_DOCK_MGR;
   else if(pinTarget==='ops')        exp=CFG.PIN_OPS;
-  else if(pinTarget==='clerk')      exp=CFG.PIN_CLERK;
+  // clerk PIN removed — use standalone shortage portal
   else                              exp=CFG.PIN_MANAGER;
   if(pinBuf!==exp){ pinShake('Incorrect PIN'); return; }
   doLogin(pinTarget);
@@ -1995,15 +1994,6 @@ function doLogin(target){
     document.getElementById('globalStats').classList.remove('show');
     loadBanner(); saveSession(target);
     showScreen('ops');
-  } else if(target==='clerk'){
-    role='clerk'; currentDiv='';
-    allTix=[];
-    setChip('📋 Outbound Clerk','clerk');
-    setNav('none','none','none','none','none','','none');
-    document.getElementById('globalStats').classList.remove('show');
-    loadBanner(); saveSession(target);
-    loadShortageScreen();
-    showScreen('shortage');
   } else {
     role='manager'; currentDiv='';
     allTix=[];
@@ -2034,7 +2024,7 @@ function restoreSession(){
     // Session valid for 8 hours
     if(!target || Date.now() - ts > 8 * 60 * 60 * 1000){ clearSession(); return false; }
     // Validate target is still a known role/division
-    const valid = CFG.DIV_PINS[target] || target==='icteam' || target==='manager' || target==='dockmanager' || target==='ops' || target==='clerk';
+    const valid = CFG.DIV_PINS[target] || target==='icteam' || target==='manager' || target==='dockmanager' || target==='ops';
     if(!valid){ clearSession(); return false; }
     pinTarget = target;
     doLogin(target);
@@ -4135,14 +4125,14 @@ function loadShortageScreen(){
   const formPanel = document.getElementById('shortageFormWrap');
   const formBody = formPanel ? formPanel.querySelector('.shortage-form-body') : null;
   if(formPanel) formPanel.style.display = '';
-  if(formBody) formBody.style.display = (role==='clerk') ? '' : 'none';
+  if(formBody) formBody.style.display = 'none'; // entry form removed — clerks use standalone shortage portal
   const titleEl = formPanel ? formPanel.querySelector('.shortage-form-header div div:nth-child(2)') : null;
-  if(titleEl) titleEl.textContent = (role==='clerk') ? 'Shortage Entry' : 'Shortage Review';
+  if(titleEl) titleEl.textContent = 'Shortage Review';
   const pickerMgrBtn = document.getElementById('btnPickerMgr');
   if(pickerMgrBtn) pickerMgrBtn.style.display = role==='manager' ? '' : 'none';
   showShortageClearControls();
   // Auto-add first product line for clerk only when the form is empty
-  if(role==='clerk' && document.getElementById('sfProductLines') && !document.getElementById('sfProductLines').children.length) addProductLine();
+  // addProductLine auto-trigger removed — entry form no longer shown
   // Set default date range for stats (last 30 days)
   const now = new Date();
   const from30 = new Date(now); from30.setDate(from30.getDate()-30);
@@ -5123,7 +5113,7 @@ function renderShortageList(){
         </div>
       </div>`;
     })();
-    const exportChk = (role==='manager'||role==='clerk') && r.located==='Y'
+    const exportChk = role==='manager' && r.located==='Y'
       ? `<label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted);cursor:pointer;margin-top:6px">
            <input type="checkbox" class="export-chk" ${r.exported?'checked':''} onchange="toggleExported('${r.id}',this.checked)"> Included in Apprise Export
          </label>`
@@ -5145,7 +5135,7 @@ function renderShortageList(){
     const deleteBtn = canClear
       ? `<button onclick="if(confirm('Delete this record?')) deleteShortageRow('${r.id}')" style="padding:3px 8px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:5px;font-size:11px;color:var(--red);cursor:pointer;flex-shrink:0" title="Delete record">🗑</button>`
       : '';
-    const editBtn = (role==='manager'||role==='icteam'||role==='clerk')
+    const editBtn = (role==='manager'||role==='icteam')
       ? `<button onclick="openShortageEdit('${r.id}')" style="padding:3px 8px;background:var(--accent-l);border:1px solid rgba(79,131,245,.3);border-radius:5px;font-size:11px;color:var(--accent);cursor:pointer;flex-shrink:0" title="Edit record">✏️ Edit</button>`
       : '';
     return `<div class="shortage-row ${locClass} ${r.exported?'exported':''}">
