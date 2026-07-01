@@ -583,7 +583,7 @@ body.has-banner #app{margin-top:44px}
 .fc-multi-btn:hover{border-color:var(--accent)}
 .fc-chip{display:inline-block;background:var(--accent-l);color:var(--accent);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:600;white-space:nowrap}
 .fc-placeholder{color:var(--muted);font-size:11px}
-.fc-dropdown{position:fixed;z-index:9999;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);max-height:280px;overflow-y:auto;width:280px}
+.fc-dropdown{position:fixed;z-index:9999;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);max-height:280px;overflow-y:auto;overscroll-behavior:contain;width:280px;-webkit-overflow-scrolling:touch}
 .fc-opt{display:flex;align-items:center;gap:7px;padding:6px 10px;font-size:11px;cursor:pointer;color:var(--text)}
 .fc-opt:hover{background:var(--panel)}
 .fc-opt input{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
@@ -3964,16 +3964,24 @@ function toggleFcDropdown(key){
   dd.style.left=left+'px';
   dd.style.top=top+'px';
 
-  // Close on outside click / scroll
+  // Close on outside click; reposition on outer scroll but allow inner scroll
   setTimeout(()=>{
     const closeHandler=(ev)=>{
       if(!dd.contains(ev.target) && !btn.contains(ev.target)){
-        closeFcDropdown();
-        document.removeEventListener('mousedown',closeHandler);
-        window.removeEventListener('scroll',scrollHandler,true);
+        cleanup();
       }
     };
-    const scrollHandler=()=>{ closeFcDropdown(); window.removeEventListener('scroll',scrollHandler,true); document.removeEventListener('mousedown',closeHandler); };
+    const scrollHandler=(ev)=>{
+      // Ignore scroll events originating inside the dropdown itself
+      if(dd.contains(ev.target)) return;
+      // Outer scroll (modal/grid) — just close it
+      cleanup();
+    };
+    function cleanup(){
+      closeFcDropdown();
+      document.removeEventListener('mousedown',closeHandler);
+      window.removeEventListener('scroll',scrollHandler,true);
+    }
     document.addEventListener('mousedown',closeHandler);
     window.addEventListener('scroll',scrollHandler,true);
   },10);
