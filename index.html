@@ -583,7 +583,7 @@ body.has-banner #app{margin-top:44px}
 .fc-multi-btn:hover{border-color:var(--accent)}
 .fc-chip{display:inline-block;background:var(--accent-l);color:var(--accent);border-radius:10px;padding:1px 7px;font-size:10px;font-weight:600;white-space:nowrap}
 .fc-placeholder{color:var(--muted);font-size:11px}
-.fc-dropdown{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);max-height:260px;overflow-y:auto;margin-top:4px;min-width:260px}
+.fc-dropdown{position:fixed;z-index:9999;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);max-height:280px;overflow-y:auto;width:280px}
 .fc-opt{display:flex;align-items:center;gap:7px;padding:6px 10px;font-size:11px;cursor:pointer;color:var(--text)}
 .fc-opt:hover{background:var(--panel)}
 .fc-opt input{width:14px;height:14px;accent-color:var(--accent);cursor:pointer}
@@ -3903,14 +3903,24 @@ function shortenCat(c){
   return c.replace('Slotting Error','Slot').replace('Picker Error','Pick').replace('Operator Error','Op').replace('Vendor Error','Vend').replace('Allocation Issue','Alloc').replace('IC Error','IC');
 }
 
-function toggleFcDropdown(key){
-  // Close any open dropdown first
+let _fcOpenDropdown=null;
+
+function closeFcDropdown(){
+  if(_fcOpenDropdown){ _fcOpenDropdown.remove(); _fcOpenDropdown=null; }
   document.querySelectorAll('.fc-dropdown').forEach(d=>d.remove());
+}
+
+function toggleFcDropdown(key){
+  const wasOpen = _fcOpenDropdown && _fcOpenDropdown.dataset.key===key;
+  closeFcDropdown();
+  if(wasOpen) return;
+
   const container=document.getElementById('fc-'+key);
   if(!container) return;
-  // If this one was open, just closed it above
-  if(container.querySelector('.fc-dropdown')) return;
+  const btn=container.querySelector('.fc-multi-btn');
+  if(!btn) return;
   const sel=_fcState[key]||[];
+
   // Group categories by prefix
   const groups={};
   FINDINGS_CATEGORIES.forEach(c=>{
@@ -3918,25 +3928,54 @@ function toggleFcDropdown(key){
     if(!groups[grp]) groups[grp]=[];
     groups[grp].push(c);
   });
-  let html='<div class="fc-dropdown">';
+  let inner='';
   Object.keys(groups).forEach(grp=>{
-    html+=`<div class="fc-group-hdr">${esc(grp)}</div>`;
+    inner+=`<div class="fc-group-hdr">${esc(grp)}</div>`;
     groups[grp].forEach(c=>{
       const checked=sel.includes(c)?'checked':'';
-      html+=`<label class="fc-opt"><input type="checkbox" ${checked} onchange="toggleFcOption('${key}',this,${JSON.stringify(c).replace(/"/g,'&quot;')})"> ${esc(c)}</label>`;
+      inner+=`<label class="fc-opt"><input type="checkbox" ${checked} onchange="toggleFcOption('${key}',this,${JSON.stringify(c).replace(/"/g,'&quot;')})"> ${esc(c)}</label>`;
     });
   });
-  html+='</div>';
-  container.insertAdjacentHTML('beforeend',html);
-  // Close on outside click
+
+  const dd=document.createElement('div');
+  dd.className='fc-dropdown';
+  dd.dataset.key=key;
+  dd.innerHTML=inner;
+  document.body.appendChild(dd);
+  _fcOpenDropdown=dd;
+
+  // Position relative to button (fixed coords)
+  const r=btn.getBoundingClientRect();
+  const ddWidth=280;
+  const ddMaxH=280;
+  let left=r.left;
+  // keep within viewport horizontally
+  if(left+ddWidth>window.innerWidth-8) left=window.innerWidth-ddWidth-8;
+  if(left<8) left=8;
+  // decide above or below based on space
+  const spaceBelow=window.innerHeight-r.bottom;
+  let top;
+  if(spaceBelow<ddMaxH && r.top>spaceBelow){
+    // open upward
+    top=Math.max(8, r.top-Math.min(ddMaxH,dd.offsetHeight||ddMaxH)-4);
+  } else {
+    top=r.bottom+4;
+  }
+  dd.style.left=left+'px';
+  dd.style.top=top+'px';
+
+  // Close on outside click / scroll
   setTimeout(()=>{
     const closeHandler=(ev)=>{
-      if(!container.contains(ev.target)){
-        container.querySelector('.fc-dropdown')?.remove();
-        document.removeEventListener('click',closeHandler);
+      if(!dd.contains(ev.target) && !btn.contains(ev.target)){
+        closeFcDropdown();
+        document.removeEventListener('mousedown',closeHandler);
+        window.removeEventListener('scroll',scrollHandler,true);
       }
     };
-    document.addEventListener('click',closeHandler);
+    const scrollHandler=()=>{ closeFcDropdown(); window.removeEventListener('scroll',scrollHandler,true); document.removeEventListener('mousedown',closeHandler); };
+    document.addEventListener('mousedown',closeHandler);
+    window.addEventListener('scroll',scrollHandler,true);
   },10);
 }
 
