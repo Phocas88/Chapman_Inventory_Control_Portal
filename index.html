@@ -2835,9 +2835,9 @@ function loadGlobalStats(){
     tix = allTix;
   }
   const stats={};
-  Object.keys(DIV_NAMES).forEach(d=>{ stats[d]={inv:0,qual:0,ship:0,recv:0,total:0}; });
+  Object.keys(DIV_NAMES).forEach(d=>{ if(!HIDDEN_DIVS.includes(d)) stats[d]={inv:0,qual:0,ship:0,recv:0,total:0}; });
   stats._overall={inv:0,qual:0,ship:0,recv:0,total:0};
-  tix.forEach(t=>{
+  tix.filter(t=>!HIDDEN_DIVS.includes(t.division)).forEach(t=>{
     const d=t.division;
     if(!stats[d]) stats[d]={inv:0,qual:0,ship:0,recv:0,total:0};
     stats[d].total++;
@@ -3246,9 +3246,9 @@ async function loadICWorkloadOverview(){
   if(!ov) return;
   try{
     // Reuse the shared IC ticket cache if present (avoids a duplicate 1000-doc read)
-    let allActive=sessionGet('wl_counts');
+    let allActive=sessionGet('wl_counts_v2');
     if(!allActive){
-      const icCache=sessionGet('tix_ic');
+      const icCache=sessionGet('tix_ic_v2');
       let source;
       if(icCache){
         source=icCache;
@@ -3261,7 +3261,7 @@ async function loadICWorkloadOverview(){
       allActive=source
         .filter(t=>t.progress!=='Completed'&&t.progress!=='Retired'&&t.progress!=='Merged'&&!HIDDEN_DIVS.includes(t.division))
         .map(t=>({division:t.division}));
-      sessionSet('wl_counts',allActive);
+      sessionSet('wl_counts_v2',allActive);
     }
     const total=allActive.length;
     const divsWithOpen=new Set(allActive.map(t=>t.division)).size;
@@ -3286,14 +3286,14 @@ async function loadTrackerTix(){
       await delay(400);
       allTix = DEMO_TIX.filter(t=>t.division===currentDiv);
     } else {
-      const cacheKey='tix_'+currentDiv;
+      const cacheKey='tix_v2_'+currentDiv;
       const cached=sessionGet(cacheKey);
       if(cached&&!isForce){
         allTix=cached;
       } else {
-        // Query Firestore for this division's tickets only
+        // Query Firestore for this division's tickets only (never CI/KA — deprecated)
         const tickets = await fsQuery('tickets',[{field:'division',value:currentDiv}],null,200);
-        allTix = tickets.map(normalizeTicket).filter(t=>t.division===currentDiv);
+        allTix = tickets.map(normalizeTicket).filter(t=>t.division===currentDiv && !HIDDEN_DIVS.includes(t.division));
         allTix.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)); // sort client-side
         sessionSet(cacheKey,allTix);
       }
@@ -3454,7 +3454,7 @@ async function loadTix(forceRefresh){
       const all=[...DEMO_TIX];
       allTix = role==='dockmanager' ? all.filter(t=>isDockTicket(t)) : all;
     } else {
-      const cacheKey='tix_ic';
+      const cacheKey='tix_ic_v2';
       const cached=sessionGet(cacheKey);
       if(cached&&!forceRefresh){
         allTix=cached;
@@ -6619,7 +6619,7 @@ function sessionGet(key){
 }
 function sessionClear(){
   try {
-    Object.keys(sessionStorage).filter(k=>k.startsWith('tix_')||k==='wl_counts').forEach(k=>sessionStorage.removeItem(k));
+    Object.keys(sessionStorage).filter(k=>k.startsWith('tix_')||k.startsWith('wl_counts')).forEach(k=>sessionStorage.removeItem(k));
   } catch(e){}
 }
 
@@ -6766,7 +6766,8 @@ async function generateTicketId(){
 // Load all tickets from Firestore (replaces gasGet getTickets)
 async function fsLoadTickets(){
   const docs = await fsQuery('tickets', null, 'timestamp', 1000);
-  return docs.map(normalizeTicket);
+  // CI/KA (Chapman Internal / Key Account) are deprecated — never load them
+  return docs.map(normalizeTicket).filter(t=>!HIDDEN_DIVS.includes(t.division));
 }
 
 // Load messages subcollection for a ticket
