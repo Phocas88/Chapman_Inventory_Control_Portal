@@ -515,6 +515,8 @@ body.has-banner #app{margin-top:44px}
 .row-age-new{animation:ageGreen 2s ease-in-out infinite}
 .row-age-warn{animation:ageOrange 1.8s ease-in-out infinite}
 .row-age-crit{animation:ageRed 1.4s ease-in-out infinite}
+.row-age-new-solid{background:rgba(16,185,129,.12)!important}
+.row-age-warn-solid{background:rgba(251,146,60,.14)!important}
 @keyframes ageGreen{0%,100%{background:rgba(16,185,129,.04)}50%{background:rgba(16,185,129,.16)}}
 @keyframes ageOrange{0%,100%{background:rgba(251,146,60,.05)}50%{background:rgba(251,146,60,.2)}}
 @keyframes ageRed{0%,100%{background:rgba(248,113,113,.06)}50%{background:rgba(248,113,113,.24)}}
@@ -633,6 +635,10 @@ body.has-banner #app{margin-top:44px}
 .alloc-badge{display:inline-block;background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;border-radius:20px;font-size:10px;font-weight:700;padding:2px 8px;white-space:nowrap}
 /* Allocation bell */
 .alloc-bell{background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.25);cursor:pointer;font-size:12px;padding:4px 10px;border-radius:20px;color:var(--orange);font-weight:700;display:flex;align-items:center;gap:4px;animation:bellRing .6s ease infinite}
+.msg-bell{background:rgba(79,131,245,.15);border:1px solid rgba(79,131,245,.35);cursor:pointer;font-size:12px;padding:4px 10px;border-radius:20px;color:var(--accent);font-weight:700;align-items:center;gap:4px;animation:msgBellFlash 1s ease-in-out infinite}
+@keyframes msgBellFlash{0%,100%{background:rgba(79,131,245,.12);transform:scale(1)}50%{background:rgba(79,131,245,.35);transform:scale(1.06)}}
+#msgBellList .mb-item{padding:9px 14px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px;display:flex;flex-direction:column;gap:2px}
+#msgBellList .mb-item:hover{background:var(--panel)}
 @keyframes bellRing{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(8deg)}}
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 /* Duplicate grouping */
@@ -759,6 +765,13 @@ body.has-banner #app{margin-top:44px}
     <button class="nav-btn" onclick="showScreen('stats')"   id="navStats"   style="display:none">📊 Stats</button>
     <button class="nav-btn" onclick="window.open('https://phocas88.github.io/pick_shortages/','_blank')" id="navShortageLink" style="display:none">📋 Shortage &amp; Overpull Log ↗</button>
     <button id="allocBell" class="alloc-bell" onclick="showScreen('ops')" style="display:none" title="Allocation confirmed by Ops — click to view">🔔 <span id="allocBellCount">0</span></button>
+    <div style="position:relative;display:inline-block" id="msgBellWrap">
+      <button id="msgBell" class="msg-bell" onclick="toggleMsgBellDropdown()" style="display:none" title="New messages from divisions">🔔 <span id="msgBellCount">0</span></button>
+      <div id="msgBellDropdown" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;width:280px;max-height:340px;overflow-y:auto;background:var(--surface);border:1.5px solid var(--border);border-radius:10px;box-shadow:var(--shadow-lg);z-index:9999">
+        <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase">New Messages</div>
+        <div id="msgBellList"></div>
+      </div>
+    </div>
     <button class="nav-btn" id="themeToggle" onclick="toggleTheme()" title="Switch light/dark mode" style="padding:4px 8px;font-size:14px;line-height:1">🌙</button>
     <button class="nav-btn lock" onclick="logout()">← Lock</button>
   </nav>
@@ -1671,6 +1684,11 @@ body.has-banner #app{margin-top:44px}
             <option>Need More Info</option><option>Waiting on Info</option><option>Completed</option>
           </select>
         </div>
+        <div class="qf" style="flex:1;min-width:180px"><label>IC Member(s) Who Worked This <span style="color:var(--red)">*</span></label>
+          <div class="fc-multi" id="icm-ic">
+            <div class="fc-multi-btn" onclick="toggleIcmDropdown('ic')" id="icm-btn-ic"><span class="fc-placeholder">Select member(s)…</span></div>
+          </div>
+        </div>
         <div class="qf" style="flex:2;min-width:200px"><label>Follow-Up Questions <span style="font-weight:400;color:var(--muted);font-size:10px">(emailed to division)</span></label>
           <textarea id="qFollowup" rows="2" placeholder="Questions for the requester…"></textarea>
         </div>
@@ -1717,6 +1735,11 @@ body.has-banner #app{margin-top:44px}
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <div class="mf" style="flex:1;min-width:160px"><label>Progress</label>
           <select id="mProg"><option>Received</option><option>Investigating</option><option>Need More Info</option><option>Waiting on Info</option><option>Allocated / Waiting OPS</option><option>Allocation Unlocked</option><option>Completed</option></select>
+        </div>
+        <div class="mf" style="flex:1;min-width:180px"><label>IC Member(s) Who Worked This <span style="color:var(--red)">*</span></label>
+          <div class="fc-multi" id="icm-mg">
+            <div class="fc-multi-btn" onclick="toggleIcmDropdown('mg')" id="icm-btn-mg"><span class="fc-placeholder">Select member(s)…</span></div>
+          </div>
         </div>
         <div class="mf" style="flex:2;min-width:200px"><label>Follow-Up Questions <span class="note">(emailed to requester)</span></label>
           <textarea id="mFupQ" rows="2" placeholder="Questions to send…"></textarea>
@@ -2164,7 +2187,7 @@ function showScreen(id){
   if(id==='form') setupForm();
   if(id==='stats') renderStatsScreen();
   if(id==='ops') loadOpsAlerts();
-  if(id==='tracker' && role==='division' && allTix.length>0) renderTrackerCards(allTix);
+  if(id==='tracker' && role==='division' && allTix.length>0) applyTrackerFilters();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3216,7 +3239,7 @@ function goTracker(){
     // Ticket is already in allTix (added optimistically on submit)
     // Render immediately — user sees it right away without waiting for GAS
     showScreen('tracker');
-    renderTrackerCards(allTix);
+    applyTrackerFilters();
     updTrackerStats(allTix);
     // Note in the tracker that a refresh will get the real IC-XXXX ID from server
     toast('Submitted ✓ — tap Refresh to sync the ticket ID from server','success');
@@ -3298,7 +3321,7 @@ async function loadTrackerTix(){
         sessionSet(cacheKey,allTix);
       }
     }
-    renderTrackerCards(allTix); updTrackerStats(allTix); loadGlobalStats();
+    applyTrackerFilters(); updTrackerStats(allTix); loadGlobalStats();
     loadICWorkloadOverview();  // aggregate counts across all divisions
   } catch(e){ toast('Could not load tickets: '+e.message,'error'); console.error('loadTrackerTix:',e); }
   hideLoad(); if(btn)btn.classList.remove('spinning');
@@ -3306,7 +3329,8 @@ async function loadTrackerTix(){
 
 let trackerActiveFilter='';
 
-function updTrackerStats(tix){
+function updTrackerStats(tixRaw){
+  const tix=tixRaw.filter(t=>!HIDDEN_DIVS.includes(t.division));  // never count CI/KA
   document.getElementById('spOpen').textContent=tix.filter(t=>t.progress!=='Completed'&&t.progress!=='Retired').length;
   document.getElementById('spWait').textContent=tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress)).length;
   document.getElementById('spDone').textContent=tix.filter(t=>t.progress==='Completed').length;
@@ -3329,7 +3353,7 @@ function filterTrackerByStatus(filter){
 function applyTrackerFilters(){
   const q=(document.getElementById('trackerSearch')?.value||'').toLowerCase();
   const sort=document.getElementById('trackerSortSel')?.value||'date-desc';
-  let tix=[...allTix];
+  let tix=allTix.filter(t=>!HIDDEN_DIVS.includes(t.division));  // never show CI/KA
   // Status filter
   if(trackerActiveFilter==='needs-response') tix=tix.filter(t=>['Need More Info','Waiting on Info'].includes(t.progress));
   else if(trackerActiveFilter==='allocated')  tix=tix.filter(t=>t.progress==='Allocated / Waiting OPS'||t.progress==='Allocation Unlocked');
@@ -3381,7 +3405,7 @@ async function setPriorityOnTicket(inquiryId, priority, division){
   const t = allTix.find(x=>x.inquiryId===inquiryId);
   if(t) t.priority = priority;
   // Re-render tracker cards to show updated badge
-  if(role==='division') renderTrackerCards(allTix);
+  if(role==='division') applyTrackerFilters();
   // Persist to GAS
   try {
     if(!CFG.DEMO_MODE){
@@ -3531,13 +3555,15 @@ function renderTix(tix){
           : `<td style="text-align:center;color:var(--border)">—</td>`;
       const rowBg = pri===0?'background:rgba(248,113,113,.13)':pri===1?'background:rgba(251,146,60,.08)':pri===2?'background:rgba(245,158,11,.07)':'';
       // Age-based flashing: new=green (<24h), 24-25h=orange, 25h+=red
+      // Green/orange flash until opened, then go solid. Red always flashes.
       const hoursOpen = t.timestamp ? (Date.now()-new Date(t.timestamp))/3600000 : 0;
       const isActive = t.progress!=='Completed'&&t.progress!=='Retired'&&t.progress!=='Merged';
+      const wasOpened = hasBeenOpened(t.inquiryId);
       let ageClass='';
       if(isActive){
-        if(hoursOpen>=25)      ageClass='row-age-crit';
-        else if(hoursOpen>=24) ageClass='row-age-warn';
-        else                   ageClass='row-age-new';
+        if(hoursOpen>=25)      ageClass='row-age-crit';   // always flashes red
+        else if(hoursOpen>=24) ageClass=wasOpened?'row-age-warn-solid':'row-age-warn';
+        else                   ageClass=wasOpened?'row-age-new-solid':'row-age-new';
       }
       const unreadReply = hasUnread(t);
       const rowClass = (t.progress==='Allocation Unlocked' ? 'row-unlocked ' : '') + (unreadReply ? 'row-new-reply ' : ageClass);
@@ -3546,22 +3572,78 @@ function renderTix(tix){
       return `<tr onclick="openTicket('${t.inquiryId}')" class="${rowClass}" style="${ageClass?'':rowBg};cursor:pointer">${chkCell}${priCell}<td class="mono" style="${idCellStyle}">${t.inquiryId}${hasUnread(t)?'<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:6px;vertical-align:middle"></span>':''}</td><td><span class="mono">${t.division}</span> <span style="font-size:11px;color:var(--muted)">${DIV_NAMES[t.division]||''}</span></td><td>${esc(t.productCodes)}</td><td>${badge(t.progress)}</td><td class="mono" style="color:${daysColor};font-size:12px">${days===0?'Today':days+'d'}</td><td class="mono" style="color:var(--muted)">${(t.conversationLog||[]).length}</td><td class="mono" style="color:var(--muted);font-size:11px">${fmtDateShort(t.timestamp)}</td></tr>`;
     }).join('')
   }</tbody></table>`;
-  // Update flashing reply banner
-  const unreadCount = tix.filter(t=>hasUnread(t)).length;
-  const banner=document.getElementById('replyAlertBanner');
-  if(banner){
-    if(unreadCount>0 && (role==='icteam'||role==='manager')){
-      document.getElementById('replyAlertCount').textContent=unreadCount;
-      banner.style.display='flex';
-    } else {
-      banner.style.display='none';
-    }
-  }
+  // Update message bell (replaces the old banner)
+  updateMsgBell();
 }
 
 function scrollToUnread(){
   const firstUnread=document.querySelector('.row-new-reply');
   if(firstUnread) firstUnread.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+/* ── Message bell (IC team + manager) ─────────────────────── */
+function updateMsgBell(){
+  if(role!=='icteam'&&role!=='manager'){
+    const b=document.getElementById('msgBell'); if(b) b.style.display='none';
+    return;
+  }
+  const hasUnreadInbound=t=>(t.conversationLog||[]).some(m=>m.direction==='inbound'&&!m.read);
+  const unreadTix=(allTix||[]).filter(t=>hasUnreadInbound(t)&&!HIDDEN_DIVS.includes(t.division));
+  const bell=document.getElementById('msgBell');
+  const countEl=document.getElementById('msgBellCount');
+  if(!bell) return;
+  if(unreadTix.length>0){
+    const total=unreadTix.reduce((n,t)=>n+(t.conversationLog||[]).filter(m=>m.direction==='inbound'&&!m.read).length,0);
+    countEl.textContent=total;
+    bell.style.display='flex';
+  } else {
+    bell.style.display='none';
+    const dd=document.getElementById('msgBellDropdown'); if(dd) dd.style.display='none';
+  }
+}
+
+function toggleMsgBellDropdown(){
+  const dd=document.getElementById('msgBellDropdown');
+  if(!dd) return;
+  if(dd.style.display==='block'){ dd.style.display='none'; return; }
+  renderMsgBellList();
+  dd.style.display='block';
+  setTimeout(()=>{
+    const close=(ev)=>{
+      if(!document.getElementById('msgBellWrap').contains(ev.target)){
+        dd.style.display='none';
+        document.removeEventListener('mousedown',close);
+      }
+    };
+    document.addEventListener('mousedown',close);
+  },10);
+}
+
+function renderMsgBellList(){
+  const el=document.getElementById('msgBellList'); if(!el) return;
+  const hasUnreadInbound=t=>(t.conversationLog||[]).some(m=>m.direction==='inbound'&&!m.read);
+  const unreadTix=(allTix||[]).filter(t=>hasUnreadInbound(t)&&!HIDDEN_DIVS.includes(t.division))
+    .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  if(!unreadTix.length){ el.innerHTML='<div style="padding:14px;text-align:center;color:var(--muted);font-size:12px">No new messages</div>'; return; }
+  el.innerHTML=unreadTix.map(t=>{
+    const cnt=(t.conversationLog||[]).filter(m=>m.direction==='inbound'&&!m.read).length;
+    const last=(t.conversationLog||[]).filter(m=>m.direction==='inbound'&&!m.read).slice(-1)[0];
+    const preview=last?esc((last.body||'').substring(0,50)):'';
+    return `<div class="mb-item" onclick="openTicketFromBell('${t.inquiryId}')">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="mono" style="font-weight:700;color:var(--accent)">${t.inquiryId}</span>
+        <span style="background:var(--red);color:#fff;border-radius:10px;font-size:10px;font-weight:700;padding:1px 7px">${cnt}</span>
+      </div>
+      <div style="color:var(--muted);font-size:11px">${t.division} · ${esc(t.productCodes||'')}</div>
+      ${preview?`<div style="color:var(--text);font-size:11px;opacity:.8">"${preview}${last&&last.body.length>50?'…':''}"</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openTicketFromBell(id){
+  document.getElementById('msgBellDropdown').style.display='none';
+  if(!document.getElementById('dashScreen').classList.contains('active')) showScreen('dash');
+  openTicket(id);
 }
 
 function updStats(tix){
@@ -3610,6 +3692,24 @@ function sortByPriority(tix){
 /* ═══════════════════════════════════════════════════════
    TICKET MODAL
    ═══════════════════════════════════════════════════════ */
+/* ── Opened-ticket tracking (for age flash → solid) ─────── */
+function getOpenedTickets(){
+  try{ return JSON.parse(localStorage.getItem('icOpenedTickets')||'{}'); }catch(e){ return {}; }
+}
+function hasBeenOpened(id){
+  return !!getOpenedTickets()[id];
+}
+function markTicketOpened(id){
+  try{
+    const o=getOpenedTickets();
+    o[id]=Date.now();
+    // prune old entries (>30 days) to keep it small
+    const cutoff=Date.now()-30*86400000;
+    Object.keys(o).forEach(k=>{ if(o[k]<cutoff) delete o[k]; });
+    localStorage.setItem('icOpenedTickets',JSON.stringify(o));
+  }catch(e){}
+}
+
 async function openTicket(id){
   let t=allTix.find(x=>x.inquiryId===id); if(!t)return;
 
@@ -3617,6 +3717,8 @@ async function openTicket(id){
     toast('Access denied — this ticket belongs to another division','error');
     return;
   }
+
+  markTicketOpened(id);  // stops green/orange flashing → solid color
 
   // Open modal immediately from cached data — don't make user wait for network
   activeTx=t; replyFiles=[];
@@ -3642,11 +3744,13 @@ async function openTicket(id){
     if(isIC){
       document.getElementById('qProgress').value=t.progress||'Received';
       document.getElementById('qFollowup').value=t.followUpQuestions||'';
+      setIcmState('ic', t.assignedIC||[]);
       buildInvestigationGrid('ic');
     }
     if(isMgr){
       document.getElementById('mProg').value=t.progress||'Received';
       document.getElementById('mFupQ').value=t.followUpQuestions||'';
+      setIcmState('mg', t.assignedIC||[]);
       buildInvestigationGrid('mg');
       loadAllocEmails();
     }
@@ -3904,6 +4008,68 @@ function shortenCat(c){
 }
 
 let _fcOpenDropdown=null;
+
+/* ── IC Team Member multi-select (assignedIC) ─────────────── */
+let _icmState = { ic:[], mg:[] };
+let _icmOpenDropdown=null;
+
+function setIcmState(prefix, arr){
+  _icmState[prefix]=Array.isArray(arr)?[...arr]:[];
+  updateIcmButton(prefix);
+}
+function updateIcmButton(prefix){
+  const btn=document.getElementById('icm-btn-'+prefix);
+  if(!btn) return;
+  const sel=_icmState[prefix]||[];
+  btn.innerHTML = sel.length
+    ? sel.map(n=>`<span class="fc-chip">${esc(n)}</span>`).join('')
+    : '<span class="fc-placeholder">Select member(s)…</span>';
+}
+function closeIcmDropdown(){
+  if(_icmOpenDropdown){ _icmOpenDropdown.remove(); _icmOpenDropdown=null; }
+  document.querySelectorAll('.icm-dropdown').forEach(d=>d.remove());
+}
+function toggleIcmDropdown(prefix){
+  const wasOpen=_icmOpenDropdown && _icmOpenDropdown.dataset.prefix===prefix;
+  closeIcmDropdown();
+  if(wasOpen) return;
+  const container=document.getElementById('icm-'+prefix);
+  const btn=document.getElementById('icm-btn-'+prefix);
+  if(!container||!btn) return;
+  const sel=_icmState[prefix]||[];
+  let inner='';
+  IC_TEAM_MEMBERS.forEach(name=>{
+    const checked=sel.includes(name)?'checked':'';
+    inner+=`<label class="fc-opt"><input type="checkbox" ${checked} onchange="toggleIcmOption('${prefix}',this,${JSON.stringify(name).replace(/"/g,'&quot;')})"> ${esc(name)}</label>`;
+  });
+  const dd=document.createElement('div');
+  dd.className='fc-dropdown icm-dropdown';
+  dd.dataset.prefix=prefix;
+  dd.innerHTML=inner;
+  document.body.appendChild(dd);
+  _icmOpenDropdown=dd;
+  const r=btn.getBoundingClientRect();
+  const ddW=260;
+  let left=r.left; if(left+ddW>window.innerWidth-8) left=window.innerWidth-ddW-8; if(left<8) left=8;
+  const spaceBelow=window.innerHeight-r.bottom;
+  let top = spaceBelow<240 && r.top>spaceBelow ? Math.max(8,r.top-240-4) : r.bottom+4;
+  dd.style.width=ddW+'px';
+  dd.style.left=left+'px';
+  dd.style.top=top+'px';
+  setTimeout(()=>{
+    const closeHandler=(ev)=>{ if(!dd.contains(ev.target)&&!btn.contains(ev.target)){ cleanup(); } };
+    const scrollHandler=(ev)=>{ if(dd.contains(ev.target)) return; cleanup(); };
+    function cleanup(){ closeIcmDropdown(); document.removeEventListener('mousedown',closeHandler); window.removeEventListener('scroll',scrollHandler,true); }
+    document.addEventListener('mousedown',closeHandler);
+    window.addEventListener('scroll',scrollHandler,true);
+  },10);
+}
+function toggleIcmOption(prefix, chk, name){
+  if(!_icmState[prefix]) _icmState[prefix]=[];
+  if(chk.checked){ if(!_icmState[prefix].includes(name)) _icmState[prefix].push(name); }
+  else _icmState[prefix]=_icmState[prefix].filter(n=>n!==name);
+  updateIcmButton(prefix);
+}
 
 function closeFcDropdown(){
   if(_fcOpenDropdown){ _fcOpenDropdown.remove(); _fcOpenDropdown=null; }
@@ -4244,6 +4410,11 @@ async function runAgeOutManual(){
    DIVISION TABS — separates external divisions from CI/KA
    and adds a dedicated Retired search tab
    ═══════════════════════════════════════════════════════ */
+const IC_TEAM_MEMBERS = [
+  'Ruben Mendoza',
+  'Devon Royal',
+  'Nataly Gonzalez',
+];
 const FINDINGS_CATEGORIES = [
   'Slotting Error: No Apprise',
   'Slotting Error: Placed in wrong bin',
@@ -6166,6 +6337,8 @@ async function saveICTeam(){
   if(!activeTx) return;
   const progress = document.getElementById('qProgress').value;
   const followup = document.getElementById('qFollowup').value.trim();
+  const assignedIC = _icmState.ic||[];
+  if(!assignedIC.length){ toast('Select at least one IC member who worked this ticket','error'); return; }
   const entries  = readGridEntries('ic');
   const findingsSummary = buildFindingsSummary(entries);
   document.getElementById('qSaveBtn').disabled=true;
@@ -6173,13 +6346,14 @@ async function saveICTeam(){
   try{
     if(CFG.DEMO_MODE){ await delay(700); }
     else {
-      await fsSaveTicket(activeTx.inquiryId, {progress, findings:findingsSummary, followUpQuestions:followup, productEntries:entries});
+      await fsSaveTicket(activeTx.inquiryId, {progress, findings:findingsSummary, followUpQuestions:followup, productEntries:entries, assignedIC});
       gasEmail('sendUpdateEmail', {inquiryId:activeTx.inquiryId, division:activeTx.division,
         contactEmail:activeTx.contactEmail, productCodes:activeTx.productCodes,
         productEntries:entries, orderNumber:activeTx.orderNumber, qtyPick:activeTx.qtyPick,
         description:activeTx.description, status:progress, findings:findingsSummary,
         followUpQuestions:followup, shippingIssue:activeTx.shippingIssue, receivingIssue:activeTx.receivingIssue});
     }
+    activeTx.assignedIC = assignedIC;
     _applyUpdate(progress, findingsSummary, followup, 'IC Team');
     activeTx.productEntries = entries;
     await syncAllocationFlags(entries, activeTx.inquiryId);
@@ -6273,23 +6447,26 @@ async function saveManager(){
   if(!activeTx) return;
   const progress = document.getElementById('mProg').value;
   const followup = document.getElementById('mFupQ').value.trim();
+  const assignedIC = _icmState.mg||[];
+  if(!assignedIC.length){ toast('Select at least one IC member who worked this ticket','error'); return; }
   const entries  = readGridEntries('mg');
   const findings = buildFindingsSummary(entries);
   document.getElementById('mSaveBtn').disabled=true; showLoad('Saving & sending…');
   try{
     if(CFG.DEMO_MODE){ await delay(700); }
     else {
-      await fsSaveTicket(activeTx.inquiryId, {progress, findings, followUpQuestions:followup, productEntries:entries});
+      await fsSaveTicket(activeTx.inquiryId, {progress, findings, followUpQuestions:followup, productEntries:entries, assignedIC});
       gasEmail('sendUpdateEmail', {inquiryId:activeTx.inquiryId, division:activeTx.division,
         contactEmail:activeTx.contactEmail, productCodes:activeTx.productCodes,
         productEntries:entries, orderNumber:activeTx.orderNumber, qtyPick:activeTx.qtyPick,
         description:activeTx.description, status:progress, findings, followUpQuestions:followup,
         shippingIssue:activeTx.shippingIssue, receivingIssue:activeTx.receivingIssue});
     }
+    activeTx.assignedIC = assignedIC;
     _applyUpdate(progress,findings,followup,'IC Manager');
     activeTx.productEntries = entries;
     await syncAllocationFlags(entries, activeTx.inquiryId);
-    hideLoad(); renderTix(allTix); updStats(allTix); toast('Updated — email sent ✓','success');
+    hideLoad(); applyDivTab(); updStats(allTix); toast('Updated — email sent ✓','success');
   }catch(e){ hideLoad(); toast('Save failed: '+e.message,'error'); }
   document.getElementById('mSaveBtn').disabled=false;
 }
@@ -6431,7 +6608,7 @@ async function saveTicketEdits(){
     toggleEditMode();
     // Re-render dashboard table if visible
     if(document.getElementById('dashScreen').classList.contains('active')) renderTix(allTix);
-    if(document.getElementById('trackerScreen').classList.contains('active')) renderTrackerCards(allTix);
+    if(document.getElementById('trackerScreen').classList.contains('active')) applyTrackerFilters();
     loadGlobalStats();
     toast('Ticket updated ✓','success');
   } catch(e){ toast('Save failed: '+e.message,'error'); }
@@ -6896,6 +7073,7 @@ function normalizeTicket(doc){
     archived:          doc.archived          || false,
     archivedOn:        doc.archivedOn        || null,
     mergedInto:        doc.mergedInto        || null,
+    assignedIC:        Array.isArray(doc.assignedIC) ? doc.assignedIC : [],
     messageCount:      doc.messageCount      || 0,
     conversationLog:   doc.conversationLog   || [],
   };
