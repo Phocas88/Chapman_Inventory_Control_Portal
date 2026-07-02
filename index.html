@@ -1132,6 +1132,9 @@ body.has-banner #app{margin-top:44px}
       <button class="refresh-btn" onclick="openPinReference()" title="View all screen PINs" style="background:rgba(79,131,245,.12);border-color:var(--accent);color:var(--accent)">
         🔑 PINs
       </button>
+      <button class="refresh-btn" onclick="openICTeamManager()" title="Manage IC team member names" style="background:rgba(16,185,129,.12);border-color:var(--green);color:var(--green)">
+        👥 IC Team
+      </button>
     </div>
   </div>
   <div class="stats-strip">
@@ -1462,6 +1465,27 @@ body.has-banner #app{margin-top:44px}
 
 </div><!-- #app -->
 <div id="printReportWrap" style="display:none"></div>
+<!-- ═══════════ IC TEAM MEMBER MANAGER (IC Manager) ═══════════ -->
+<div class="merge-overlay" id="icTeamMgrOverlay" style="display:none">
+  <div class="merge-modal" style="max-width:440px">
+    <div class="merge-modal-header">
+      <div class="merge-modal-title">👥 Manage IC Team Members</div>
+      <button class="merge-close-btn" onclick="document.getElementById('icTeamMgrOverlay').style.display='none'">✕</button>
+    </div>
+    <div style="padding:14px 22px">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">These names appear in the "IC Member(s) Who Worked This" dropdown on the investigation panel.</div>
+      <div id="icTeamMgrList" style="margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="icTeamNewName" placeholder="Add member name…" class="tracker-search-inp" style="flex:1" onkeydown="if(event.key==='Enter') addICTeamMember()">
+        <button class="btn-primary" onclick="addICTeamMember()" style="white-space:nowrap">+ Add</button>
+      </div>
+    </div>
+    <div class="merge-modal-footer">
+      <button class="btn-ghost" onclick="document.getElementById('icTeamMgrOverlay').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════ PIN REFERENCE MODAL (IC Manager) ═══════════ -->
 <div class="merge-overlay" id="pinRefOverlay" style="display:none">
   <div class="merge-modal" style="max-width:440px">
@@ -2066,7 +2090,7 @@ function doLogin(target){
     allTix=[];
     setChip('IC Team','icteam');
     setNav('none','none','','','','','');
-    loadBanner(); saveSession(target);
+    loadBanner(); saveSession(target); loadICTeamMembers();
     loadTix().then(()=>showScreen('dash'));
   } else if(target==='dockmanager'){
     role='dockmanager'; currentDiv='';
@@ -2098,7 +2122,7 @@ function doLogin(target){
     setChip('IC Manager','manager');
     setNav('none','none','','','','','');
     document.getElementById('bannerCreator').classList.add('show');
-    loadBanner(); saveSession(target);
+    loadBanner(); saveSession(target); loadICTeamMembers();
     loadTix().then(()=>showScreen('dash'));
   }
   loadGlobalStats();
@@ -3133,6 +3157,7 @@ function setupForm(){
   const db=document.getElementById('dockAlertBanner');
   if(db) db.style.display='none';
   // Reset & render priority selector
+  _formPriority='';
   const fp=document.getElementById('fPriority'); if(fp) fp.value='';
   renderFormPriorityButtons();
 
@@ -3174,7 +3199,7 @@ async function submitForm(){
   const shipIssue=document.getElementById('fShipIssue').value;
   const recvIssue=document.getElementById('fRecvIssue').value;
   const category=document.getElementById('fCat').value;
-  const priority=document.getElementById('fPriority')?.value||'';
+  const priority=_formPriority||document.getElementById('fPriority')?.value||'';
 
   document.getElementById('submitBtn').disabled=true;
   showLoad('Submitting inquiry…');
@@ -3212,13 +3237,38 @@ async function submitForm(){
       };
       await fsSaveTicket(id, ticketDoc);
 
-      // 3. Add initial message to subcollection
+      // 3. Add initial confirmation message
       const initMsg = {
         direction:'outbound', sentBy:'System',
         body:'Your inquiry '+id+' has been received. Our IC team will investigate and follow up shortly.',
         timestamp: new Date().toISOString(),
+        attachments:[], read:true, divRead:true,
       };
       await fsAddMessage(id, initMsg);
+      // 3b. If the division attached files, add them as an inbound message so IC can open them
+      if(formFiles.length){
+        // Firestore doc limit ~1MB. Base64 inflates ~33%. Warn/skip oversized files.
+        const MAX_B64 = 720*1024; // ~720KB base64 per file to stay safe
+        const okFiles=[], bigFiles=[];
+        formFiles.forEach(f=>{ (f.b64 && f.b64.length>MAX_B64 ? bigFiles : okFiles).push(f); });
+        if(okFiles.length){
+          try{
+            await fsAddMessage(id, {
+              direction:'inbound', sentBy:(DIV_NAMES[div]||div),
+              body:'Attached '+okFiles.length+' file'+(okFiles.length>1?'s':'')+' with this inquiry.',
+              timestamp:new Date(Date.now()+1000).toISOString(),
+              attachments: okFiles.map(f=>({name:f.name,type:f.type,size:f.size,b64:f.b64,du:f.du})),
+              read:false, divRead:true,
+            });
+          }catch(err){
+            console.error('Attachment save failed:',err);
+            toast('Ticket saved, but attachments failed to upload. Please email them or re-attach smaller files.','error');
+          }
+        }
+        if(bigFiles.length){
+          toast(bigFiles.length+' file(s) too large to attach ('+bigFiles.map(f=>f.name).join(', ')+'). Max ~500KB each — please email these directly.','error');
+        }
+      }
 
       // 4. Send email via GAS (async, don't block on it)
       showLoad('Sending confirmation email…');
@@ -3688,25 +3738,26 @@ function priBadge(p){
 }
 
 /* ── Priority selector on the submit form ─────────────────── */
+let _formPriority = '';
+
 function renderFormPriorityButtons(){
   const grp=document.getElementById('fPriGroup');
   if(!grp) return;
   const labels=['! Urgent','P1 High','P2 Med','P3 Normal','P4 Low'];
-  const current=document.getElementById('fPriority')?.value||'';
   grp.innerHTML=labels.map((lbl,i)=>
-    `<button type="button" class="pri-btn pri-btn-${i}${current===String(i)?' active':''}" onclick="selectFormPriority(${i})">${lbl}</button>`
+    `<button type="button" class="pri-btn pri-btn-${i}${_formPriority===String(i)?' active':''}" onclick="selectFormPriority(${i})">${lbl}</button>`
   ).join('');
 }
 
 function selectFormPriority(pri){
-  const cur=document.getElementById('fPriority');
   // toggle off if clicking the same one
-  const newVal = cur.value===String(pri) ? '' : String(pri);
-  cur.value=newVal;
+  _formPriority = _formPriority===String(pri) ? '' : String(pri);
+  const fp=document.getElementById('fPriority'); if(fp) fp.value=_formPriority;
   document.querySelectorAll('#fPriGroup .pri-btn').forEach((b,i)=>{
-    b.classList.toggle('active', String(i)===newVal);
+    b.classList.toggle('active', String(i)===_formPriority);
   });
 }
+
 
 
 function sortByPriority(tix){
@@ -3978,6 +4029,44 @@ function readGridEntries(prefix){
     if(_fcState[key]) e.findingsCategories=[..._fcState[key]];
   });
   return entries;
+}
+
+/* ── IC Team Member Manager (IC Manager) ──────────────────── */
+function openICTeamManager(){
+  renderICTeamMgrList();
+  document.getElementById('icTeamMgrOverlay').style.display='flex';
+}
+function renderICTeamMgrList(){
+  const el=document.getElementById('icTeamMgrList'); if(!el) return;
+  if(!IC_TEAM_MEMBERS.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0">No members yet — add one below.</div>'; return; }
+  el.innerHTML=IC_TEAM_MEMBERS.map((name,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="flex:1;font-size:13px;font-weight:600;color:var(--text)">${esc(name)}</span>
+      <button onclick="removeICTeamMember(${i})" style="padding:3px 9px;font-size:11px;background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);border-radius:5px;color:var(--red);cursor:pointer">Remove</button>
+    </div>`).join('');
+}
+async function addICTeamMember(){
+  const inp=document.getElementById('icTeamNewName');
+  const name=(inp.value||'').trim();
+  if(!name){ toast('Enter a name','error'); return; }
+  if(IC_TEAM_MEMBERS.includes(name)){ toast('That name already exists','error'); return; }
+  const list=[...IC_TEAM_MEMBERS, name];
+  try{
+    await saveICTeamMembers(list);
+    inp.value='';
+    renderICTeamMgrList();
+    toast('Member added ✓','success');
+  }catch(e){ toast('Save failed: '+e.message,'error'); }
+}
+async function removeICTeamMember(idx){
+  const name=IC_TEAM_MEMBERS[idx];
+  if(!confirm('Remove "'+name+'" from the IC team list?')) return;
+  const list=IC_TEAM_MEMBERS.filter((_,i)=>i!==idx);
+  try{
+    await saveICTeamMembers(list);
+    renderICTeamMgrList();
+    toast('Member removed','success');
+  }catch(e){ toast('Save failed: '+e.message,'error'); }
 }
 
 function openPinReference(){
@@ -4443,11 +4532,27 @@ async function runAgeOutManual(){
    DIVISION TABS — separates external divisions from CI/KA
    and adds a dedicated Retired search tab
    ═══════════════════════════════════════════════════════ */
-const IC_TEAM_MEMBERS = [
+let IC_TEAM_MEMBERS = [
   'Ruben Mendoza',
   'Devon Royal',
   'Nataly Gonzalez',
 ];
+// Load persisted IC team member list from Firestore settings (falls back to default above)
+async function loadICTeamMembers(){
+  try{
+    if(CFG.DEMO_MODE) return;
+    const doc = await fsGet('settings/icTeamMembers').catch(()=>null);
+    if(doc && Array.isArray(doc.members) && doc.members.length){
+      IC_TEAM_MEMBERS = doc.members;
+    }
+  }catch(e){ /* keep default */ }
+}
+async function saveICTeamMembers(list){
+  IC_TEAM_MEMBERS = list;
+  if(!CFG.DEMO_MODE){
+    await fsPatch('settings/icTeamMembers', {members:list});
+  }
+}
 const FINDINGS_CATEGORIES = [
   'Slotting Error: No Apprise',
   'Slotting Error: Placed in wrong bin',
@@ -6549,11 +6654,20 @@ async function sendReply(){
   if(!body&&!replyFiles.length){toast('Enter a message or attach a file','error');return;}
   if(!activeTx)return;
   const isIC=role==='icteam'||role==='manager';
-  const msg={direction:isIC?'outbound':'inbound',body,timestamp:new Date().toISOString(),attachments:replyFiles.map(f=>({name:f.name,type:f.type,size:f.size,b64:f.b64,du:f.du})),read:isIC,divRead:!isIC};
+  // Size guard — Firestore ~1MB doc limit, base64 inflates ~33%
+  const MAX_B64=720*1024;
+  const okFiles=[], bigFiles=[];
+  replyFiles.forEach(f=>{ (f.b64 && f.b64.length>MAX_B64 ? bigFiles : okFiles).push(f); });
+  if(bigFiles.length){
+    toast(bigFiles.length+' file(s) too large ('+bigFiles.map(f=>f.name).join(', ')+'). Max ~500KB each — email these directly.','error');
+  }
+  const attachments=okFiles.map(f=>({name:f.name,type:f.type,size:f.size,b64:f.b64,du:f.du}));
+  const msg={direction:isIC?'outbound':'inbound',body,timestamp:new Date().toISOString(),attachments,read:isIC,divRead:!isIC,sentBy:role==='division'?activeTx.division:'IC Team'};
   document.getElementById('sendBtn').disabled=true; showLoad('Sending…');
   try {
     if(!CFG.DEMO_MODE){
-      await fsAddMessage(activeTx.inquiryId, {direction:msg.direction, body:msg.body, timestamp:msg.timestamp, sentBy:role==='division'?activeTx.division:'IC Team'});
+      // Include attachments in the Firestore message so the other side can open them
+      await fsAddMessage(activeTx.inquiryId, {direction:msg.direction, body:msg.body, timestamp:msg.timestamp, sentBy:msg.sentBy, attachments, read:msg.read, divRead:msg.divRead});
       if(msg.direction==='outbound'){
         gasEmail('sendReplyEmail', {inquiryId:activeTx.inquiryId, division:activeTx.division,
           contactEmail:activeTx.contactEmail, productCodes:activeTx.productCodes,
