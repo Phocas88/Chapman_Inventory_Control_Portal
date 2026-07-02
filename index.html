@@ -1037,6 +1037,13 @@ body.has-banner #app{margin-top:44px}
         <label>Describe the Issue <em>*</em></label>
         <textarea id="fDesc" placeholder="What happened, when, what you expected vs found, affected orders or bin locations…"></textarea>
       </div></div>
+      <!-- Priority selector -->
+      <div class="form-row one"><div class="field">
+        <label>Priority Level <span style="font-weight:400;color:var(--subtle);font-size:11px">— helps IC front-load urgent items</span></label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="fPriGroup"></div>
+        <input type="hidden" id="fPriority" value="">
+        <div class="hint" style="margin-top:6px">Optional — you can also change this later from your tracker.</div>
+      </div></div>
     </div>
     <div class="card">
       <div class="card-title">Attachments <span style="font-weight:400;color:var(--subtle);font-family:var(--sans);font-size:10px;letter-spacing:0;text-transform:none">— PDF, Excel, images · no Google login needed</span></div>
@@ -3125,6 +3132,9 @@ function setupForm(){
   ['fShipIssue','fRecvIssue'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const db=document.getElementById('dockAlertBanner');
   if(db) db.style.display='none';
+  // Reset & render priority selector
+  const fp=document.getElementById('fPriority'); if(fp) fp.value='';
+  renderFormPriorityButtons();
 
   if(role==='division'&&currentDiv){
     // Division is already known — hide the division dropdown, show pre-fill badge
@@ -3164,6 +3174,7 @@ async function submitForm(){
   const shipIssue=document.getElementById('fShipIssue').value;
   const recvIssue=document.getElementById('fRecvIssue').value;
   const category=document.getElementById('fCat').value;
+  const priority=document.getElementById('fPriority')?.value||'';
 
   document.getElementById('submitBtn').disabled=true;
   showLoad('Submitting inquiry…');
@@ -3176,7 +3187,7 @@ async function submitForm(){
         productCodes:prod,productEntries:entries,orderNumber,qtyPick,
         inventoryIssue:invIssue,qualityIssue:qualIssue,shippingIssue:shipIssue||'',receivingIssue:recvIssue||'',
         category:category||'General',progress:'Received',timestamp:new Date().toISOString(),
-        description:desc,findings:'',followUpQuestions:'',conversationLog:[]};
+        description:desc,findings:'',followUpQuestions:'',priority:priority,conversationLog:[]};
       allTix.unshift(newTx); DEMO_TIX.unshift(newTx);
       loadGlobalStats();
     } else {
@@ -3196,7 +3207,7 @@ async function submitForm(){
         category: category||'General', progress: 'Received',
         timestamp: new Date().toISOString(), updatedAt: new Date().toISOString(),
         description: desc, findings: '', followUpQuestions: '',
-        archived: false, priority: '',
+        archived: false, priority: priority,
         allocFlags: [], parentId: '', subSeq: null,
       };
       await fsSaveTicket(id, ticketDoc);
@@ -3675,6 +3686,28 @@ function priBadge(p){
   if(isNaN(n)||n<0||n>4) return '';
   return `<span class="pri-badge pri-${n}">${labels[n]}</span>`;
 }
+
+/* ── Priority selector on the submit form ─────────────────── */
+function renderFormPriorityButtons(){
+  const grp=document.getElementById('fPriGroup');
+  if(!grp) return;
+  const labels=['! Urgent','P1 High','P2 Med','P3 Normal','P4 Low'];
+  const current=document.getElementById('fPriority')?.value||'';
+  grp.innerHTML=labels.map((lbl,i)=>
+    `<button type="button" class="pri-btn pri-btn-${i}${current===String(i)?' active':''}" onclick="selectFormPriority(${i})">${lbl}</button>`
+  ).join('');
+}
+
+function selectFormPriority(pri){
+  const cur=document.getElementById('fPriority');
+  // toggle off if clicking the same one
+  const newVal = cur.value===String(pri) ? '' : String(pri);
+  cur.value=newVal;
+  document.querySelectorAll('#fPriGroup .pri-btn').forEach((b,i)=>{
+    b.classList.toggle('active', String(i)===newVal);
+  });
+}
+
 
 function sortByPriority(tix){
   // Sort order: Allocation Unlocked first (needs immediate action), then P0-P4, unset treated as P3
