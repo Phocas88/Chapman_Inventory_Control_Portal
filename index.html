@@ -104,13 +104,13 @@ body.has-banner2 #sysBanner2{top:44px}
 .choice-card .cc-title{font-size:18px;font-weight:700;color:#fff}
 .choice-card .cc-sub{font-size:12px;color:#a8bce0;line-height:1.4}
 /* Selection tiles (division / role) */
-.sel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
-.sel-tile{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:16px 14px;cursor:pointer;transition:all .16s;display:flex;align-items:center;gap:12px;text-align:left}
+.sel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.sel-tile{background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .16s;display:flex;align-items:center;gap:13px;text-align:left;min-height:64px}
 .sel-tile:hover{background:rgba(255,255,255,.11);border-color:var(--accent);transform:translateY(-1px)}
-.sel-tile .st-badge{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-family:var(--mono);font-size:14px;flex-shrink:0;background:var(--accent);color:#fff}
-.sel-tile .st-body{min-width:0}
-.sel-tile .st-title{font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sel-tile .st-sub{font-size:11px;color:#a8bce0;margin-top:1px}
+.sel-tile .st-badge{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700;font-family:var(--mono);font-size:14px;flex-shrink:0;background:var(--accent);color:#fff}
+.sel-tile .st-body{min-width:0;flex:1}
+.sel-tile .st-title{font-size:14px;font-weight:700;color:#fff;line-height:1.25}
+.sel-tile .st-sub{font-size:11px;color:#a8bce0;margin-top:2px}
 .login-back-btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cdd8e8;padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:16px}
 .login-back-btn:hover{background:rgba(255,255,255,.14)}
 .login-help-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px 18px;margin-top:22px}
@@ -120,19 +120,14 @@ body.has-banner2 #sysBanner2{top:44px}
 .login-help-card .help-body{font-size:12px;color:#a8bce0;line-height:1.7}
 .login-help-card .help-body strong{color:#e2e8f4}
 .login-dev-credit{position:fixed;bottom:10px;right:14px;font-size:11px;color:rgba(200,215,240,.55);font-family:var(--mono);z-index:10;pointer-events:none}
-.login-portal-link{width:100%;text-align:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:11px;cursor:pointer;color:var(--accent);font-weight:600;font-size:13px;margin-top:4px}
-.login-portal-link:hover{background:rgba(255,255,255,.09)}
-.login-section-title{font-size:10px;font-family:var(--mono);font-weight:600;color:#5a6480;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
-/* Login screen always uses light palette */
-#loginScreen .div-btn{background:#fff;border-color:#d4d9e8;color:#1a2038}
-#loginScreen .div-btn:hover{background:#e8edf8;border-color:#4f83f5}
-#loginScreen .db-code{color:#2563eb}
-#loginScreen .db-name{color:#5a6480}
-#loginScreen .ic-login-btn{background:#fff;border-color:#d4d9e8}
-#loginScreen .ic-login-btn:hover{background:#e8edf8;border-color:#4f83f5}
-#loginScreen .ib-title{color:#1a2038}
-#loginScreen .ib-sub{color:#5a6480}
-#loginScreen .login-group-label{color:#5a6480}
+.login-portal-link{width:100%;text-align:center;background:rgba(45,108,192,.18);border:1px solid rgba(120,170,240,.4);border-radius:10px;padding:12px;cursor:pointer;color:#bcd4f7;font-weight:600;font-size:13px;margin-top:4px}
+.login-portal-link:hover{background:rgba(45,108,192,.3);color:#fff}
+/* Screen header meta (date/time/weather in user-screen headers) */
+.screen-hdr-meta{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.screen-hdr-meta .shm-dt{font-weight:600;color:var(--text)}
+.screen-hdr-meta .shm-wx{display:flex;align-items:center;gap:5px}
+/* App-wide dev credit footer */
+.app-dev-credit{text-align:center;font-size:11px;color:var(--muted);opacity:.7;font-family:var(--mono);padding:14px 20px 18px}
 .div-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
 @media(max-width:480px){.div-grid{grid-template-columns:repeat(2,1fr)}}
 .div-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:14px 8px;background:var(--panel);border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;text-align:center}
@@ -793,6 +788,7 @@ body.has-banner2 #sysBanner2{top:44px}
 <!-- SYSTEM BANNER -->
 <div class="sys-banner" id="sysBanner"></div>
 <div class="sys-banner" id="sysBanner2"></div>
+<div class="app-dev-credit" id="appDevCredit" style="position:fixed;bottom:6px;right:12px;padding:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 9px;z-index:90;display:none">Developed by Ruben Mendoza · 2025–26</div>
 
 <div id="app">
 
@@ -804,9 +800,10 @@ body.has-banner2 #sysBanner2{top:44px}
     
     <span class="role-chip" id="roleChip" style="display:none"></span>
   </div>
+  <div class="screen-hdr-meta" id="appHdrMeta" style="margin-left:16px"></div>
   <nav class="topbar-nav" id="topNav" style="display:none">
     <button class="nav-btn" onclick="showScreen('tracker')" id="navTracker" style="display:none">My Tickets</button>
-    <button class="nav-btn" onclick="showScreen('form')"    id="navForm"    style="display:none">New Inquiry</button>
+    <button class="nav-btn" onclick="showScreen('form')"    id="navForm"    style="display:none">+ IC Ticket</button>
     <button class="nav-btn" onclick="showScreen('dash')"    id="navDash"    style="display:none">Dashboard</button>
     <button class="nav-btn" onclick="loadQCScreen();showScreen('qc')" id="navQC" style="display:none">🔍 QC Tickets</button>
     <button class="nav-btn" onclick="showScreen('stats')"   id="navStats"   style="display:none">📊 Stats</button>
@@ -826,6 +823,7 @@ body.has-banner2 #sysBanner2{top:44px}
         <div id="msgBellList"></div>
       </div>
     </div>
+    <button class="nav-btn" onclick="openInstructions()" title="How to use this system" style="padding:4px 10px">❓ Help</button>
     <button class="nav-btn" id="themeToggle" onclick="toggleTheme()" title="Switch light/dark mode" style="padding:4px 8px;font-size:14px;line-height:1">🌙</button>
     <button class="nav-btn lock" onclick="logout()">← Lock</button>
   </nav>
@@ -836,7 +834,6 @@ body.has-banner2 #sysBanner2{top:44px}
   <div class="gs-inner">
     <div class="gs-title">Inquiry Statistics</div>
     <div class="gs-grid" id="gsGrid"></div>
-    <div style="margin-left:auto;flex-shrink:0;font-size:10px;color:var(--muted);font-family:var(--mono);opacity:.6;white-space:nowrap">Built by Ruben Mendoza</div>
   </div>
 </div>
 
@@ -874,18 +871,9 @@ body.has-banner2 #sysBanner2{top:44px}
       </button>
 
       <!-- How to use -->
-      <details class="login-help-card">
-        <summary>📘 How to use this system</summary>
-        <div class="help-body">
-          <strong>Divisions:</strong> Tap <strong>Divisions</strong>, pick your division, enter your PIN. Submit an inquiry from <strong>New Inquiry</strong>, then track responses under <strong>My Tickets</strong>. You'll get email updates and can reply in the ticket thread. Quality issues automatically route to the QC Manager.<br><br>
-          <strong>IC Team / Manager:</strong> Tap <strong>Warehouse → IC Team</strong> or <strong>IC Manager</strong>. Investigate tickets, log findings, assign IC members, and set allocation flags for Operations.<br><br>
-          <strong>QC Manager:</strong> Create QC / receiving tickets to divisions with photos (barcode issues, damage, shortages). Divisions update the status and reply.<br><br>
-          <strong>Receiving Manager:</strong> Log dock issues and create receiving tickets to divisions with images.<br><br>
-          <strong>Operations:</strong> View and release items IC has flagged as allocated.<br><br>
-          <strong>Admin:</strong> Manage PINs, divisions, email directory, banners, and system settings. Forgot a PIN? Use <strong>Forgot PIN?</strong> on the PIN screen to have it emailed.<br><br>
-          <strong>Priority response times:</strong> P0 Urgent 4h · P1 High 8h · P2 Medium 24h · P3 Normal 48h · P4 Low 72h.
-        </div>
-      </details>
+      <button class="login-portal-link" style="margin-top:22px;color:#cdd8e8;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)" onclick="openInstructions()">
+        📘 How to use this system — full instructions
+      </button>
     </div>
 
     <!-- Step 2a: Divisions list -->
@@ -939,6 +927,27 @@ body.has-banner2 #sysBanner2{top:44px}
   <div class="login-dev-credit">Developed by Ruben Mendoza · 2025–26</div>
 </div>
 
+<!-- ═══════════ INSTRUCTIONS SCREEN ═══════════ -->
+<div class="screen" id="instructionsScreen">
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0">
+    <div>
+      <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Help &amp; Reference</div>
+      <div style="font-size:17px;font-weight:700;color:var(--text)">How to Use This System</div>
+    </div>
+    <button class="refresh-btn" onclick="closeInstructions()" style="margin-left:auto">← Back</button>
+  </div>
+  <div style="padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+    <div style="position:relative;max-width:600px">
+      <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);opacity:.6;font-size:16px">🔍</span>
+      <input type="text" id="instrSearch" placeholder="Search instructions — e.g. 'reply', 'allocate', 'forgot pin', 'add division'…" oninput="renderInstructions()" style="width:100%;box-sizing:border-box;padding:12px 14px 12px 42px;font-size:14px;border:1.5px solid var(--border);border-radius:10px;background:var(--panel2);color:var(--text)">
+    </div>
+    <div id="instrRoleChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px"></div>
+  </div>
+  <div style="flex:1;overflow:auto;padding:20px;max-width:860px;margin:0 auto;width:100%">
+    <div id="instrBody"></div>
+  </div>
+</div>
+
 <!-- ═══════════ PIN ═══════════ -->
 <div class="screen" id="pinScreen">
   <div class="pin-card">
@@ -970,7 +979,7 @@ body.has-banner2 #sysBanner2{top:44px}
       <p id="trackerSub">Track all your submitted inquiries in real time</p>
     </div>
     <div class="tracker-actions">
-      <button class="new-inquiry-btn" onclick="showScreen('form')">+ New Inquiry</button>
+      <button class="new-inquiry-btn" onclick="showScreen('form')">+ IC Ticket</button>
       <button class="tracker-refresh-btn" id="trackerRefreshBtn" onclick="loadTrackerTix()">
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         Refresh
@@ -1028,9 +1037,17 @@ body.has-banner2 #sysBanner2{top:44px}
 <div class="screen" id="formScreen">
   <div class="form-wrap" id="formWrap">
     <div class="form-header">
-      <div class="form-eyebrow">New Inquiry</div>
-      <h1>Submit an Inquiry</h1>
+      <div class="form-eyebrow">IC Ticket</div>
+      <h1>Submit an IC Ticket</h1>
       <p>Describe your inventory issue below. You'll receive a confirmation email and can follow the status in your tracker.</p>
+    </div>
+    <div class="pri-legend" style="border-radius:10px;border:1px solid var(--border);margin-bottom:16px">
+      <span class="pll">Priority Response Times:</span>
+      <span class="pli pli-0">P0 Urgent · 4 hrs</span>
+      <span class="pli pli-1">P1 High · 8 hrs</span>
+      <span class="pli pli-2">P2 Medium · 24 hrs</span>
+      <span class="pli pli-3">P3 Normal · 48 hrs</span>
+      <span class="pli pli-4">P4 Low · 72 hrs</span>
     </div>
     <div class="card">
       <div class="card-title">Contact Information</div>
@@ -1585,8 +1602,10 @@ body.has-banner2 #sysBanner2{top:44px}
       <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Quality Control</div>
       <div style="font-size:17px;font-weight:700;color:var(--text)">QC / Receiving Tickets</div>
     </div>
+    <div class="screen-hdr-meta" id="qcHdrMeta"></div>
     <button onclick="openNewQCTicket()" style="margin-left:auto;padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">+ New QC Ticket</button>
     <button class="refresh-btn" onclick="loadQCScreen()">↻ Refresh</button>
+    <button class="refresh-btn" onclick="logout()" style="background:var(--red-l);border-color:var(--red);color:var(--red)">🔒 Log Out</button>
   </div>
   <div class="stats-strip" id="qcStatsStrip" style="padding:10px 20px"></div>
   <div style="padding:10px 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border)">
@@ -1618,9 +1637,13 @@ body.has-banner2 #sysBanner2{top:44px}
 
 <!-- ═══════════ ADMIN SCREEN ═══════════ -->
 <div class="screen" id="adminScreen">
-  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;flex-shrink:0">
-    <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--red);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">System Administration</div>
-    <div style="font-size:17px;font-weight:700;color:var(--text)">Admin Control Panel</div>
+  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;flex-shrink:0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--red);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">System Administration</div>
+      <div style="font-size:17px;font-weight:700;color:var(--text)">Admin Control Panel</div>
+    </div>
+    <div class="screen-hdr-meta" id="adminHdrMeta"></div>
+    <button class="refresh-btn" onclick="logout()" style="margin-left:auto;background:var(--red-l);border-color:var(--red);color:var(--red)">🔒 Log Out</button>
   </div>
   <div style="flex:1;overflow:auto;padding:20px;max-width:820px;margin:0 auto;width:100%">
 
@@ -1732,6 +1755,14 @@ body.has-banner2 #sysBanner2{top:44px}
       <button class="merge-close-btn" onclick="document.getElementById('qcNewOverlay').style.display='none'">✕</button>
     </div>
     <div style="padding:16px 22px">
+      <div class="pri-legend" style="border-radius:10px;border:1px solid var(--border);margin-bottom:14px">
+        <span class="pll">Priority Response Times:</span>
+        <span class="pli pli-0">P0 · 4h</span>
+        <span class="pli pli-1">P1 · 8h</span>
+        <span class="pli pli-2">P2 · 24h</span>
+        <span class="pli pli-3">P3 · 48h</span>
+        <span class="pli pli-4">P4 · 72h</span>
+      </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <div class="sf-field" style="flex:1;min-width:140px"><label>Division <span style="color:var(--red)">*</span></label>
           <select id="qcDivision"></select>
@@ -2355,7 +2386,210 @@ function loginBack(){
   document.getElementById('loginDivisions').style.display='none';
   document.getElementById('loginWarehouse').style.display='none';
 }
+/* ── Shared header date/time/weather across all screens ───── */
+let _wxCache={text:'',ts:0};
+function _fmtHdrDateTime(){
+  const now=new Date();
+  const date=now.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  const time=now.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+  return date+' · '+time;
+}
+async function _getWeatherText(){
+  // Cache for 15 min
+  if(_wxCache.text && Date.now()-_wxCache.ts < 15*60*1000) return _wxCache.text;
+  try{
+    const lat=36.73, lon=-76.58;
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`;
+    const r=await fetch(url); if(!r.ok) throw 0;
+    const d=await r.json();
+    const t=Math.round(d.current.temperature_2m);
+    _wxCache={text:weatherIcon(d.current.weather_code)+' '+t+'°F',ts:Date.now()};
+  }catch(e){ _wxCache={text:'',ts:Date.now()}; }
+  return _wxCache.text;
+}
+function updateScreenHeaderBars(){
+  const dt=_fmtHdrDateTime();
+  const bars=['appHdrMeta','qcHdrMeta','adminHdrMeta'];
+  _getWeatherText().then(wx=>{
+    bars.forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      el.innerHTML=`<span class="shm-dt">${dt}</span>`+(wx?`<span class="shm-wx">${wx} · Suffolk, VA</span>`:'');
+    });
+  });
+}
+// Keep header clocks ticking
+setInterval(()=>{ if(typeof updateScreenHeaderBars==='function') updateScreenHeaderBars(); }, 30000);
+
 /* ── Login clock + weather ────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   INSTRUCTIONS / HELP SCREEN
+   Thorough, per-role, step-by-step reference with live search.
+   ═══════════════════════════════════════════════════════════════ */
+const INSTRUCTIONS=[
+  {
+    role:'Getting Started', icon:'🚪', color:'#2d6cc0',
+    intro:'How anyone logs in and finds their way around.',
+    items:[
+      ['Log in','A. On the login screen, choose <strong>Warehouse</strong> (for IC, QC, Receiving, Ops, Admin) or <strong>Divisions</strong> (to submit and track your own tickets). B. Pick your division or role tile. C. Enter your 4-digit PIN. D. You are taken straight to your home screen.'],
+      ['Log out','A. Click the <strong>← Lock</strong> button (top-right of the header) or the <strong>🔒 Log Out</strong> button on the QC/Admin screens. B. You return to the login screen and your session is cleared.'],
+      ['Forgot your PIN','A. On the PIN entry screen, click <strong>Forgot PIN?</strong>. B. Enter the email address on file for your division. C. If it matches, your PIN is emailed to you. The request also notifies your division manager (set by Admin in the Email Directory).'],
+      ['Switch between light and dark mode','Click the 🌙 / ☀️ button in the header to toggle the theme. Your choice is remembered on this device.'],
+      ['Read the priority response times','Every ticket screen shows the legend: <strong>P0 Urgent 4 hrs · P1 High 8 hrs · P2 Medium 24 hrs · P3 Normal 48 hrs · P4 Low 72 hrs</strong>. These are the target times IC aims to respond within.'],
+    ],
+  },
+  {
+    role:'Divisions', icon:'🏢', color:'#059669',
+    intro:'For division users submitting and tracking inventory inquiries.',
+    items:[
+      ['Submit a new IC Ticket','A. Click <strong>+ IC Ticket</strong>. B. Confirm your division (it is pre-filled when you log in as a division). C. Enter the product code(s), order number, and quantity if relevant. D. Choose an inventory or quality issue type. E. Set the priority that matches urgency. F. Write a clear description. G. Attach photos or files if helpful (up to ~720 KB each). H. Click Submit — you get a confirmation email and the ticket appears in My Tickets.'],
+      ['Add multiple product codes to one ticket','In the product section, use the add-row control to list several codes on a single inquiry instead of opening one ticket per code.'],
+      ['Attach a photo or document','On the form (or in any reply), use the attachment control to add images or files. Large files over the size limit are skipped automatically, so compress big photos first.'],
+      ['Track your tickets','A. Click <strong>My Tickets</strong>. B. Use the status pills (Open, Needs Response, etc.) to filter. C. Use the big search bar to find a ticket by ID, product code, or order number. D. Click any ticket to open the full thread.'],
+      ['Reply to IC','A. Open the ticket. B. Type your message in the reply box. C. Attach files if needed. D. Send. IC is notified and your message joins the thread.'],
+      ['Understand ticket age colors','Tickets flash to draw attention: red means it is overdue (25 hrs+). Once you open a ticket, the color stops flashing and goes solid so you know you have seen it.'],
+      ['Report a quality problem','Select a quality issue type on the form. This automatically creates a matching <strong>QC ticket</strong> routed to the QC Manager, tracked separately, while your inventory inquiry continues normally.'],
+    ],
+  },
+  {
+    role:'IC Team', icon:'🔎', color:'#7c3aed',
+    intro:'For Inventory Control team members investigating and updating tickets.',
+    items:[
+      ['Open the dashboard','Log in as IC Team. The Dashboard lists all active tickets across divisions (except hidden divisions).'],
+      ['Find and sort tickets','Use the search box for ID, division, or product code. Use the status, division, and sort dropdowns to narrow the list. "Group by Product" clusters open tickets sharing a product code so you can spot duplicates.'],
+      ['Investigate and log findings','A. Open a ticket. B. Record what you found in the <strong>IC Notes / Findings</strong> field. C. Add any <strong>Follow-Up</strong> questions for the division. D. Save — the division sees your findings and gets notified.'],
+      ['Assign IC members','On a ticket, use the IC member multiselect to record who is working it. This is required before saving certain updates.'],
+      ['Change a ticket status','Update the progress field (Received → Investigating → Need More Info → Allocated / Waiting OPS → Completed, etc.) as work proceeds.'],
+      ['Flag an item as allocated to Ops','Set the ticket to <strong>Allocated / Waiting OPS</strong> and mark the allocation flags. The allocation date is recorded and the ticket appears on the Operations screen for release.'],
+      ['Watch the alert bell','The 🔔 bell in the header shows unread division messages. Click it to jump straight to tickets needing your reply.'],
+    ],
+  },
+  {
+    role:'IC Manager', icon:'🛡️', color:'#2d6cc0',
+    intro:'Everything IC Team can do, plus oversight and bulk tools.',
+    items:[
+      ['Everything IC Team can do','You have the full IC dashboard plus the manager-only controls below.'],
+      ['Manage IC team members','Click <strong>👥 IC Team</strong> in the toolbar to add or remove the names that appear in the IC member assignment list.'],
+      ['Bulk retire tickets','Turn on Select All (or tick individual tickets), then use <strong>Retire Selected</strong> to archive several at once.'],
+      ['Run CI age-out','Click <strong>Run CI Age-Out</strong> to auto-retire Chapman-Internal tickets that have sat in Received status past the age limit.'],
+      ['Merge duplicate tickets','When two tickets cover the same issue, use the merge tool to fold one into the other so the thread and history stay in one place.'],
+      ['Note on PINs and banners','PIN management and system banners now live on the <strong>Admin</strong> screen, not here. Ask your Admin, or log in as Admin, to change them.'],
+    ],
+  },
+  {
+    role:'QC Manager', icon:'🧪', color:'#a855f7',
+    intro:'For creating and tracking QC and receiving tickets sent to divisions.',
+    items:[
+      ['Open the QC screen','Log in as QC Manager (or use the 🔍 QC Tickets nav if your IC Manager login is merged with QC). You see all QC / receiving tickets.'],
+      ['Create a QC ticket','A. Click <strong>+ New QC Ticket</strong>. B. Choose the division and issue type (Barcode Issue, Shipping Damage, Shortage, Mislabeled, Wrong Product, Quality Defect, Receiving Discrepancy, Dock Damage, PO Count Discrepancy, Other). C. Add PO#, container#, and product codes. D. Pick who it is "Attention To". E. Describe the issue and attach photos. F. Submit — the division is emailed using the routing set in the Admin Email Directory.'],
+      ['Route a ticket to the right people','Recipients are resolved automatically from the Admin Email Directory: the division base list plus anyone assigned to that specific issue type (for example, NAPA QC tickets can go to a specific reviewer).'],
+      ['Track and filter QC tickets','Use the search box and the status and type filters to find tickets. The default view shows Open items.'],
+      ['Update status and reply','Open a ticket to read the thread, post a reply with attachments, and watch the division change the status (Open, In Review, Corrected, Disputed, Completed).'],
+      ['Watch the alert bell','The 🔔 bell shows QC tickets with unread division replies; click to open them.'],
+    ],
+  },
+  {
+    role:'Receiving Manager', icon:'🚛', color:'#0891b2',
+    intro:'For logging dock issues and sending receiving tickets to divisions.',
+    items:[
+      ['Open your view','Log in as Receiving Manager. You see shipping and receiving related tickets, plus access to create QC / receiving tickets.'],
+      ['Create a receiving ticket with photos','A. Click <strong>+ New QC Ticket</strong>. B. Choose the division and a receiving issue type (Receiving Discrepancy, Dock Damage, PO Count Discrepancy, and the shared types). C. Add PO#, container#, and product codes. D. Attach dock photos. E. Submit to notify the division.'],
+      ['Follow up','Open any ticket to reply, add more images, and see the division response.'],
+    ],
+  },
+  {
+    role:'Operations Manager', icon:'⚙️', color:'#6366f1',
+    intro:'For releasing items IC has flagged as allocated.',
+    items:[
+      ['Open the Operations screen','Log in as Operations Manager. You see items IC has flagged as Allocated / Waiting OPS, each showing the date it was allocated.'],
+      ['Release an allocation','Review the flagged item and unlock or release it so IC can complete the ticket. The ticket status advances once released.'],
+      ['Use the allocation bell','The allocation bell alerts you when new items are waiting for Ops release.'],
+    ],
+  },
+  {
+    role:'Admin', icon:'🔧', color:'#dc2626',
+    intro:'System settings: PINs, divisions, banners, email directory, and data.',
+    items:[
+      ['Open the Admin panel','Log in as Admin (PIN required). All system settings are here.'],
+      ['Reset PINs','In the PINs section, edit any role or division PIN and save. Changes persist for everyone.'],
+      ['Add or remove a division','Use the Divisions section to add a new division (code, name, PIN) or remove one. New divisions appear on the login screen automatically.'],
+      ['Post system banners','A. Enter text for Banner 1 and, optionally, Banner 2. B. Choose a style (Notice, Urgent, Maintenance). C. Click <strong>Post Banners</strong> — they appear across all screens for everyone. Use <strong>Clear All</strong> to remove them.'],
+      ['Set up the Email Directory','A. Pick a division. B. Add or remove the recipients who get every ticket for that division (each shows as a removable row). C. Set the division manager email used for Forgot-PIN and escalations. D. Add issue-specific recipients (for example route that division’s QC tickets to a specific person). E. Save.'],
+      ['Set a global Auto-BCC','Add any addresses that should be BCC’d on every ticket for every division, then save.'],
+      ['Merge IC and QC','Toggle the IC/QC merge so one manager login handles both routes.'],
+      ['Delete all tickets (danger)','This permanently erases every ticket and cannot be undone. It requires the special deletion code. Use only when intentionally wiping the system.'],
+    ],
+  },
+];
+
+function openInstructions(){ showScreen('instructions'); renderInstructionsChips(); renderInstructions(); }
+function closeInstructions(){
+  // Return to login if logged out, else to the user's home screen
+  if(!role){ showScreen('login'); return; }
+  if(role==='qcmanager'){ showScreen('qc'); }
+  else if(role==='admin'){ showScreen('admin'); }
+  else if(role==='division'){ showScreen('tracker'); }
+  else if(role==='ops'){ showScreen('ops'); }
+  else { showScreen('dash'); }
+}
+let _instrRoleFilter='';
+function renderInstructionsChips(){
+  const el=document.getElementById('instrRoleChips'); if(!el) return;
+  const chips=[['','All']].concat(INSTRUCTIONS.map(s=>[s.role,s.icon+' '+s.role]));
+  el.innerHTML=chips.map(([val,label])=>
+    `<button onclick="setInstrRole('${val.replace(/'/g,"\\'")}')" style="padding:5px 12px;border-radius:20px;border:1.5px solid ${_instrRoleFilter===val?'var(--accent)':'var(--border)'};background:${_instrRoleFilter===val?'var(--accent-l)':'var(--panel2)'};color:${_instrRoleFilter===val?'var(--accent)':'var(--muted)'};font-size:11px;font-weight:600;cursor:pointer">${esc(label)}</button>`
+  ).join('');
+}
+function setInstrRole(r){ _instrRoleFilter=r; renderInstructionsChips(); renderInstructions(); }
+function renderInstructions(){
+  const body=document.getElementById('instrBody'); if(!body) return;
+  const q=(document.getElementById('instrSearch').value||'').trim().toLowerCase();
+  let html='';
+  let anyMatch=false;
+  INSTRUCTIONS.forEach(sec=>{
+    if(_instrRoleFilter && sec.role!==_instrRoleFilter) return;
+    const matchItems=sec.items.filter(([title,steps])=>{
+      if(!q) return true;
+      return (title+' '+steps+' '+sec.role).toLowerCase().includes(q);
+    });
+    if(!matchItems.length) return;
+    anyMatch=true;
+    html+=`<div style="margin-bottom:26px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <span style="width:34px;height:34px;border-radius:9px;background:${sec.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px">${sec.icon}</span>
+        <div><div style="font-size:16px;font-weight:700;color:var(--text)">${esc(sec.role)}</div>
+        <div style="font-size:12px;color:var(--muted)">${esc(sec.intro)}</div></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+        ${matchItems.map(([title,steps])=>`
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px">${highlightTerm(title,q)}</div>
+            <div style="font-size:12.5px;color:var(--muted);line-height:1.65">${highlightTerm(steps,q)}</div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  if(!anyMatch){
+    html=`<div style="text-align:center;padding:50px 20px;color:var(--muted)">
+      <div style="font-size:36px;margin-bottom:10px">🔍</div>
+      <div style="font-size:14px;font-weight:600">No instructions match "${esc(q)}"</div>
+      <div style="font-size:12px;margin-top:6px">Try a different word, or clear the search to see everything.</div>
+    </div>`;
+  }
+  body.innerHTML=html;
+}
+function highlightTerm(text,q){
+  if(!q) return text;
+  try{
+    // Only highlight outside of HTML tags
+    const safe=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const re=new RegExp('('+safe+')','ig');
+    return text.replace(/(<[^>]+>)|([^<]+)/g,(m,tag,txt)=>{
+      if(tag) return tag;
+      return txt.replace(re,'<mark style="background:var(--yellow-l);color:var(--text);padding:0 2px;border-radius:3px">$1</mark>');
+    });
+  }catch(e){ return text; }
+}
+
 function startLoginClock(){
   const upd=()=>{
     const el=document.getElementById('ltDateTime');
@@ -2604,11 +2838,11 @@ function logout(){
   role=''; currentDiv=''; pinBuf=''; allTix=[];
   sessionClear();
   clearSession(); // clear the localStorage login persistence
-  document.getElementById('topNav').style.display='none';
-  document.getElementById('roleChip').style.display='none';
-  document.getElementById('bannerCreator').classList.remove('show');
-  document.getElementById('globalStats').classList.remove('show');
-  document.getElementById('navStats').style.display='none';
+  const tn=document.getElementById('topNav'); if(tn) tn.style.display='none';
+  const rc=document.getElementById('roleChip'); if(rc) rc.style.display='none';
+  const gs=document.getElementById('globalStats'); if(gs) gs.classList.remove('show');
+  const ns=document.getElementById('navStats'); if(ns) ns.style.display='none';
+  const appEl=document.getElementById('app'); if(appEl) appEl.style.display='';
   showScreen('login'); ud(); pe('');
 }
 
@@ -2650,6 +2884,22 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const target = document.getElementById(id+'Screen');
   if(target) target.classList.add('active');
+  // Only these screens live OUTSIDE #app in the DOM. Hiding #app for them removes
+  // the empty full-height shell above them. Login & instructions are INSIDE #app,
+  // so they must NOT hide it (doing so would blank the page).
+  const OUTSIDE_APP=['qc','admin','restock'];
+  const appEl=document.getElementById('app');
+  if(appEl){
+    if(OUTSIDE_APP.includes(id)) appEl.style.display='none';
+    else appEl.style.display='';
+  }
+  // Login & instructions are full-screen takeovers inside #app — hide the app topbar
+  // and global stats so they don't peek above the screen.
+  const tb=document.querySelector('#app > header.topbar');
+  const gstats=document.getElementById('globalStats');
+  const hideChrome=(id==='login'||id==='instructions');
+  if(tb) tb.style.display = hideChrome ? 'none' : '';
+  if(gstats && hideChrome) gstats.classList.remove('show');
   ['navTracker','navForm','navDash','navStats'].forEach(n=>{
     const el=document.getElementById(n); if(el) el.classList.remove('active');
   });
@@ -2661,6 +2911,9 @@ function showScreen(id){
   if(id==='qc' && typeof loadQCScreen==='function' && !qcTickets.length) loadQCScreen();
   if(id==='login'){ if(typeof startLoginClock==='function') startLoginClock(); if(typeof loadLoginWeather==='function') loadLoginWeather(); }
   if(id==='tracker' && role==='division' && allTix.length>0) applyTrackerFilters();
+  if(typeof updateScreenHeaderBars==='function') updateScreenHeaderBars();
+  const dc=document.getElementById('appDevCredit');
+  if(dc) dc.style.display = (id==='login') ? 'none' : 'block';
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -3817,24 +4070,20 @@ async function loadICWorkloadOverview(){
   const ov=document.getElementById('icWorkloadOverview');
   if(!ov) return;
   try{
-    // Reuse the shared IC ticket cache if present (avoids a duplicate 1000-doc read)
-    let allActive=sessionGet('wl_counts_v2');
-    if(!allActive){
-      const icCache=sessionGet('tix_ic_v2');
-      let source;
-      if(icCache){
-        source=icCache;
-      } else if(CFG.DEMO_MODE){
-        source=DEMO_TIX;
-      } else {
-        const docs=await fsQuery('tickets',null,null,1000);
-        source=docs.map(normalizeTicket);
-      }
-      allActive=source
-        .filter(t=>t.progress!=='Completed'&&t.progress!=='Retired'&&t.progress!=='Merged'&&!HIDDEN_DIVS.includes(t.division))
-        .map(t=>({division:t.division}));
-      sessionSet('wl_counts_v2',allActive);
+    let source=null;
+    const icCache=sessionGet('tix_ic_v2');
+    if(icCache && icCache.length){
+      source=icCache;
+    } else if(CFG.DEMO_MODE){
+      source=DEMO_TIX;
+    } else {
+      const docs=await fsQuery('tickets',null,null,1000);
+      source=docs.map(normalizeTicket);
     }
+    const openStatuses=['Completed','Retired','Merged'];
+    const allActive=(source||[])
+      .filter(t=>!openStatuses.includes(t.progress) && !t.archived && !HIDDEN_DIVS.includes(t.division))
+      .map(t=>({division:t.division}));
     const total=allActive.length;
     const divsWithOpen=new Set(allActive.map(t=>t.division)).size;
     const mine=allActive.filter(t=>t.division===currentDiv).length;
@@ -6817,24 +7066,56 @@ function renderAdminDirectory(){
   const div=document.getElementById('admDirDiv').value;
   const body=document.getElementById('admDirBody'); if(!body) return;
   const entry=getDivDirectory(div);
+  const baseList=(entry.base||'').split(',').map(s=>s.trim()).filter(Boolean);
   body.innerHTML=`
-    <div class="sf-field" style="margin-bottom:10px"><label>Division Recipients <span style="font-weight:400;color:var(--muted);font-size:10px">— default for all tickets to this division</span></label>
-      <textarea id="dirBase" rows="2" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12px;background:var(--panel2);color:var(--text);font-family:var(--mono)">${esc(entry.base||'')}</textarea>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Division Recipients <span style="font-weight:400;text-transform:none">— who gets every ticket for this division</span></div>
+    <div id="dirBaseList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <input id="dirBaseNew" placeholder="add email…" style="flex:1;border:1.5px solid var(--border);border-radius:7px;padding:8px 11px;font-size:12px;background:var(--panel2);color:var(--text);font-family:var(--mono)" onkeydown="if(event.key==='Enter'){addDirEmail();event.preventDefault();}">
+      <button onclick="addDirEmail()" style="padding:8px 16px;background:var(--green);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
     </div>
-    <div class="sf-field" style="margin-bottom:10px"><label>Division Manager Email <span style="font-weight:400;color:var(--muted);font-size:10px">— receives Forgot-PIN requests &amp; escalations</span></label>
-      <input id="dirManager" value="${esc(entry.manager||'')}" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12px;background:var(--panel2);color:var(--text);font-family:var(--mono)">
+    <div class="sf-field" style="margin-bottom:14px"><label>Division Manager Email <span style="font-weight:400;color:var(--muted);font-size:10px">— receives Forgot-PIN requests &amp; escalations</span></label>
+      <input id="dirManager" value="${esc(entry.manager||'')}" placeholder="manager@division.com" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12px;background:var(--panel2);color:var(--text);font-family:var(--mono)">
     </div>
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px">Issue-Specific Routing <span style="font-weight:400;text-transform:none">— e.g. QC tickets to specific people</span></div>
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:6px 0 8px">Issue-Specific Routing <span style="font-weight:400;text-transform:none">— extra recipients for specific issue types (e.g. QC)</span></div>
     ${QC_ROUTE_ISSUES.map(iss=>`
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
         <span style="font-size:11px;min-width:150px;color:var(--text)">${iss}</span>
-        <input class="dir-issue" data-issue="${esc(iss)}" value="${esc((entry.issues&&entry.issues[iss])||'')}" placeholder="extra emails for this issue…" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:11px;background:var(--panel2);color:var(--text);font-family:var(--mono)">
+        <input class="dir-issue" data-issue="${esc(iss)}" value="${esc((entry.issues&&entry.issues[iss])||'')}" placeholder="extra emails, comma-separated…" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:11px;background:var(--panel2);color:var(--text);font-family:var(--mono)">
       </div>`).join('')}
-    <button onclick="saveAdminDirectory()" style="margin-top:12px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">Save Directory for ${div}</button>`;
+    <button onclick="saveAdminDirectory()" style="margin-top:14px;padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">💾 Save Directory for ${esc(DIV_NAMES[div]||div)}</button>`;
+  window._dirBaseWorking=baseList;
+  renderDirBaseList();
+}
+function renderDirBaseList(){
+  const el=document.getElementById('dirBaseList'); if(!el) return;
+  const list=window._dirBaseWorking||[];
+  if(!list.length){ el.innerHTML='<div style="font-size:12px;color:var(--muted);font-style:italic;padding:4px 0">No recipients yet — add emails below.</div>'; return; }
+  el.innerHTML=list.map((em,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:7px 12px">
+      <span style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${esc(em[0]?em[0].toUpperCase():'?')}</span>
+      <span style="flex:1;font-size:12px;color:var(--text);font-family:var(--mono);word-break:break-all">${esc(em)}</span>
+      <button onclick="removeDirEmail(${i})" title="Remove" style="background:var(--red-l);color:var(--red);border:none;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;flex-shrink:0">×</button>
+    </div>`).join('');
+}
+function addDirEmail(){
+  const inp=document.getElementById('dirBaseNew');
+  const v=(inp.value||'').trim();
+  if(!v) return;
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ toast('Enter a valid email','error'); return; }
+  window._dirBaseWorking=window._dirBaseWorking||[];
+  if(window._dirBaseWorking.includes(v)){ toast('Already added','error'); inp.value=''; return; }
+  window._dirBaseWorking.push(v);
+  inp.value='';
+  renderDirBaseList();
+}
+function removeDirEmail(i){
+  window._dirBaseWorking.splice(i,1);
+  renderDirBaseList();
 }
 async function saveAdminDirectory(){
   const div=document.getElementById('admDirDiv').value;
-  const base=document.getElementById('dirBase').value.trim();
+  const base=(window._dirBaseWorking||[]).join(', ');
   const manager=document.getElementById('dirManager').value.trim();
   const issues={};
   document.querySelectorAll('.dir-issue').forEach(inp=>{ const v=inp.value.trim(); if(v) issues[inp.dataset.issue]=v; });
@@ -8344,18 +8625,33 @@ const DEMO_TIX=[
   ]},
 ];
 
-// On page load — load admin config (PINs, divisions), then restore session or show login.
+// On page load — show a screen IMMEDIATELY so the page can never be blank,
+// then load admin config / directory in the background and restore session.
+function _safeBoot(){
+  try {
+    if(!restoreSession()){ showScreen('login'); }
+  } catch(e){
+    console.error('Boot/restore error:', e);
+    try { showScreen('login'); } catch(_){}
+  }
+}
 try {
-  loadBanner();
-  const _boot=()=>{ if(!restoreSession()){ showScreen('login'); } };
-  if(!CFG.DEMO_MODE && typeof loadAdminConfig==='function'){
-    Promise.all([loadAdminConfig(), typeof loadEmailDirectory==='function'?loadEmailDirectory():Promise.resolve()]).then(_boot).catch(_boot);
-  } else {
-    _boot();
+  // 1) Guarantee something is on screen right away.
+  _safeBoot();
+  // 2) Load banner + config in the background; re-run boot if a session was found later.
+  try { loadBanner(); } catch(e){ console.warn('banner load failed', e); }
+  if(!CFG.DEMO_MODE){
+    const jobs=[];
+    if(typeof loadAdminConfig==='function')    jobs.push(Promise.resolve().then(loadAdminConfig).catch(e=>console.warn('adminConfig',e)));
+    if(typeof loadEmailDirectory==='function') jobs.push(Promise.resolve().then(loadEmailDirectory).catch(e=>console.warn('emailDir',e)));
+    Promise.all(jobs).then(()=>{
+      // Config may change PINs/divisions; refresh the login grids if we're still on login.
+      try { if(document.getElementById('loginScreen').classList.contains('active')) renderDivisionGrid(); } catch(_){}
+    }).catch(e=>console.warn('startup config load failed', e));
   }
 } catch(e){
   console.error('Startup error:', e);
-  showScreen('login');
+  try { showScreen('login'); } catch(_){}
 }
 </script>
 </body>
