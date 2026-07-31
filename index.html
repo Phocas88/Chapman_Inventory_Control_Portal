@@ -1291,6 +1291,9 @@ body.has-banner2{padding-top:84px}
       <option value="div">Division</option>
       <option value="id">Ticket ID</option>
     </select>
+    <button class="refresh-btn" onclick="openShortagesScreen()" title="Live shortages & overpulls from the Inventory Accountability Portal — build cycle-count lists for Apprise" style="background:rgba(245,158,11,.12);border-color:var(--yellow);color:var(--yellow)">
+      📉 Shortages / Cycle Counts
+    </button>
     <!-- Manager-only controls -->
     <div id="mgrToolbar" style="display:none;align-items:center;gap:8px;margin-left:auto">
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none">
@@ -1302,9 +1305,6 @@ body.has-banner2{padding-top:84px}
       </button>
       <button class="refresh-btn" onclick="runAgeOutManual()" title="Auto-retire all CI tickets in Received status older than 5 days" style="background:rgba(107,116,148,.1);border-color:var(--border);color:var(--muted)">
         ⏱ Run CI Age-Out
-      </button>
-      <button class="refresh-btn" onclick="openShortagesScreen()" title="Live shortages & overpulls from the Inventory Accountability Portal — build cycle-count lists for Apprise" style="background:rgba(245,158,11,.12);border-color:var(--yellow);color:var(--yellow)">
-        📉 Shortages / Cycle Counts
       </button>
       <button class="refresh-btn" onclick="openICTeamManager()" title="Manage IC team member names" style="background:rgba(16,185,129,.12);border-color:var(--green);color:var(--green)">
         👥 IC Team
@@ -1660,14 +1660,34 @@ body.has-banner2{padding-top:84px}
     <button class="refresh-btn" onclick="closeShortagesScreen()" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff">← Back to app</button>
   </div>
 
-  <div style="padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--surface)">
+  <div style="padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;font-weight:600;color:var(--muted)">From Date</label>
+        <input type="date" id="shFrom" style="padding:8px 11px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--panel2);color:var(--text)">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;font-weight:600;color:var(--muted)">To Date</label>
+        <input type="date" id="shTo" style="padding:8px 11px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;background:var(--panel2);color:var(--text)">
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="refresh-btn" onclick="shQuickRange(0)" title="Today">Today</button>
+        <button class="refresh-btn" onclick="shQuickRange(7)" title="Last 7 days">7d</button>
+        <button class="refresh-btn" onclick="shQuickRange(30)" title="Last 30 days">30d</button>
+      </div>
+      <button class="refresh-btn" onclick="loadShortagesData(true)" style="background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;padding:9px 20px">▶ Run Report</button>
+      <div style="font-size:11px;color:var(--muted)" id="shRangeNote">Pick a date range, then Run Report. Data loads only for that range.</div>
+    </div>
+  </div>
+
+  <div style="padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;display:none;gap:10px;flex-wrap:wrap;align-items:center;background:var(--surface)" id="shControlsBar">
     <div style="display:flex;gap:4px;background:var(--panel2);border-radius:9px;padding:3px">
       <button id="shTabShort" class="sh-tab sh-tab-active" onclick="setShortTab('short')">📉 Shortages</button>
       <button id="shTabOver" class="sh-tab" onclick="setShortTab('over')">📦 Over-Pulls</button>
     </div>
     <input type="text" id="shSearch" placeholder="Search product, bin, division, picker, order…" oninput="renderShortagesList()" style="flex:1;min-width:200px;padding:9px 13px;font-size:13px;border:1.5px solid var(--border);border-radius:9px;background:var(--panel2);color:var(--text)">
-    <select id="shDivFilter" onchange="renderShortagesList()" class="tracker-sort-sel" style="max-width:150px"><option value="">All Divisions</option></select>
-    <select id="shGroupBy" onchange="renderShortagesList()" class="tracker-sort-sel" style="max-width:170px">
+    <select id="shDivFilter" onchange="renderShortagesList()" class="filter-sel" style="max-width:150px"><option value="">All Divisions</option></select>
+    <select id="shGroupBy" onchange="renderShortagesList()" class="filter-sel" style="max-width:170px">
       <option value="product">Group by Product</option>
       <option value="bin">Group by Bin</option>
       <option value="none">No Grouping</option>
@@ -1679,10 +1699,12 @@ body.has-banner2{padding-top:84px}
   <div style="padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;gap:10px;flex-wrap:wrap" id="shStatsStrip"></div>
 
   <div style="flex:1;overflow:auto;padding:16px 20px;width:100%;box-sizing:border-box">
-    <div id="shListBody"></div>
+    <div id="shListBody"><div style="text-align:center;padding:50px 20px;color:var(--muted)"><div style="font-size:34px;margin-bottom:10px">📅</div><div style="font-weight:600">Choose a date range and click <span style="color:var(--accent)">Run Report</span></div><div style="font-size:12px;margin-top:6px">Data is only pulled for the range you select — keeping reads efficient.</div></div></div>
   </div>
 </div>
 
+<!-- ═══════════ QC MANAGER SCREEN ═══════════ -->
+<div class="screen" id="qcScreen">
   <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0">
     <div>
       <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Quality Control</div>
@@ -1695,17 +1717,17 @@ body.has-banner2{padding-top:84px}
     <button class="refresh-btn" onclick="logout()" style="background:var(--red-l);border-color:var(--red);color:var(--red)">🔒 Log Out</button>
   </div>
   <div class="stats-strip" id="qcStatsStrip" style="padding:10px 20px"></div>
-  <div style="padding:10px 20px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border)">
-    <div style="position:relative;flex:1;min-width:220px">
-      <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.6">🔍</span>
-      <input type="text" id="qcSearch" placeholder="Search QC tickets — PO#, container, product, division…" oninput="renderQCList()" class="tracker-search-inp" style="padding-left:38px;width:100%;box-sizing:border-box">
+  <div class="dash-toolbar">
+    <div class="search-box">
+      <span style="color:var(--muted)">🔍</span>
+      <input type="text" id="qcSearch" placeholder="Search QC tickets — PO#, container, product, division…" oninput="renderQCList()">
     </div>
-    <select id="qcStatusFilter" onchange="renderQCList()" class="tracker-sort-sel">
+    <select id="qcStatusFilter" onchange="renderQCList()" class="filter-sel">
       <option value="open">Open</option>
-      <option value="all">All</option>
+      <option value="all">All Statuses</option>
       <option value="Completed">Completed</option>
     </select>
-    <select id="qcTypeFilter" onchange="renderQCList()" class="tracker-sort-sel">
+    <select id="qcTypeFilter" onchange="renderQCList()" class="filter-sel">
       <option value="">All Types</option>
       <option>Barcode Issue</option>
       <option>Shipping Damage</option>
@@ -1719,7 +1741,7 @@ body.has-banner2{padding-top:84px}
       <option>Other</option>
     </select>
   </div>
-  <div style="flex:1;overflow:auto;padding:16px 20px 28px"><div id="qcList"></div></div>
+  <div style="flex:1;overflow:auto;padding:16px 20px 28px"><div class="ticket-cards" id="qcList"></div></div>
 </div>
 
 <!-- ═══════════ ADMIN SCREEN ═══════════ -->
@@ -8660,7 +8682,10 @@ let _shShort=[], _shOver=[], _shTab='short', _shChecked={};
 function openShortagesScreen(){
   showScreen('shortages');
   if(typeof updateScreenHeaderBars==='function') updateScreenHeaderBars();
-  loadShortagesData(false);
+  // Default the date range to today, but DO NOT auto-load — user clicks Run Report.
+  const f=document.getElementById('shFrom'), t=document.getElementById('shTo');
+  if(f && !f.value){ const d=new Date(); f.value=d.toISOString().slice(0,10); }
+  if(t && !t.value){ const d=new Date(); t.value=d.toISOString().slice(0,10); }
 }
 function closeShortagesScreen(){
   if(role==='qcmanager') showScreen('qc');
@@ -8668,31 +8693,67 @@ function closeShortagesScreen(){
   else showScreen('dash');
 }
 function openVerifySheet(){
-  // The IC Verify Sheet lives in the Inventory Accountability Portal.
   window.open(PICKER_DB.PORTAL_URL, '_blank');
+}
+function shQuickRange(days){
+  const to=new Date();
+  const from=new Date(); from.setDate(from.getDate()-days);
+  document.getElementById('shFrom').value=from.toISOString().slice(0,10);
+  document.getElementById('shTo').value=to.toISOString().slice(0,10);
+  loadShortagesData(true);
+}
+
+// Date-bounded read. Only pulls documents whose `date` falls in the chosen range,
+// so we never read the whole collection. Uses Firestore REST range filters.
+async function pkQueryRange(collectionId, fromISO, toISO, limit){
+  const url = `https://firestore.googleapis.com/v1/projects/${PICKER_DB.PROJECT}/databases/(default)/documents:runQuery?key=${PICKER_DB.API_KEY}`;
+  const filters=[];
+  if(fromISO) filters.push({ fieldFilter:{ field:{fieldPath:'date'}, op:'GREATER_THAN_OR_EQUAL', value:{stringValue:fromISO} } });
+  if(toISO)   filters.push({ fieldFilter:{ field:{fieldPath:'date'}, op:'LESS_THAN_OR_EQUAL',    value:{stringValue:toISO} } });
+  const structuredQuery={ from:[{collectionId}], limit: limit||2000 };
+  if(filters.length===1) structuredQuery.where=filters[0];
+  else if(filters.length>1) structuredQuery.where={ compositeFilter:{ op:'AND', filters } };
+  const r = await fetch(url, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ structuredQuery }),
+  });
+  if(!r.ok){ const t=await r.text(); throw new Error('Picker DB '+r.status+': '+t.substring(0,120)); }
+  const docs = await r.json();
+  return (docs||[]).filter(d=>d.document).map(d=>fromFSDoc(d.document));
 }
 
 async function loadShortagesData(force){
+  const from=document.getElementById('shFrom').value;
+  const to=document.getElementById('shTo').value;
+  if(!from || !to){ toast('Pick both a From and To date first','error'); return; }
+  // Build ISO bounds. Dates in the picker DB are stored like "2026-07-31T14:22" (datetime-local),
+  // so compare against day-start and day-end strings.
+  const fromISO=from+'T00:00';
+  const toISO=to+'T23:59';
   const body=document.getElementById('shListBody');
-  if(body && (force || (!_shShort.length && !_shOver.length))){
-    body.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">Loading live data from the Inventory Accountability Portal…</div>';
-  }
+  const note=document.getElementById('shRangeNote');
+  if(body) body.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">Loading '+esc(from)+' → '+esc(to)+' …</div>';
+  if(note) note.textContent='Loading…';
   try{
     const [shorts, overs] = await Promise.all([
-      pkQuery(PICKER_DB.ACTIVE_SHORT, 1500).catch(e=>{ console.warn('shortages read',e); return []; }),
-      pkQuery(PICKER_DB.ACTIVE_OVER, 1500).catch(e=>{ console.warn('overpull read',e); return []; }),
+      pkQueryRange(PICKER_DB.ACTIVE_SHORT, fromISO, toISO, 2000).catch(e=>{ console.warn('shortages read',e); return []; }),
+      pkQueryRange(PICKER_DB.ACTIVE_OVER, fromISO, toISO, 2000).catch(e=>{ console.warn('overpull read',e); return []; }),
     ]);
-    // Keep only open/unresolved shortages (exclude located/erroneous/resolved)
     _shShort = shorts.filter(s=>{
       const st=(s.status||'open').toLowerCase();
       return st!=='located' && st!=='resolved' && !s.foundInShortedBin;
     });
     _shOver = overs;
+    _shChecked={};
+    // Reveal the controls bar now that we have data
+    const cb=document.getElementById('shControlsBar'); if(cb) cb.style.display='flex';
     populateShDivFilter();
     renderShStats();
     renderShortagesList();
+    if(note) note.textContent='Loaded '+(_shShort.length+_shOver.length)+' record(s) for '+from+' → '+to;
   }catch(e){
     if(body) body.innerHTML='<div style="text-align:center;padding:40px;color:var(--red)">Could not load data: '+esc(e.message)+'</div>';
+    if(note) note.textContent='Load failed';
   }
 }
 
