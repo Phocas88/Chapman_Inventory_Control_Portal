@@ -490,6 +490,10 @@ body.has-banner2{padding-top:84px}
 .shortage-form-body{padding:14px 20px 16px;display:flex;flex-direction:column;gap:10px}
 .sf-row{display:flex;gap:10px;flex-wrap:wrap}
 .sf-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}
+.issue-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.issue-grid .issue-block{display:flex;flex-direction:column;gap:5px;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.issue-grid .issue-block label{font-size:12px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:7px}
+.issue-grid .issue-block .issue-sel{width:100%;box-sizing:border-box;border-radius:7px;padding:8px 10px;font-size:13px}
 .sf-field label{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.04em}
 .sf-field input,.sf-field select{border:1.5px solid var(--border);border-radius:7px;padding:7px 10px;font-size:13px;background:var(--panel2);color:var(--text);outline:none;transition:border-color .15s}
 .sf-field input:focus,.sf-field select:focus{border-color:var(--accent)}
@@ -788,7 +792,7 @@ body.has-banner2{padding-top:84px}
   <div class="sys-banner" id="sysBanner"></div>
   <div class="sys-banner" id="sysBanner2"></div>
 </div>
-<div class="app-dev-credit" id="appDevCredit" style="position:fixed;bottom:6px;right:12px;padding:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 9px;z-index:90;display:none">Developed by Ruben Mendoza · 2025–26</div>
+<div class="app-dev-credit" id="appDevCredit" style="position:fixed;bottom:6px;right:12px;padding:3px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;z-index:90;display:none">Developed by Ruben V. Mendoza · 2025–26 &nbsp;·&nbsp; <span style="opacity:.75">v<span id="dcVer">—</span> · patch <span id="dcPatch">—</span></span></div>
 
 <div id="app">
 
@@ -922,28 +926,40 @@ body.has-banner2{padding-top:84px}
           <span class="st-body"><span class="st-title">Admin</span><span class="st-sub">Settings, PINs, banners</span></span>
         </button>
       </div>
+      <div class="login-section-title" style="margin-top:20px">Warehouse Resources</div>
+      <div class="sel-grid">
+        <button class="sel-tile" onclick="window.open('https://wms.cnfei.com','_blank')">
+          <span class="st-badge" style="background:#0d9488">🗄️</span>
+          <span class="st-body"><span class="st-title">C &amp; F WMS ↗</span><span class="st-sub">Warehouse Management System</span></span>
+        </button>
+        <button class="sel-tile" onclick="window.open('https://phocas88.github.io/CF_Roster_App/','_blank')">
+          <span class="st-badge" style="background:#d97706">🪪</span>
+          <span class="st-body"><span class="st-title">WMS Badge Generator ↗</span><span class="st-sub">Create warehouse badges</span></span>
+        </button>
+      </div>
     </div>
   </div>
-  <div class="login-dev-credit">Developed by Ruben Mendoza · 2025–26</div>
+  <div class="login-dev-credit">Developed by Ruben V. Mendoza · 2025–26 &nbsp;·&nbsp; v<span id="loginDcVer">—</span> · patch <span id="loginDcPatch">—</span></div>
 </div>
 
 <!-- ═══════════ INSTRUCTIONS SCREEN ═══════════ -->
 <div class="screen" id="instructionsScreen">
-  <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0">
+  <div style="background:linear-gradient(120deg,#0d1f3d,#12294a);border-bottom:2px solid var(--accent);padding:20px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0">
+    <div style="width:44px;height:44px;border-radius:11px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📘</div>
     <div>
-      <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--accent);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Help &amp; Reference</div>
-      <div style="font-size:17px;font-weight:700;color:var(--text)">How to Use This System</div>
+      <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:#8fa8d0;letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px">Help &amp; Reference Center</div>
+      <div style="font-size:19px;font-weight:700;color:#fff">C &amp; F Inventory Inquiry Ticket System</div>
     </div>
-    <button class="refresh-btn" onclick="closeInstructions()" style="margin-left:auto">← Back</button>
+    <button class="refresh-btn" onclick="closeInstructions()" style="margin-left:auto;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff">← Back to app</button>
   </div>
-  <div style="padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
-    <div style="position:relative;max-width:600px">
-      <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);opacity:.6;font-size:16px">🔍</span>
-      <input type="text" id="instrSearch" placeholder="Search instructions — e.g. 'reply', 'allocate', 'forgot pin', 'add division'…" oninput="renderInstructions()" style="width:100%;box-sizing:border-box;padding:12px 14px 12px 42px;font-size:14px;border:1.5px solid var(--border);border-radius:10px;background:var(--panel2);color:var(--text)">
+  <div style="padding:16px 24px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface)">
+    <div style="position:relative;max-width:640px;margin:0 auto">
+      <span style="position:absolute;left:15px;top:50%;transform:translateY(-50%);opacity:.55;font-size:16px">🔍</span>
+      <input type="text" id="instrSearch" placeholder="Search all instructions — e.g. 'retire ticket', 'allocation', 'forgot pin', 'cancel', 'add division'…" oninput="renderInstructions()" style="width:100%;box-sizing:border-box;padding:13px 15px 13px 44px;font-size:14px;border:1.5px solid var(--border);border-radius:11px;background:var(--panel2);color:var(--text)">
     </div>
-    <div id="instrRoleChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px"></div>
+    <div id="instrRoleChips" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px;justify-content:center;max-width:860px;margin-left:auto;margin-right:auto"></div>
   </div>
-  <div style="flex:1;overflow:auto;padding:20px;max-width:860px;margin:0 auto;width:100%">
+  <div style="flex:1;overflow:auto;padding:24px 20px;max-width:880px;margin:0 auto;width:100%;box-sizing:border-box">
     <div id="instrBody"></div>
   </div>
 </div>
@@ -1096,7 +1112,7 @@ body.has-banner2{padding-top:84px}
       </div>
     </div>
     <div class="card">
-      <div class="card-title">Issue Details</div>
+      <div class="card-title">📦 Product Codes</div>
 
       <!-- Product Codes — each row: Code | Order # | Shipment # | Qty -->
       <div class="field">
@@ -1120,10 +1136,15 @@ body.has-banner2{padding-top:84px}
         <button type="button" class="add-product-btn" onclick="addProductRow()">+ Add Another Product Code</button>
         <div class="hint" style="margin-top:4px">No dashes in product codes or order numbers</div>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⚠️ What kind of issue is it?</div>
+      <div class="hint" style="margin-top:-8px;margin-bottom:16px">Choose the category that best fits. You can pick more than one if it spans areas — leave the rest on "None".</div>
 
       <!-- 4 issue type selects — each with its own color -->
-      <div class="form-row" style="margin-top:4px">
-        <div class="field issue-block issue-inv">
+      <div class="issue-grid">
+        <div class="issue-block issue-inv">
           <label><span class="ic-inv"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></svg></span> Inventory Issue</label>
           <select id="fInvIssue" class="issue-sel" style="border-color:rgba(37,99,235,.35);background:var(--accent-l)" onchange="onIssueChange()">
             <option value="">None</option>
@@ -1133,17 +1154,16 @@ body.has-banner2{padding-top:84px}
             <option>Not Found in System</option><option>Other</option>
           </select>
         </div>
-        <div class="field issue-block issue-qual">
+        <div class="issue-block issue-qual">
           <label><span class="ic-qual"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/><polyline points="8 11 10.5 13.5 14 9"/></svg></span> Quality Issue</label>
           <select id="fQualIssue" class="issue-sel" style="border-color:rgba(234,88,12,.35);background:var(--orange-l)" onchange="onIssueChange()">
             <option value="">None</option>
             <option>Damaged on Arrival</option><option>Wrong Item</option>
             <option>Packaging Defect</option><option>Expired / Outdated</option><option>Other</option>
           </select>
+          <div class="hint" style="margin-top:2px">Also creates a QC ticket for the QC Manager.</div>
         </div>
-      </div>
-      <div class="form-row">
-        <div class="field issue-block issue-ship">
+        <div class="issue-block issue-ship">
           <label><span class="ic-ship"><svg viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span> Shipping Issue</label>
           <select id="fShipIssue" class="issue-sel" style="border-color:rgba(124,58,237,.35);background:var(--purple-l)" onchange="onIssueChange()">
             <option value="">None</option>
@@ -1152,7 +1172,7 @@ body.has-banner2{padding-top:84px}
             <option>Late Shipment</option><option>Other</option>
           </select>
         </div>
-        <div class="field issue-block issue-recv">
+        <div class="issue-block issue-recv">
           <label><span class="ic-recv"><svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="12" y1="12" x2="12" y2="17"/><polyline points="9 15 12 18 15 15"/></svg></span> Receiving Issue</label>
           <select id="fRecvIssue" class="issue-sel" style="border-color:rgba(8,145,178,.35);background:#ecfeff" onchange="onIssueChange()">
             <option value="">None</option>
@@ -1167,8 +1187,11 @@ body.has-banner2{padding-top:84px}
       <div id="dockAlertBanner" style="display:none;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:8px;padding:10px 14px;font-size:12px;color:#991b1b;font-weight:500;margin-top:4px">
         🚨 <strong>Christian Prater (Inbound Dock Manager)</strong> — <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d9baa9abb8adbcab99bab7bfbcb0f7bab6b4">[email&#160;protected]</a> — will automatically be added as a primary recipient on this inquiry.
       </div>
+    </div>
 
-      <div class="form-row one" style="margin-top:8px"><div class="field">
+    <div class="card">
+      <div class="card-title">📝 Description &amp; Priority</div>
+      <div class="form-row one"><div class="field">
         <label>Category</label>
         <select id="fCat"><option value="">Select Category…</option><option>Pick Demand</option><option>Receiving</option><option>Putaway</option><option>Returns</option><option>Bin Move</option><option>Cycle Count</option><option>Other</option></select>
       </div></div>
@@ -1603,7 +1626,8 @@ body.has-banner2{padding-top:84px}
       <div style="font-size:17px;font-weight:700;color:var(--text)">QC / Receiving Tickets</div>
     </div>
     <div class="screen-hdr-meta" id="qcHdrMeta"></div>
-    <button onclick="openNewQCTicket()" style="margin-left:auto;padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">+ New QC Ticket</button>
+    <button id="qcBackToDiv" onclick="qcReturnHome()" class="refresh-btn" style="display:none;margin-left:auto;background:var(--accent-l);border-color:var(--accent);color:var(--accent);font-weight:600">← Back to My Tickets</button>
+    <button onclick="openNewQCTicket()" style="padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" id="qcNewBtn">+ New QC Ticket</button>
     <button class="refresh-btn" onclick="loadQCScreen()">↻ Refresh</button>
     <button class="refresh-btn" onclick="logout()" style="background:var(--red-l);border-color:var(--red);color:var(--red)">🔒 Log Out</button>
   </div>
@@ -1763,11 +1787,12 @@ body.has-banner2{padding-top:84px}
         <span class="pli pli-3">P3 · 48h</span>
         <span class="pli pli-4">P4 · 72h</span>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-        <div class="sf-field" style="flex:1;min-width:140px"><label>Division <span style="color:var(--red)">*</span></label>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Ticket Basics</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+        <div class="sf-field" style="flex:1;min-width:150px"><label>Division <span style="color:var(--red)">*</span></label>
           <select id="qcDivision"></select>
         </div>
-        <div class="sf-field" style="flex:1;min-width:140px"><label>Issue Type <span style="color:var(--red)">*</span></label>
+        <div class="sf-field" style="flex:1;min-width:150px"><label>Issue Type <span style="color:var(--red)">*</span></label>
           <select id="qcType">
             <option value="">Select…</option>
             <option>Barcode Issue</option><option>Shipping Damage</option><option>Shortage</option>
@@ -1775,20 +1800,22 @@ body.has-banner2{padding-top:84px}
           </select>
         </div>
       </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-        <div class="sf-field" style="flex:1;min-width:140px"><label>PO #</label><input type="text" id="qcPO" placeholder="PO number"></div>
-        <div class="sf-field" style="flex:1;min-width:140px"><label>Container #</label><input type="text" id="qcContainer" placeholder="Container number"></div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+        <div class="sf-field" style="flex:1;min-width:150px"><label>PO #</label><input type="text" id="qcPO" placeholder="PO number"></div>
+        <div class="sf-field" style="flex:1;min-width:150px"><label>Container #</label><input type="text" id="qcContainer" placeholder="Container number"></div>
       </div>
-      <div class="sf-field" style="margin-bottom:10px"><label>Product Code(s) <span style="color:var(--red)">*</span> <span style="font-weight:400;color:var(--muted);font-size:10px">— comma separated for multiple</span></label>
+      <div style="border-top:1px solid var(--border);margin-bottom:16px"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Issue Details</div>
+      <div class="sf-field" style="margin-bottom:16px"><label>Product Code(s) <span style="color:var(--red)">*</span> <span style="font-weight:400;color:var(--muted);font-size:10px">— comma separated for multiple</span></label>
         <input type="text" id="qcProducts" placeholder="e.g. ABC123, DEF456" style="text-transform:uppercase">
       </div>
-      <div class="sf-field" style="margin-bottom:10px"><label>Attention To <span style="font-weight:400;color:var(--muted);font-size:10px">— specific people to alert (optional)</span></label>
+      <div class="sf-field" style="margin-bottom:16px"><label>Attention To <span style="font-weight:400;color:var(--muted);font-size:10px">— specific people to alert (optional)</span></label>
         <div id="qcAttnList" class="email-multiselect" style="max-height:130px;overflow-y:auto"></div>
       </div>
-      <div class="sf-field" style="margin-bottom:10px"><label>Description <span style="color:var(--red)">*</span></label>
+      <div class="sf-field" style="margin-bottom:16px"><label>Description <span style="color:var(--red)">*</span></label>
         <textarea id="qcDesc" rows="3" placeholder="Describe the QC issue…"></textarea>
       </div>
-      <div class="sf-field" style="margin-bottom:10px"><label>Attach Images / Files <span style="font-weight:400;color:var(--muted);font-size:10px">— photos of the issue</span></label>
+      <div class="sf-field" style="margin-bottom:10px"><label>Attach Images / Files <span style="font-weight:400;color:var(--muted);font-size:10px">— photos, PDF, Excel, CSV</span></label>
         <div class="upload-zone" id="qcUploadZone" style="padding:16px">
           <input type="file" id="qcFileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.xlsx,.xls,.csv" onchange="onQCFilePick(event)">
           <div style="font-size:22px">📎</div>
@@ -2398,7 +2425,7 @@ async function _getWeatherText(){
   // Cache for 15 min
   if(_wxCache.text && Date.now()-_wxCache.ts < 15*60*1000) return _wxCache.text;
   try{
-    const lat=36.73, lon=-76.58;
+    const lat=37.137, lon=-76.529;
     const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`;
     const r=await fetch(url); if(!r.ok) throw 0;
     const d=await r.json();
@@ -2413,7 +2440,7 @@ function updateScreenHeaderBars(){
   _getWeatherText().then(wx=>{
     bars.forEach(id=>{
       const el=document.getElementById(id); if(!el) return;
-      el.innerHTML=`<span class="shm-dt">${dt}</span>`+(wx?`<span class="shm-wx">${wx} · Suffolk, VA</span>`:'');
+      el.innerHTML=`<span class="shm-dt">${dt}</span>`+(wx?`<span class="shm-wx">${wx} · Newport News, VA</span>`:'');
     });
   });
 }
@@ -2427,101 +2454,126 @@ setInterval(()=>{ if(typeof updateScreenHeaderBars==='function') updateScreenHea
    ═══════════════════════════════════════════════════════════════ */
 const INSTRUCTIONS=[
   {
-    role:'Getting Started', icon:'🚪', color:'#2d6cc0',
-    intro:'How anyone logs in and finds their way around.',
+    role:'Overview', icon:'🏠', color:'#0d3d6e', landing:true,
+    intro:'What this system is and how to get help.',
     items:[
-      ['Log in','A. On the login screen, choose <strong>Warehouse</strong> (for IC, QC, Receiving, Ops, Admin) or <strong>Divisions</strong> (to submit and track your own tickets). B. Pick your division or role tile. C. Enter your 4-digit PIN. D. You are taken straight to your home screen.'],
-      ['Log out','A. Click the <strong>← Lock</strong> button (top-right of the header) or the <strong>🔒 Log Out</strong> button on the QC/Admin screens. B. You return to the login screen and your session is cleared.'],
-      ['Forgot your PIN','A. On the PIN entry screen, click <strong>Forgot PIN?</strong>. B. Enter the email address on file for your division. C. If it matches, your PIN is emailed to you. The request also notifies your division manager (set by Admin in the Email Directory).'],
-      ['Switch between light and dark mode','Click the 🌙 / ☀️ button in the header to toggle the theme. Your choice is remembered on this device.'],
-      ['Read the priority response times','Every ticket screen shows the legend: <strong>P0 Urgent 4 hrs · P1 High 8 hrs · P2 Medium 24 hrs · P3 Normal 48 hrs · P4 Low 72 hrs</strong>. These are the target times IC aims to respond within.'],
+      ['About this system','The <strong>C &amp; F Inventory Inquiry Ticket System</strong> is the central hub for the Chapman Warehouse to raise, route, and resolve inventory, quality, shipping, and receiving issues between the warehouse teams (Inventory Control, Quality Control, Receiving, Operations) and the product divisions (TAG, NAPA, Forside, Ever Ellis, Beachcombers, VIP, Transpac). Every issue becomes a tracked ticket with its own conversation thread, attachments, status, and priority, and everyone involved is notified by email automatically.'],
+      ['How the pieces fit together','<strong>Divisions</strong> raise IC tickets for inventory problems and can flag quality problems (which spin off a QC ticket). <strong>IC Team &amp; IC Manager</strong> investigate and resolve those tickets, and can flag items to <strong>Operations</strong> for release. <strong>QC Manager</strong> and <strong>Receiving Manager</strong> raise QC / receiving tickets to divisions with photos. <strong>Admin</strong> controls PINs, divisions, banners, and the email directory that decides who gets notified.'],
+      ['Getting help fast','Use the <strong>search box</strong> at the top of this screen to find any task by keyword — try "retire", "allocate", "forgot pin", "cancel", "reply", or "banner". Or tap a role tab to read just that role\'s instructions. Every task is written as simple A-B-C steps.'],
+      ['Priority response times','Tickets carry a priority that sets the response target: <strong>P0 Urgent — 4 hours</strong>, <strong>P1 High — 8 hours</strong>, <strong>P2 Medium — 24 hours</strong>, <strong>P3 Normal — 48 hours</strong>, <strong>P4 Low — 72 hours</strong>. The legend appears on the ticket forms and trackers.'],
+      ['App details','Application: C &amp; F Inventory Inquiry Ticket System. Version: <strong>__VER__</strong>. Patch: <strong>__PATCH__</strong>. System build: Firebase Firestore data layer + Google Apps Script email service + single-page web client hosted on GitHub Pages.'],
+      ['Developer &amp; contact','Designed and built by <strong>Ruben V. Mendoza</strong>, StreamSync Solutions (2025–26). For questions, changes, or support after handoff, contact <a href="mailto:rmendoza@streamsyncsolutions.net" style="color:var(--accent)">rmendoza@streamsyncsolutions.net</a>.'],
+    ],
+  },
+  {
+    role:'Getting Started', icon:'🚪', color:'#2d6cc0',
+    intro:'Logging in, logging out, PINs, and moving around — for everyone.',
+    items:[
+      ['Log in','A. On the login screen, choose <strong>Warehouse</strong> (IC, QC, Receiving, Ops, Admin) or <strong>Divisions</strong> (submit &amp; track your own tickets). B. Tap your division or role tile. C. Enter your 4-digit PIN on the keypad. D. You land on your home screen automatically once the PIN is correct.'],
+      ['Log out','A. Click <strong>← Lock</strong> in the top-right of the header, or the <strong>🔒 Log Out</strong> button on the QC / Admin screens. B. You return to the login screen and your session is cleared from this device.'],
+      ['Forgot your PIN','A. Get to the PIN keypad for your division/role. B. Click <strong>Forgot PIN?</strong> below the keypad. C. Enter the email on file for your division. D. If it matches the directory, your PIN is emailed to you and your division manager is notified. If it does not match, contact your Admin.'],
+      ['Move between your screens','Use the buttons in the top navigation bar (for example <strong>My Tickets</strong>, <strong>+ IC Ticket</strong>, <strong>QC Tickets</strong>). Divisions viewing the QC screen use <strong>← Back to My Tickets</strong> to return.'],
+      ['Open the Help screen anytime','Click <strong>❓ Help</strong> in the header (or "How to use this system" on the login screen) to reach this reference. Use the search box to jump to any task.'],
+      ['Light or dark mode','Click the 🌙 / ☀️ button in the header to switch themes. Your choice is remembered on this device.'],
+      ['Read a system banner','If Admin posts a banner, it appears as a colored strip at the very top of every screen (blue = notice, red = urgent, orange = maintenance). Read it, then continue as normal.'],
     ],
   },
   {
     role:'Divisions', icon:'🏢', color:'#059669',
-    intro:'For division users submitting and tracking inventory inquiries.',
+    intro:'Submitting and tracking your inventory and quality tickets.',
     items:[
-      ['Submit a new IC Ticket','A. Click <strong>+ IC Ticket</strong>. B. Confirm your division (it is pre-filled when you log in as a division). C. Enter the product code(s), order number, and quantity if relevant. D. Choose an inventory or quality issue type. E. Set the priority that matches urgency. F. Write a clear description. G. Attach photos or files if helpful (up to ~720 KB each). H. Click Submit — you get a confirmation email and the ticket appears in My Tickets.'],
-      ['Add multiple product codes to one ticket','In the product section, use the add-row control to list several codes on a single inquiry instead of opening one ticket per code.'],
-      ['Attach a photo or document','On the form (or in any reply), use the attachment control to add images or files. Large files over the size limit are skipped automatically, so compress big photos first.'],
-      ['Track your tickets','A. Click <strong>My Tickets</strong>. B. Use the status pills (Open, Needs Response, etc.) to filter. C. Use the big search bar to find a ticket by ID, product code, or order number. D. Click any ticket to open the full thread.'],
-      ['Reply to IC','A. Open the ticket. B. Type your message in the reply box. C. Attach files if needed. D. Send. IC is notified and your message joins the thread.'],
-      ['Understand ticket age colors','Tickets flash to draw attention: red means it is overdue (25 hrs+). Once you open a ticket, the color stops flashing and goes solid so you know you have seen it.'],
-      ['Report a quality problem','Select a quality issue type on the form. This automatically creates a matching <strong>QC ticket</strong> routed to the QC Manager, tracked separately, while your inventory inquiry continues normally.'],
+      ['Submit an IC Ticket (inventory issue)','A. From your home screen click <strong>+ IC Ticket</strong>. B. Under <strong>Product Codes</strong>, enter the code(s), and order/shipment number and quantity if you have them; click <strong>+ Add Another Product Code</strong> for more than one. C. Under <strong>What kind of issue is it?</strong> pick the matching Inventory, Quality, Shipping, or Receiving issue (leave the others on "None"). D. Under <strong>Description &amp; Priority</strong>, pick a category, describe what happened, and set a priority. E. Attach any files. F. Click <strong>Submit</strong>. You get a confirmation email and the ticket appears under My Tickets.'],
+      ['Submit a QC Ticket (quality problem)','Two ways: (1) On the IC Ticket form, choose a <strong>Quality Issue</strong> — this automatically creates a QC ticket for the QC Manager alongside your inventory ticket. (2) Or open <strong>QC Tickets</strong> from your nav to view QC tickets involving your division. Quality tickets are tracked separately from inventory tickets.'],
+      ['Add multiple product codes','On the IC Ticket form, click <strong>+ Add Another Product Code</strong> to add a row for each code, so related items stay on one ticket instead of many.'],
+      ['Attach photos or documents','In the <strong>Attachments</strong> box on the form (or the 📎 control in any reply), add images, PDF, Excel, or CSV files — up to 5 files, 10 MB each. A photo of the label, damage, or bin often resolves a ticket faster.'],
+      ['Track your tickets','A. Click <strong>My Tickets</strong>. B. Filter with the status pills (Open, Needs Response, Completed…). C. Use the large search bar to find a ticket by ID, product code, or order number. D. Click any ticket to open its full thread.'],
+      ['Reply to IC or QC','A. Open the ticket. B. Type in the reply box at the bottom. C. Attach files if needed with 📎. D. Click send — the warehouse is notified and your message joins the thread.'],
+      ['Read ticket age colors','Ticket cards flash to get your attention: red means overdue (25 hrs+). Once you open a ticket the flashing stops and the color goes solid, so you can tell at a glance what you have already seen.'],
+      ['Cancel or withdraw a ticket','Open the ticket and post a reply asking IC to close it (for example "Resolved on our end, please cancel"). IC sets it to Completed/Retired. Divisions cannot delete tickets directly — this keeps a record; the warehouse closes them out.'],
+      ['Update a ticket\'s priority later','Open the ticket from My Tickets and change the priority selector if urgency changes; the new priority is saved to the ticket.'],
     ],
   },
   {
     role:'IC Team', icon:'🔎', color:'#7c3aed',
-    intro:'For Inventory Control team members investigating and updating tickets.',
+    intro:'Investigating, updating, and resolving inventory tickets.',
     items:[
-      ['Open the dashboard','Log in as IC Team. The Dashboard lists all active tickets across divisions (except hidden divisions).'],
-      ['Find and sort tickets','Use the search box for ID, division, or product code. Use the status, division, and sort dropdowns to narrow the list. "Group by Product" clusters open tickets sharing a product code so you can spot duplicates.'],
-      ['Investigate and log findings','A. Open a ticket. B. Record what you found in the <strong>IC Notes / Findings</strong> field. C. Add any <strong>Follow-Up</strong> questions for the division. D. Save — the division sees your findings and gets notified.'],
-      ['Assign IC members','On a ticket, use the IC member multiselect to record who is working it. This is required before saving certain updates.'],
-      ['Change a ticket status','Update the progress field (Received → Investigating → Need More Info → Allocated / Waiting OPS → Completed, etc.) as work proceeds.'],
-      ['Flag an item as allocated to Ops','Set the ticket to <strong>Allocated / Waiting OPS</strong> and mark the allocation flags. The allocation date is recorded and the ticket appears on the Operations screen for release.'],
-      ['Watch the alert bell','The 🔔 bell in the header shows unread division messages. Click it to jump straight to tickets needing your reply.'],
+      ['Open your dashboard','Log in as <strong>IC Team</strong>. The Dashboard lists all active tickets across every division (hidden internal divisions are filtered out).'],
+      ['Find and sort tickets','Use the search box for an ID, division, or product code. Use the status, division, and sort dropdowns to narrow the list. <strong>Group by Product</strong> clusters open tickets that share a product code so you can catch duplicates.'],
+      ['Open and read a ticket','Click a ticket card to open it. You see the division\'s report, the full message thread, attachments, priority, and current status.'],
+      ['Log your findings','A. Open the ticket. B. Fill in <strong>IC Notes / Findings</strong> with what you found. C. Add any questions in <strong>Follow-Up</strong>. D. Save. The division sees your findings and is notified by email.'],
+      ['Assign IC members','On the ticket, open the <strong>IC Member(s) Who Worked This</strong> multiselect and tick everyone involved. This is required before you can save certain updates, so accountability stays clear.'],
+      ['Change ticket status','Move the status forward as work proceeds: Received → Investigating → Need More Info → Allocated / Waiting OPS → Completed (or Retired). Save to notify the division.'],
+      ['Reply to the division','Type in the reply box, attach files if needed, and send. Your message and any attachments are added to the thread and emailed to the division recipients.'],
+      ['Flag an item to Operations (start allocation)','When stock needs Ops to release it, set the ticket to <strong>Allocated / Waiting OPS</strong> and turn on the allocation flag. The allocation date is stamped and the item shows up on the Operations screen. (See the "Operations Manager" tab for the release step.)'],
+      ['Retire / close a ticket','When a ticket is resolved, set its status to <strong>Completed</strong> (or <strong>Retired</strong> for aged/no-longer-relevant items). It leaves the active list but stays in the database for the record.'],
+      ['Watch the alert bell','The 🔔 bell in the header shows how many tickets have unread division messages. Click it and pick a ticket to jump straight to what needs a reply.'],
     ],
   },
   {
     role:'IC Manager', icon:'🛡️', color:'#2d6cc0',
     intro:'Everything IC Team can do, plus oversight and bulk tools.',
     items:[
-      ['Everything IC Team can do','You have the full IC dashboard plus the manager-only controls below.'],
-      ['Manage IC team members','Click <strong>👥 IC Team</strong> in the toolbar to add or remove the names that appear in the IC member assignment list.'],
-      ['Bulk retire tickets','Turn on Select All (or tick individual tickets), then use <strong>Retire Selected</strong> to archive several at once.'],
-      ['Run CI age-out','Click <strong>Run CI Age-Out</strong> to auto-retire Chapman-Internal tickets that have sat in Received status past the age limit.'],
-      ['Merge duplicate tickets','When two tickets cover the same issue, use the merge tool to fold one into the other so the thread and history stay in one place.'],
-      ['Note on PINs and banners','PIN management and system banners now live on the <strong>Admin</strong> screen, not here. Ask your Admin, or log in as Admin, to change them.'],
+      ['Everything IC Team can do','You have the full IC dashboard and every IC Team action, plus the manager-only tools below.'],
+      ['Manage IC team members','Click <strong>👥 IC Team</strong> in the toolbar. Add a name to make it available in the "IC Member(s) Who Worked This" list, or remove one that is no longer needed. Saved for everyone.'],
+      ['Retire tickets in bulk','A. Use the selection checkboxes (or <strong>Select All</strong>) to tick multiple tickets on the dashboard. B. Click <strong>Retire Selected</strong>. C. Confirm. All chosen tickets move to Retired at once — useful for clearing a batch of resolved items.'],
+      ['Retire a single ticket','Open the ticket and set its status to <strong>Retired</strong> (or Completed), then save.'],
+      ['Run CI Age-Out','Click <strong>Run CI Age-Out</strong> to automatically retire internal (CI) tickets that have sat in Received status past the age limit, so the board stays current without manual cleanup.'],
+      ['Merge duplicate tickets','When two tickets describe the same issue, use the merge tool to fold one into the other. The messages and history combine into a single thread so nothing is lost or duplicated.'],
+      ['Where PINs &amp; banners moved','PIN management and system banners are now on the <strong>Admin</strong> screen, not the IC dashboard. Log in as Admin (or ask your Admin) to change them.'],
     ],
   },
   {
     role:'QC Manager', icon:'🧪', color:'#a855f7',
-    intro:'For creating and tracking QC and receiving tickets sent to divisions.',
+    intro:'Raising and tracking QC / receiving tickets sent to divisions.',
     items:[
-      ['Open the QC screen','Log in as QC Manager (or use the 🔍 QC Tickets nav if your IC Manager login is merged with QC). You see all QC / receiving tickets.'],
-      ['Create a QC ticket','A. Click <strong>+ New QC Ticket</strong>. B. Choose the division and issue type (Barcode Issue, Shipping Damage, Shortage, Mislabeled, Wrong Product, Quality Defect, Receiving Discrepancy, Dock Damage, PO Count Discrepancy, Other). C. Add PO#, container#, and product codes. D. Pick who it is "Attention To". E. Describe the issue and attach photos. F. Submit — the division is emailed using the routing set in the Admin Email Directory.'],
-      ['Route a ticket to the right people','Recipients are resolved automatically from the Admin Email Directory: the division base list plus anyone assigned to that specific issue type (for example, NAPA QC tickets can go to a specific reviewer).'],
-      ['Track and filter QC tickets','Use the search box and the status and type filters to find tickets. The default view shows Open items.'],
-      ['Update status and reply','Open a ticket to read the thread, post a reply with attachments, and watch the division change the status (Open, In Review, Corrected, Disputed, Completed).'],
-      ['Watch the alert bell','The 🔔 bell shows QC tickets with unread division replies; click to open them.'],
+      ['Open the QC screen','Log in as <strong>QC Manager</strong> (or, if your IC Manager login is merged with QC in Admin, use the <strong>🔍 QC Tickets</strong> nav button). You see every QC / receiving ticket.'],
+      ['Create a QC ticket','A. Click <strong>+ New QC Ticket</strong>. B. Under <strong>Ticket Basics</strong> choose the Division and Issue Type, and add PO # / Container # if relevant. C. Under <strong>Issue Details</strong> enter the product code(s), optionally pick specific people under <strong>Attention To</strong>, and write a description. D. Attach photos / PDF / Excel. E. Click <strong>Create &amp; Send to Division</strong>. The division is emailed using the Admin routing.'],
+      ['Understand who gets notified','Recipients are built automatically from the Admin <strong>Email Directory</strong>: the division\'s recipients, its IC/QC/REC/OPS managers, plus anyone assigned to that specific issue type. Example: a NAPA QC ticket notifies NAPA\'s people and whoever is set for that issue.'],
+      ['Filter and find QC tickets','Use the search box (PO #, container, product, division) and the status / type dropdowns. The board defaults to Open items.'],
+      ['Reply and track status','Open a ticket to read the thread, post a reply with attachments, and watch the division move the status through Open → In Review → Corrected / Disputed → Completed.'],
+      ['Retire / close a QC ticket','When the issue is resolved, set the QC ticket\'s status to <strong>Completed</strong> (or Retired). It leaves the active list but is kept in the record.'],
+      ['Watch the alert bell','The 🔔 bell shows QC tickets with unread division replies. Click it to open them directly.'],
     ],
   },
   {
     role:'Receiving Manager', icon:'🚛', color:'#0891b2',
-    intro:'For logging dock issues and sending receiving tickets to divisions.',
+    intro:'Receiving-related tickets and raising receiving/QC tickets to divisions.',
     items:[
-      ['Open your view','Log in as Receiving Manager. You see shipping and receiving related tickets, plus access to create QC / receiving tickets.'],
-      ['Create a receiving ticket with photos','A. Click <strong>+ New QC Ticket</strong>. B. Choose the division and a receiving issue type (Receiving Discrepancy, Dock Damage, PO Count Discrepancy, and the shared types). C. Add PO#, container#, and product codes. D. Attach dock photos. E. Submit to notify the division.'],
-      ['Follow up','Open any ticket to reply, add more images, and see the division response.'],
+      ['What you see','Log in as <strong>Receiving Manager</strong>. Your dashboard is scoped to <strong>shipping and receiving</strong> tickets (the receiving-relevant slice of the board), plus the ability to create QC / receiving tickets and QC access.'],
+      ['Handle incoming receiving tickets','Open a shipping/receiving ticket to read the report, reply to the division or IC, attach dock photos, and update as the receiving issue is worked. These are the tickets that involve the dock and inbound goods.'],
+      ['Raise a receiving ticket to a division (with photos)','A. Click <strong>+ New QC Ticket</strong>. B. Choose the division and a receiving issue type — <strong>Receiving Discrepancy</strong>, <strong>Dock Damage</strong>, <strong>PO Count Discrepancy</strong>, or a shared type. C. Add PO # / container # and product codes. D. Attach dock photos (or PDF/Excel). E. Click <strong>Create &amp; Send to Division</strong> to notify them.'],
+      ['Follow up on what you raised','Open any ticket you created to reply, add more images, and see the division\'s response and status change.'],
+      ['Log out','Use the <strong>🔒 Log Out</strong> button in the header when finished.'],
     ],
   },
   {
     role:'Operations Manager', icon:'⚙️', color:'#6366f1',
-    intro:'For releasing items IC has flagged as allocated.',
+    intro:'Releasing items that IC has flagged as allocated.',
     items:[
-      ['Open the Operations screen','Log in as Operations Manager. You see items IC has flagged as Allocated / Waiting OPS, each showing the date it was allocated.'],
-      ['Release an allocation','Review the flagged item and unlock or release it so IC can complete the ticket. The ticket status advances once released.'],
-      ['Use the allocation bell','The allocation bell alerts you when new items are waiting for Ops release.'],
+      ['Understand the allocation process','The flow has two halves. First, <strong>IC</strong> sets a ticket to "Allocated / Waiting OPS" and flags it — this stamps an allocation date and sends it to your Operations screen. Second, <strong>you (Ops)</strong> review and release it, which lets IC finish and close the ticket.'],
+      ['Open the Operations screen','Log in as <strong>Operations Manager</strong>. You see the items IC has flagged as Allocated / Waiting OPS, each showing the date it was allocated so you can work oldest-first.'],
+      ['Release an allocation','A. Open the flagged item. B. Confirm the stock action on your side. C. Release / unlock it. The ticket advances so IC can complete it. The division and IC are kept in the loop by the ticket thread.'],
+      ['Use the allocation bell','The allocation bell in the header alerts you when new items are waiting for Ops release, so you do not have to keep checking manually.'],
     ],
   },
   {
     role:'Admin', icon:'🔧', color:'#dc2626',
-    intro:'System settings: PINs, divisions, banners, email directory, and data.',
+    intro:'PINs, divisions, banners, email directory, and system data.',
     items:[
-      ['Open the Admin panel','Log in as Admin (PIN required). All system settings are here.'],
-      ['Reset PINs','In the PINs section, edit any role or division PIN and save. Changes persist for everyone.'],
-      ['Add or remove a division','Use the Divisions section to add a new division (code, name, PIN) or remove one. New divisions appear on the login screen automatically.'],
-      ['Post system banners','A. Enter text for Banner 1 and, optionally, Banner 2. B. Choose a style (Notice, Urgent, Maintenance). C. Click <strong>Post Banners</strong> — they appear across all screens for everyone. Use <strong>Clear All</strong> to remove them.'],
-      ['Set up the Email Directory','A. Pick a division. B. Add or remove the recipients who get every ticket for that division (each shows as a removable row). C. Set the division manager email used for Forgot-PIN and escalations. D. Add issue-specific recipients (for example route that division’s QC tickets to a specific person). E. Save.'],
-      ['Set a global Auto-BCC','Add any addresses that should be BCC’d on every ticket for every division, then save.'],
-      ['Merge IC and QC','Toggle the IC/QC merge so one manager login handles both routes.'],
-      ['Delete all tickets (danger)','This permanently erases every ticket and cannot be undone. It requires the special deletion code. Use only when intentionally wiping the system.'],
+      ['Open the Admin panel','Log in as <strong>Admin</strong> (PIN required). Every system setting lives here.'],
+      ['Reset a PIN','In the <strong>PINs</strong> section, change any role or division PIN and save. The new PIN applies for everyone immediately.'],
+      ['Add a division','In the <strong>Divisions</strong> section, enter the new code, name, and PIN and add it. It appears on the login screen right away.'],
+      ['Remove a division','Click <strong>Remove</strong> next to the division, confirm the prompt, then <strong>enter the Admin PIN</strong> to finalize. Existing tickets stay in the database, but that division can no longer log in.'],
+      ['Post system banners','A. Type Banner 1, and optionally Banner 2. B. Pick a style (Notice / Urgent / Maintenance). C. Click <strong>Post Banners</strong> — they show at the top of every screen for everyone. Use <strong>Clear All</strong> to remove them.'],
+      ['Set up the Email Directory','A. Pick a division. B. Under <strong>Division Recipients</strong> add/remove the people who get every ticket for that division. C. Under <strong>Manager Notifications</strong> set the IC, QC, Receiving (REC), and Operations (OPS) manager emails who should be alerted for that division. D. Under <strong>Issue-Specific Routing</strong> add extra recipients for particular issue types. E. Save. This is what makes "a NAPA ticket always emails these people" work.'],
+      ['Set a global Auto-BCC','Add any addresses that should be BCC\'d on every ticket for every division, then save.'],
+      ['Merge IC and QC roles','Toggle the IC/QC merge so a single IC Manager login also handles the QC screen.'],
+      ['Delete all tickets (danger zone)','This permanently erases every ticket and cannot be undone. It requires the special deletion code and a confirmation. Use it only when intentionally wiping the system for a fresh start.'],
     ],
   },
 ];
 
-function openInstructions(){ showScreen('instructions'); renderInstructionsChips(); renderInstructions(); }
+function openInstructions(){ showScreen('instructions'); _instrRoleFilter='Overview'; renderInstructionsChips(); renderInstructions(); }
 function closeInstructions(){
   // Return to login if logged out, else to the user's home screen
   if(!role){ showScreen('login'); return; }
@@ -2531,39 +2583,45 @@ function closeInstructions(){
   else if(role==='ops'){ showScreen('ops'); }
   else { showScreen('dash'); }
 }
-let _instrRoleFilter='';
+let _instrRoleFilter='Overview';
 function renderInstructionsChips(){
   const el=document.getElementById('instrRoleChips'); if(!el) return;
-  const chips=[['','All']].concat(INSTRUCTIONS.map(s=>[s.role,s.icon+' '+s.role]));
-  el.innerHTML=chips.map(([val,label])=>
-    `<button onclick="setInstrRole('${val.replace(/'/g,"\\'")}')" style="padding:5px 12px;border-radius:20px;border:1.5px solid ${_instrRoleFilter===val?'var(--accent)':'var(--border)'};background:${_instrRoleFilter===val?'var(--accent-l)':'var(--panel2)'};color:${_instrRoleFilter===val?'var(--accent)':'var(--muted)'};font-size:11px;font-weight:600;cursor:pointer">${esc(label)}</button>`
-  ).join('');
+  const chips=INSTRUCTIONS.map(s=>[s.role,s.icon+' '+s.role]).concat([['__ALL__','📚 All Topics']]);
+  el.innerHTML=chips.map(([val,label])=>{
+    const active=_instrRoleFilter===val;
+    return `<button onclick="setInstrRole('${val.replace(/'/g,"\\'")}')" style="padding:6px 13px;border-radius:20px;border:1.5px solid ${active?'var(--accent)':'var(--border)'};background:${active?'var(--accent)':'var(--panel2)'};color:${active?'#fff':'var(--muted)'};font-size:11.5px;font-weight:600;cursor:pointer;transition:all .12s">${esc(label)}</button>`;
+  }).join('');
 }
-function setInstrRole(r){ _instrRoleFilter=r; renderInstructionsChips(); renderInstructions(); }
+function setInstrRole(r){ _instrRoleFilter=r; document.getElementById('instrSearch').value=''; renderInstructionsChips(); renderInstructions(); }
 function renderInstructions(){
   const body=document.getElementById('instrBody'); if(!body) return;
   const q=(document.getElementById('instrSearch').value||'').trim().toLowerCase();
+  const showAll = q || _instrRoleFilter==='__ALL__';
   let html='';
   let anyMatch=false;
   INSTRUCTIONS.forEach(sec=>{
-    if(_instrRoleFilter && sec.role!==_instrRoleFilter) return;
+    // When not searching and a specific role is picked, show only that role.
+    if(!showAll && sec.role!==_instrRoleFilter) return;
     const matchItems=sec.items.filter(([title,steps])=>{
       if(!q) return true;
       return (title+' '+steps+' '+sec.role).toLowerCase().includes(q);
-    });
+    }).map(([title,steps])=>[title, steps.replace(/__VER__/g,APP_VERSION).replace(/__PATCH__/g,APP_PATCH)]);
     if(!matchItems.length) return;
     anyMatch=true;
-    html+=`<div style="margin-bottom:26px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-        <span style="width:34px;height:34px;border-radius:9px;background:${sec.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:17px">${sec.icon}</span>
-        <div><div style="font-size:16px;font-weight:700;color:var(--text)">${esc(sec.role)}</div>
+    html+=`<div style="margin-bottom:28px">
+      <div style="display:flex;align-items:center;gap:11px;margin-bottom:4px">
+        <span style="width:38px;height:38px;border-radius:10px;background:${sec.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${sec.icon}</span>
+        <div><div style="font-size:17px;font-weight:700;color:var(--text)">${esc(sec.role)}</div>
         <div style="font-size:12px;color:var(--muted)">${esc(sec.intro)}</div></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
-        ${matchItems.map(([title,steps])=>`
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:13px 16px">
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:5px">${highlightTerm(title,q)}</div>
-            <div style="font-size:12.5px;color:var(--muted);line-height:1.65">${highlightTerm(steps,q)}</div>
+      <div style="display:flex;flex-direction:column;gap:9px;margin-top:14px">
+        ${matchItems.map(([title,steps],idx)=>`
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:15px 17px">
+            <div style="font-size:13.5px;font-weight:700;color:var(--text);margin-bottom:7px;display:flex;align-items:center;gap:9px">
+              <span style="width:22px;height:22px;border-radius:6px;background:${sec.color}22;color:${sec.color};display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">${idx+1}</span>
+              ${highlightTerm(title,q)}
+            </div>
+            <div style="font-size:12.5px;color:var(--muted);line-height:1.7;padding-left:31px">${highlightTerm(steps,q)}</div>
           </div>`).join('')}
       </div>
     </div>`;
@@ -2572,7 +2630,7 @@ function renderInstructions(){
     html=`<div style="text-align:center;padding:50px 20px;color:var(--muted)">
       <div style="font-size:36px;margin-bottom:10px">🔍</div>
       <div style="font-size:14px;font-weight:600">No instructions match "${esc(q)}"</div>
-      <div style="font-size:12px;margin-top:6px">Try a different word, or clear the search to see everything.</div>
+      <div style="font-size:12px;margin-top:6px">Try a different word, or tap a role tab to browse.</div>
     </div>`;
   }
   body.innerHTML=html;
@@ -2608,15 +2666,15 @@ async function loadLoginWeather(){
   const el=document.getElementById('ltWeather');
   if(!el) return;
   try{
-    // Chapman Warehouse — Suffolk/Norfolk, VA area
-    const lat=36.73, lon=-76.58;
+    // Chapman Warehouse — Newport News (Chapman Way)
+    const lat=37.137, lon=-76.529;
     const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`;
     const r=await fetch(url);
     if(!r.ok) throw new Error('weather');
     const d=await r.json();
     const t=Math.round(d.current.temperature_2m);
     const code=d.current.weather_code;
-    el.textContent=weatherIcon(code)+' '+t+'°F · Suffolk, VA';
+    el.textContent=weatherIcon(code)+' '+t+'°F · Newport News, VA';
   }catch(e){
     el.textContent='';
   }
@@ -2640,7 +2698,7 @@ function renderDivisionGrid(){
   grid.innerHTML=divs.map(d=>
     `<button class="sel-tile" onclick="goPin('${d}')">
       <span class="st-badge" style="background:var(--green)">${d}</span>
-      <span class="st-body"><span class="st-title">${esc(DIV_NAMES[d]||d)}</span><span class="st-sub">Tap to log in</span></span>
+      <span class="st-body"><span class="st-title">${esc(DIV_NAMES[d]||d)}</span></span>
     </button>`
   ).join('');
 }
@@ -6770,6 +6828,15 @@ async function loadQCScreen(){
   renderQCStats();
   renderQCList();
   updateAlertBell();
+  // Divisions viewing QC get a way back to their own screens
+  const backBtn=document.getElementById('qcBackToDiv');
+  if(backBtn) backBtn.style.display = (role==='division') ? 'inline-flex' : 'none';
+}
+// Return a division user from the QC screen to their normal home
+function qcReturnHome(){
+  if(role==='division'){ showScreen('tracker'); }
+  else if(role==='dockmanager'){ showScreen('dash'); }
+  else { showScreen('dash'); }
 }
 
 function mapQualToQCType(q){
@@ -7227,9 +7294,12 @@ async function adminAddDivision(){
 }
 
 async function adminRemoveDivision(code){
-  if(!confirm('Remove division '+code+' ('+(DIV_NAMES[code]||'')+')? Existing tickets stay in the database but the division can no longer log in.')) return;
+  if(!confirm('Remove division '+code+' ('+(DIV_NAMES[code]||'')+')?\n\nExisting tickets stay in the database, but this division can no longer log in.')) return;
+  const entered=prompt('Enter the Admin PIN to confirm removal of '+code+':');
+  if(entered===null) return; // cancelled
+  if(entered.trim()!==String(CFG.PIN_ADMIN)){ toast('Incorrect Admin PIN — division not removed','error'); return; }
   delete CFG.DIV_PINS[code];
-  try{ await saveAdminConfig(); renderAdminDivs(); toast('Division removed','success'); }
+  try{ await saveAdminConfig(); renderAdminDivs(); toast('Division '+code+' removed','success'); }
   catch(e){ toast('Save failed','error'); }
 }
 
@@ -8678,6 +8748,9 @@ function _safeBoot(){
   }
 }
 try {
+  // Populate version/patch in dev-credit footers
+  ['dcVer','loginDcVer'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent=APP_VERSION; });
+  ['dcPatch','loginDcPatch'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent=APP_PATCH; });
   // 1) Guarantee something is on screen right away.
   _safeBoot();
   // 2) Load banner + config in the background; re-run boot if a session was found later.
