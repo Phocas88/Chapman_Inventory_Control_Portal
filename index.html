@@ -122,6 +122,31 @@ body.has-banner2{padding-top:84px}
 .login-portal-link:hover{background:rgba(45,108,192,.3);color:#fff}
 /* Screen header meta (date/time/weather in user-screen headers) */
 .screen-hdr-meta{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+/* Shortages / cycle-count screen */
+.sh-tab{padding:7px 14px;border:none;background:none;border-radius:7px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
+.sh-tab-active{background:var(--accent);color:#fff}
+.sh-group{background:var(--surface);border:1px solid var(--border);border-radius:11px;margin-bottom:12px;overflow:hidden}
+.sh-group-head{display:flex;align-items:center;gap:10px;padding:11px 15px;background:var(--panel2);border-bottom:1px solid var(--border);cursor:pointer}
+.sh-group-key{font-family:var(--mono);font-weight:700;color:var(--accent);font-size:14px}
+.sh-group-count{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
+.sh-row{display:flex;align-items:flex-start;gap:12px;padding:11px 15px;border-bottom:1px solid var(--border)}
+.sh-row:last-child{border-bottom:none}
+.sh-row.checked{background:rgba(16,185,129,.06)}
+.sh-row input[type=checkbox]{margin-top:3px;width:17px;height:17px;accent-color:var(--green);flex-shrink:0;cursor:pointer}
+.sh-cell-main{flex:1;min-width:0}
+.sh-cell-codes{font-family:var(--mono);font-weight:700;color:var(--text);font-size:13px}
+.sh-cell-meta{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
+.sh-bin-badge{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--accent-l);color:var(--accent);border:1px solid rgba(45,108,192,.25);margin:2px 3px 0 0}
+.sh-qty{font-family:var(--mono);font-weight:700;font-size:15px;color:var(--yellow);flex-shrink:0;text-align:right;min-width:48px}
+.sh-stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 16px;text-align:center;min-width:90px}
+.sh-stat-num{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text)}
+.sh-stat-lbl{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+@media print{
+  body *{visibility:hidden!important}
+  #printCycleArea,#printCycleArea *{visibility:visible!important}
+  #printCycleArea{position:absolute;left:0;top:0;width:100%;padding:20px}
+}
+#printCycleArea{display:none}
 .screen-hdr-meta .shm-dt{font-weight:600;color:var(--text)}
 .screen-hdr-meta .shm-wx{display:flex;align-items:center;gap:5px}
 /* App-wide dev credit footer */
@@ -793,6 +818,7 @@ body.has-banner2{padding-top:84px}
   <div class="sys-banner" id="sysBanner2"></div>
 </div>
 <div class="app-dev-credit" id="appDevCredit" style="position:fixed;bottom:6px;right:12px;padding:3px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;z-index:90;display:none">Developed by Ruben V. Mendoza · 2025–26 &nbsp;·&nbsp; <span style="opacity:.75">v<span id="dcVer">—</span> · patch <span id="dcPatch">—</span></span></div>
+<div id="printCycleArea"></div>
 
 <div id="app">
 
@@ -1277,6 +1303,9 @@ body.has-banner2{padding-top:84px}
       <button class="refresh-btn" onclick="runAgeOutManual()" title="Auto-retire all CI tickets in Received status older than 5 days" style="background:rgba(107,116,148,.1);border-color:var(--border);color:var(--muted)">
         ⏱ Run CI Age-Out
       </button>
+      <button class="refresh-btn" onclick="openShortagesScreen()" title="Live shortages & overpulls from the Inventory Accountability Portal — build cycle-count lists for Apprise" style="background:rgba(245,158,11,.12);border-color:var(--yellow);color:var(--yellow)">
+        📉 Shortages / Cycle Counts
+      </button>
       <button class="refresh-btn" onclick="openICTeamManager()" title="Manage IC team member names" style="background:rgba(16,185,129,.12);border-color:var(--green);color:var(--green)">
         👥 IC Team
       </button>
@@ -1618,8 +1647,42 @@ body.has-banner2{padding-top:84px}
 
 </div><!-- #app -->
 
-<!-- ═══════════ QC MANAGER SCREEN ═══════════ -->
-<div class="screen" id="qcScreen">
+<!-- ═══════════ SHORTAGES / CYCLE COUNTS SCREEN (reads Inventory Accountability Portal) ═══════════ -->
+<div class="screen" id="shortagesScreen">
+  <div style="background:linear-gradient(120deg,#0d1f3d,#12294a);border-bottom:2px solid var(--yellow);padding:18px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0">
+    <div style="width:42px;height:42px;border-radius:11px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">📉</div>
+    <div>
+      <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:#e0b354;letter-spacing:.14em;text-transform:uppercase;margin-bottom:2px">Inventory Accountability · Live Feed</div>
+      <div style="font-size:18px;font-weight:700;color:#fff">Shortages &amp; Cycle Counts</div>
+    </div>
+    <div class="screen-hdr-meta" id="shHdrMeta" style="color:#a8bce0"></div>
+    <button class="refresh-btn" onclick="loadShortagesData(true)" style="margin-left:auto;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff">↻ Refresh</button>
+    <button class="refresh-btn" onclick="closeShortagesScreen()" style="background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#fff">← Back to app</button>
+  </div>
+
+  <div style="padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:var(--surface)">
+    <div style="display:flex;gap:4px;background:var(--panel2);border-radius:9px;padding:3px">
+      <button id="shTabShort" class="sh-tab sh-tab-active" onclick="setShortTab('short')">📉 Shortages</button>
+      <button id="shTabOver" class="sh-tab" onclick="setShortTab('over')">📦 Over-Pulls</button>
+    </div>
+    <input type="text" id="shSearch" placeholder="Search product, bin, division, picker, order…" oninput="renderShortagesList()" style="flex:1;min-width:200px;padding:9px 13px;font-size:13px;border:1.5px solid var(--border);border-radius:9px;background:var(--panel2);color:var(--text)">
+    <select id="shDivFilter" onchange="renderShortagesList()" class="tracker-sort-sel" style="max-width:150px"><option value="">All Divisions</option></select>
+    <select id="shGroupBy" onchange="renderShortagesList()" class="tracker-sort-sel" style="max-width:170px">
+      <option value="product">Group by Product</option>
+      <option value="bin">Group by Bin</option>
+      <option value="none">No Grouping</option>
+    </select>
+    <button class="refresh-btn" onclick="printCycleCountList()" style="background:var(--accent-l);border-color:var(--accent);color:var(--accent);font-weight:600">🖨 Print Cycle-Count List</button>
+    <button class="refresh-btn" onclick="openVerifySheet()" title="Open the IC Verify Sheet in the Inventory Accountability Portal" style="background:rgba(16,185,129,.12);border-color:var(--green);color:var(--green);font-weight:600">📋 IC Verify Sheet ↗</button>
+  </div>
+
+  <div style="padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;gap:10px;flex-wrap:wrap" id="shStatsStrip"></div>
+
+  <div style="flex:1;overflow:auto;padding:16px 20px;width:100%;box-sizing:border-box">
+    <div id="shListBody"></div>
+  </div>
+</div>
+
   <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;flex-shrink:0">
     <div>
       <div style="font-size:10px;font-family:var(--mono);font-weight:600;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Quality Control</div>
@@ -2454,7 +2517,7 @@ async function _getWeatherText(){
 }
 function updateScreenHeaderBars(){
   const dt=_fmtHdrDateTime();
-  const bars=['appHdrMeta','qcHdrMeta','adminHdrMeta'];
+  const bars=['appHdrMeta','qcHdrMeta','adminHdrMeta','shHdrMeta'];
   _getWeatherText().then(wx=>{
     bars.forEach(id=>{
       const el=document.getElementById(id); if(!el) return;
@@ -2963,7 +3026,7 @@ function showScreen(id){
   // Only these screens live OUTSIDE #app in the DOM. Hiding #app for them removes
   // the empty full-height shell above them. Login & instructions are INSIDE #app,
   // so they must NOT hide it (doing so would blank the page).
-  const OUTSIDE_APP=['qc','admin','restock'];
+  const OUTSIDE_APP=['qc','admin','restock','shortages'];
   const appEl=document.getElementById('app');
   if(appEl){
     if(OUTSIDE_APP.includes(id)) appEl.style.display='none';
@@ -8568,6 +8631,222 @@ function fromFSDoc(doc){
   Object.keys(doc.fields||{}).forEach(k=>{ obj[k]=fromFSValue(doc.fields[k]); });
   return obj;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   INVENTORY ACCOUNTABILITY PORTAL BRIDGE (read-only)
+   Reads shortage / overpull data from the separate picker Firebase
+   project via the Firestore REST API. No SDK needed.
+   ═══════════════════════════════════════════════════════════════ */
+const PICKER_DB = {
+  PROJECT: 'new-picker-report-database',
+  API_KEY: 'AIzaSyAbLkTbc0bpzqF5NyTLUi97kP1OnN_EyVw',
+  ACTIVE_SHORT: 'shortages_active',
+  ACTIVE_OVER:  'overpull_active',
+  PORTAL_URL:   'https://phocas88.github.io/pick_shortages/',
+};
+async function pkQuery(collectionId, limit){
+  const url = `https://firestore.googleapis.com/v1/projects/${PICKER_DB.PROJECT}/databases/(default)/documents:runQuery?key=${PICKER_DB.API_KEY}`;
+  const r = await fetch(url, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ structuredQuery:{ from:[{collectionId}], limit: limit||1000 } }),
+  });
+  if(!r.ok){ const t=await r.text(); throw new Error('Picker DB '+r.status+': '+t.substring(0,120)); }
+  const docs = await r.json();
+  return (docs||[]).filter(d=>d.document).map(d=>fromFSDoc(d.document));
+}
+
+let _shShort=[], _shOver=[], _shTab='short', _shChecked={};
+
+function openShortagesScreen(){
+  showScreen('shortages');
+  if(typeof updateScreenHeaderBars==='function') updateScreenHeaderBars();
+  loadShortagesData(false);
+}
+function closeShortagesScreen(){
+  if(role==='qcmanager') showScreen('qc');
+  else if(role==='admin') showScreen('admin');
+  else showScreen('dash');
+}
+function openVerifySheet(){
+  // The IC Verify Sheet lives in the Inventory Accountability Portal.
+  window.open(PICKER_DB.PORTAL_URL, '_blank');
+}
+
+async function loadShortagesData(force){
+  const body=document.getElementById('shListBody');
+  if(body && (force || (!_shShort.length && !_shOver.length))){
+    body.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">Loading live data from the Inventory Accountability Portal…</div>';
+  }
+  try{
+    const [shorts, overs] = await Promise.all([
+      pkQuery(PICKER_DB.ACTIVE_SHORT, 1500).catch(e=>{ console.warn('shortages read',e); return []; }),
+      pkQuery(PICKER_DB.ACTIVE_OVER, 1500).catch(e=>{ console.warn('overpull read',e); return []; }),
+    ]);
+    // Keep only open/unresolved shortages (exclude located/erroneous/resolved)
+    _shShort = shorts.filter(s=>{
+      const st=(s.status||'open').toLowerCase();
+      return st!=='located' && st!=='resolved' && !s.foundInShortedBin;
+    });
+    _shOver = overs;
+    populateShDivFilter();
+    renderShStats();
+    renderShortagesList();
+  }catch(e){
+    if(body) body.innerHTML='<div style="text-align:center;padding:40px;color:var(--red)">Could not load data: '+esc(e.message)+'</div>';
+  }
+}
+
+function setShortTab(t){
+  _shTab=t;
+  document.getElementById('shTabShort').classList.toggle('sh-tab-active',t==='short');
+  document.getElementById('shTabOver').classList.toggle('sh-tab-active',t==='over');
+  renderShStats();
+  renderShortagesList();
+}
+
+function _shData(){ return _shTab==='short' ? _shShort : _shOver; }
+
+function populateShDivFilter(){
+  const sel=document.getElementById('shDivFilter'); if(!sel) return;
+  const cur=sel.value;
+  const divs=[...new Set([..._shShort,..._shOver].map(r=>r.division).filter(Boolean))].sort();
+  sel.innerHTML='<option value="">All Divisions</option>'+divs.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
+  sel.value=cur;
+}
+
+function renderShStats(){
+  const strip=document.getElementById('shStatsStrip'); if(!strip) return;
+  const data=_shData();
+  const totalQty=data.reduce((n,r)=>n+(parseFloat(r.qtyShorted||r.qty)||0),0);
+  const divs=new Set(data.map(r=>r.division).filter(Boolean)).size;
+  const products=new Set(data.map(r=>r.productCode).filter(Boolean)).size;
+  const label=_shTab==='short'?'Open Shortages':'Over-Pulls';
+  strip.innerHTML=`
+    <div class="sh-stat"><div class="sh-stat-num">${data.length}</div><div class="sh-stat-lbl">${label}</div></div>
+    <div class="sh-stat"><div class="sh-stat-num">${products}</div><div class="sh-stat-lbl">Products</div></div>
+    <div class="sh-stat"><div class="sh-stat-num">${divs}</div><div class="sh-stat-lbl">Divisions</div></div>
+    <div class="sh-stat"><div class="sh-stat-num">${Math.round(totalQty)}</div><div class="sh-stat-lbl">Total Qty</div></div>`;
+}
+
+function _shFiltered(){
+  const q=(document.getElementById('shSearch').value||'').trim().toLowerCase();
+  const divF=document.getElementById('shDivFilter').value;
+  return _shData().filter(r=>{
+    if(divF && r.division!==divF) return false;
+    if(!q) return true;
+    const hay=[r.productCode,r.shortedBin,r.division,r.picker,r.packer,r.pickDemand,r.orderNumber,r.notes].join(' ').toLowerCase();
+    return hay.includes(q);
+  });
+}
+
+function renderShortagesList(){
+  const body=document.getElementById('shListBody'); if(!body) return;
+  renderShStats();
+  const rows=_shFiltered();
+  if(!rows.length){
+    body.innerHTML='<div style="text-align:center;padding:44px;color:var(--muted)"><div style="font-size:34px;margin-bottom:8px">✓</div><div style="font-weight:600">No '+(_shTab==='short'?'open shortages':'over-pulls')+' found</div></div>';
+    return;
+  }
+  const groupBy=document.getElementById('shGroupBy').value;
+  if(groupBy==='none'){
+    body.innerHTML='<div class="sh-group"><div style="padding:0">'+rows.map(shRowHTML).join('')+'</div></div>';
+    return;
+  }
+  // Group
+  const keyFn = groupBy==='bin' ? (r=>r.shortedBin||'(no bin)') : (r=>r.productCode||'(no code)');
+  const groups={};
+  rows.forEach(r=>{ const k=keyFn(r); (groups[k]=groups[k]||[]).push(r); });
+  const keys=Object.keys(groups).sort();
+  body.innerHTML=keys.map(k=>{
+    const items=groups[k];
+    const qty=items.reduce((n,r)=>n+(parseFloat(r.qtyShorted||r.qty)||0),0);
+    return `<div class="sh-group">
+      <div class="sh-group-head">
+        <span class="sh-group-key">${esc(k)}</span>
+        <span style="font-size:11px;color:var(--muted)">${groupBy==='bin'?'bin':'product'} · qty ${Math.round(qty)}</span>
+        <span class="sh-group-count">${items.length} line${items.length>1?'s':''}</span>
+      </div>
+      ${items.map(shRowHTML).join('')}
+    </div>`;
+  }).join('');
+}
+
+function shRowHTML(r){
+  const id=r._id||'';
+  const checked=_shChecked[id]?'checked':'';
+  const qty=r.qtyShorted||r.qty||'';
+  const isShort=_shTab==='short';
+  const binPart = isShort && r.shortedBin ? `<span class="sh-bin-badge">📍 ${esc(r.shortedBin)}</span>` : '';
+  const orderPart = r.pickDemand||r.orderNumber ? `Order ${esc(r.pickDemand||r.orderNumber)}` : '';
+  const dt = r.date ? new Date(r.date).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+  const meta=[
+    r.division?('Div '+esc(r.division)):'',
+    orderPart,
+    r.picker?('Picker '+esc(r.picker)):'',
+    r.packer?('Packer '+esc(r.packer)):'',
+    dt,
+  ].filter(Boolean).join(' · ');
+  return `<div class="sh-row ${checked?'checked':''}" data-id="${esc(id)}">
+    <input type="checkbox" ${checked} onchange="toggleShCheck('${esc(id)}',this)">
+    <div class="sh-cell-main">
+      <div class="sh-cell-codes">${esc(r.productCode||'—')} ${binPart}</div>
+      <div class="sh-cell-meta">${meta}${r.notes?('<br><span style=\"opacity:.8\">'+esc(r.notes)+'</span>'):''}</div>
+    </div>
+    <div class="sh-qty">${esc(String(qty))}<div style="font-size:9px;color:var(--muted);font-weight:400">${esc(r.uom||'EA')}</div></div>
+  </div>`;
+}
+
+function toggleShCheck(id,el){
+  if(el.checked) _shChecked[id]=true; else delete _shChecked[id];
+  const row=el.closest('.sh-row'); if(row) row.classList.toggle('checked',el.checked);
+}
+
+function printCycleCountList(){
+  const rows=_shFiltered();
+  const checkedRows=rows.filter(r=>_shChecked[r._id]);
+  const useRows = checkedRows.length ? checkedRows : rows;
+  const isShort=_shTab==='short';
+  const groupBy=document.getElementById('shGroupBy').value;
+  // Sort for counting: by bin if grouping by bin, else by product
+  useRows.sort((a,b)=>{
+    if(groupBy==='bin') return (a.shortedBin||'').localeCompare(b.shortedBin||'');
+    return (a.productCode||'').localeCompare(b.productCode||'');
+  });
+  const today=new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+  const title = isShort ? 'Shortage Cycle-Count List' : 'Over-Pull Cycle-Count List';
+  const rowsHTML=useRows.map(r=>`
+    <tr>
+      <td style="text-align:center;width:26px">☐</td>
+      <td style="font-family:monospace;font-weight:700">${esc(r.productCode||'—')}</td>
+      <td style="font-family:monospace">${esc(isShort?(r.shortedBin||''):'')}</td>
+      <td style="text-align:center">${esc(String(r.qtyShorted||r.qty||''))} ${esc(r.uom||'EA')}</td>
+      <td>${esc(r.division||'')}</td>
+      <td style="font-family:monospace">${esc(r.pickDemand||r.orderNumber||'')}</td>
+      <td>${esc(r.picker||'')}</td>
+      <td style="width:90px"></td>
+    </tr>`).join('');
+  const area=document.getElementById('printCycleArea');
+  area.innerHTML=`
+    <div style="font-family:Arial,sans-serif;color:#111">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #0d3d6e;padding-bottom:8px;margin-bottom:14px">
+        <div><div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#0d3d6e;font-weight:700">C &amp; F · Inventory Control</div>
+        <div style="font-size:20px;font-weight:800">${title}</div></div>
+        <div style="text-align:right;font-size:11px;color:#555">Generated ${today}<br>${useRows.length} item(s)${checkedRows.length?' · selected only':''}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#0d3d6e;color:#fff">
+          <th style="padding:6px">✓</th><th style="padding:6px;text-align:left">Product Code</th>
+          <th style="padding:6px;text-align:left">Bin</th><th style="padding:6px">Qty</th>
+          <th style="padding:6px;text-align:left">Div</th><th style="padding:6px;text-align:left">Order #</th>
+          <th style="padding:6px;text-align:left">Picker</th><th style="padding:6px;text-align:left">Count Result</th>
+        </tr></thead>
+        <tbody>${rowsHTML}</tbody>
+      </table>
+      <div style="margin-top:14px;font-size:10px;color:#888">Inventory Accountability Portal · set up cycle counts in Apprise · check items as entered</div>
+    </div>`;
+  window.print();
+}
+
 
 // Generate next ticket ID by querying max existing ID
 async function generateTicketId(){
