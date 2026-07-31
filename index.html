@@ -50,17 +50,15 @@ button,select,input,textarea{font-family:var(--sans)}
 #app{display:flex;flex-direction:column;min-height:100vh}
 
 /* BANNER */
-.sys-banner{display:none;padding:10px 20px;font-size:13px;font-weight:600;text-align:center;position:fixed;left:0;right:0;z-index:500;letter-spacing:.01em}
-#sysBanner{top:0}
-#sysBanner2{top:0}
+#bannerStack{position:fixed;top:0;left:0;right:0;z-index:2000}
+.sys-banner{display:none;padding:10px 20px;font-size:13px;font-weight:600;text-align:center;letter-spacing:.01em}
 .sys-banner.show{display:block}
-.sys-banner.info{background:#1d4ed8;color:#fff;border-bottom:2px solid #1e40af;box-shadow:0 2px 12px rgba(29,78,216,.5)}
-.sys-banner.warn{background:#dc2626;color:#fff;border-bottom:2px solid #991b1b;box-shadow:0 2px 12px rgba(220,38,38,.5)}
-.sys-banner.maint{background:#d97706;color:#fff;border-bottom:2px solid #b45309;box-shadow:0 2px 12px rgba(217,119,6,.5)}
-/* Push app down when banner is showing */
-body.has-banner #app{margin-top:44px}
-body.has-banner2 #app{margin-top:88px}
-body.has-banner2 #sysBanner2{top:44px}
+.sys-banner.info{background:#1d4ed8;color:#fff;border-bottom:2px solid #1e40af}
+.sys-banner.warn{background:#dc2626;color:#fff;border-bottom:2px solid #991b1b}
+.sys-banner.maint{background:#d97706;color:#fff;border-bottom:2px solid #b45309}
+/* Push the ENTIRE page down when banners show (works for screens in and out of #app) */
+body.has-banner{padding-top:42px}
+body.has-banner2{padding-top:84px}
 
 /* TOPBAR */
 .topbar{display:flex;align-items:center;gap:10px;padding:0 20px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.35)}
@@ -786,8 +784,10 @@ body.has-banner2 #sysBanner2{top:44px}
 </head>
 <body>
 <!-- SYSTEM BANNER -->
-<div class="sys-banner" id="sysBanner"></div>
-<div class="sys-banner" id="sysBanner2"></div>
+<div id="bannerStack">
+  <div class="sys-banner" id="sysBanner"></div>
+  <div class="sys-banner" id="sysBanner2"></div>
+</div>
 <div class="app-dev-credit" id="appDevCredit" style="position:fixed;bottom:6px;right:12px;padding:0;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:3px 9px;z-index:90;display:none">Developed by Ruben Mendoza · 2025–26</div>
 
 <div id="app">
@@ -4012,10 +4012,16 @@ async function submitForm(){
       }
 
       // 4. Send email via GAS (async, don't block on it)
+      // Recipients = user-selected emails + division directory recipients/managers
       showLoad('Sending confirmation email…');
+      let icRecips=selectedEmails.slice();
+      try{
+        const dirRecips=resolveRecipients(div, shipIssue||recvIssue||'');
+        icRecips=[...new Set(icRecips.concat(dirRecips))];
+      }catch(e){}
       gasEmail('sendTicketEmail', {
         inquiryId: id, division: div,
-        contactEmail: selectedEmails.join(','),
+        contactEmail: icRecips.join(','),
         productCodes: prod,
         productEntries: JSON.stringify(entries),
         orderNumber, qtyPick,
@@ -7059,8 +7065,20 @@ async function loadEmailDirectory(){
     if(doc && doc.map) _dirCache=doc.map;
   }catch(e){}
 }
+const MANAGER_ROLES=[
+  ['IC','Inventory Control Manager','#7c3aed'],
+  ['QC','Quality Control Manager','#a855f7'],
+  ['REC','Receiving Manager','#0891b2'],
+  ['OPS','Operations Manager','#6366f1'],
+];
 function getDivDirectory(div){
-  return _dirCache[div] || { base:(getDivEmails(div)||[]).join(', '), manager:'', issues:{} };
+  const d=_dirCache[div];
+  if(d) return {
+    base: d.base||'',
+    managers: d.managers|| (d.manager?{IC:d.manager}:{}), // migrate old single-manager
+    issues: d.issues||{},
+  };
+  return { base:(getDivEmails(div)||[]).join(', '), managers:{}, issues:{} };
 }
 function renderAdminDirectory(){
   const div=document.getElementById('admDirDiv').value;
@@ -7068,32 +7086,47 @@ function renderAdminDirectory(){
   const entry=getDivDirectory(div);
   const baseList=(entry.base||'').split(',').map(s=>s.trim()).filter(Boolean);
   body.innerHTML=`
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Division Recipients <span style="font-weight:400;text-transform:none">— who gets every ticket for this division</span></div>
+    <div style="background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--muted);line-height:1.5">
+      Set who is notified whenever a <strong style="color:var(--text)">${esc(DIV_NAMES[div]||div)}</strong> ticket is sent. Everyone listed here is emailed automatically.
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Division Recipients <span style="font-weight:400;text-transform:none">— division contacts who get every ticket</span></div>
     <div id="dirBaseList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px"></div>
-    <div style="display:flex;gap:8px;margin-bottom:16px">
-      <input id="dirBaseNew" placeholder="add email…" style="flex:1;border:1.5px solid var(--border);border-radius:7px;padding:8px 11px;font-size:12px;background:var(--panel2);color:var(--text);font-family:var(--mono)" onkeydown="if(event.key==='Enter'){addDirEmail();event.preventDefault();}">
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <input id="dirBaseNew" placeholder="add division email…" style="flex:1;border:1.5px solid var(--border);border-radius:7px;padding:8px 11px;font-size:12px;background:var(--panel2);color:var(--text);font-family:var(--mono)" onkeydown="if(event.key==='Enter'){addDirEmail();event.preventDefault();}">
       <button onclick="addDirEmail()" style="padding:8px 16px;background:var(--green);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">+ Add</button>
     </div>
-    <div class="sf-field" style="margin-bottom:14px"><label>Division Manager Email <span style="font-weight:400;color:var(--muted);font-size:10px">— receives Forgot-PIN requests &amp; escalations</span></label>
-      <input id="dirManager" value="${esc(entry.manager||'')}" placeholder="manager@division.com" style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:8px 11px;font-size:12px;background:var(--panel2);color:var(--text);font-family:var(--mono)">
+
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Manager Notifications <span style="font-weight:400;text-transform:none">— warehouse managers notified for this division</span></div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px">
+      ${MANAGER_ROLES.map(([key,label,color])=>`
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="width:46px;text-align:center;flex-shrink:0;font-size:10px;font-weight:700;font-family:var(--mono);color:#fff;background:${color};border-radius:6px;padding:5px 0">${key}</span>
+          <input class="dir-mgr" data-role="${key}" value="${esc((entry.managers&&entry.managers[key])||'')}" placeholder="${esc(label)} email…" style="flex:1;border:1.5px solid var(--border);border-radius:7px;padding:8px 11px;font-size:12px;background:var(--panel2);color:var(--text);font-family:var(--mono)">
+        </div>`).join('')}
     </div>
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:6px 0 8px">Issue-Specific Routing <span style="font-weight:400;text-transform:none">— extra recipients for specific issue types (e.g. QC)</span></div>
-    ${QC_ROUTE_ISSUES.map(iss=>`
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-        <span style="font-size:11px;min-width:150px;color:var(--text)">${iss}</span>
-        <input class="dir-issue" data-issue="${esc(iss)}" value="${esc((entry.issues&&entry.issues[iss])||'')}" placeholder="extra emails, comma-separated…" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:11px;background:var(--panel2);color:var(--text);font-family:var(--mono)">
-      </div>`).join('')}
-    <button onclick="saveAdminDirectory()" style="margin-top:14px;padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">💾 Save Directory for ${esc(DIV_NAMES[div]||div)}</button>`;
+    <div style="font-size:10px;color:var(--muted);margin:-12px 0 18px;font-style:italic">The IC manager email is also used for this division's "Forgot PIN" requests.</div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Issue-Specific Routing <span style="font-weight:400;text-transform:none">— optional extra recipients per issue type</span></div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:6px">
+      ${QC_ROUTE_ISSUES.map(iss=>`
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:11px;min-width:150px;color:var(--text)">${iss}</span>
+          <input class="dir-issue" data-issue="${esc(iss)}" value="${esc((entry.issues&&entry.issues[iss])||'')}" placeholder="extra emails, comma-separated…" style="flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:11px;background:var(--panel2);color:var(--text);font-family:var(--mono)">
+        </div>`).join('')}
+    </div>
+
+    <button onclick="saveAdminDirectory()" style="margin-top:16px;padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">💾 Save Directory for ${esc(DIV_NAMES[div]||div)}</button>`;
   window._dirBaseWorking=baseList;
   renderDirBaseList();
 }
 function renderDirBaseList(){
   const el=document.getElementById('dirBaseList'); if(!el) return;
   const list=window._dirBaseWorking||[];
-  if(!list.length){ el.innerHTML='<div style="font-size:12px;color:var(--muted);font-style:italic;padding:4px 0">No recipients yet — add emails below.</div>'; return; }
+  if(!list.length){ el.innerHTML='<div style="font-size:12px;color:var(--muted);font-style:italic;padding:4px 0">No division recipients yet — add emails below.</div>'; return; }
   el.innerHTML=list.map((em,i)=>`
     <div style="display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:7px 12px">
-      <span style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${esc(em[0]?em[0].toUpperCase():'?')}</span>
+      <span style="width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${esc(em[0]?em[0].toUpperCase():'?')}</span>
       <span style="flex:1;font-size:12px;color:var(--text);font-family:var(--mono);word-break:break-all">${esc(em)}</span>
       <button onclick="removeDirEmail(${i})" title="Remove" style="background:var(--red-l);color:var(--red);border:none;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;flex-shrink:0">×</button>
     </div>`).join('');
@@ -7116,23 +7149,32 @@ function removeDirEmail(i){
 async function saveAdminDirectory(){
   const div=document.getElementById('admDirDiv').value;
   const base=(window._dirBaseWorking||[]).join(', ');
-  const manager=document.getElementById('dirManager').value.trim();
+  const managers={};
+  document.querySelectorAll('.dir-mgr').forEach(inp=>{ const v=inp.value.trim(); if(v) managers[inp.dataset.role]=v; });
   const issues={};
   document.querySelectorAll('.dir-issue').forEach(inp=>{ const v=inp.value.trim(); if(v) issues[inp.dataset.issue]=v; });
-  _dirCache[div]={base,manager,issues};
+  _dirCache[div]={base,managers,issues};
   try{
     if(!CFG.DEMO_MODE) await fsPatch('settings/emailDirectory',{map:_dirCache});
     toast('Directory saved for '+div+' ✓','success');
   }catch(e){ toast('Save failed: '+e.message,'error'); }
 }
-// Build recipient list for a division + optional issue
+// Build recipient list for a division + optional issue.
+// Includes division recipients + relevant manager(s) + issue-specific extras.
 function resolveRecipients(div, issue){
   const entry=getDivDirectory(div);
   let list=[];
   if(entry.base) list=list.concat(entry.base.split(',').map(s=>s.trim()).filter(Boolean));
+  // Managers: include all configured managers for this division
+  if(entry.managers) Object.values(entry.managers).forEach(m=>{ if(m) list.push(m.trim()); });
+  // Issue-specific extras
   if(issue && entry.issues && entry.issues[issue]) list=list.concat(entry.issues[issue].split(',').map(s=>s.trim()).filter(Boolean));
-  // de-dupe
-  return [...new Set(list)];
+  return [...new Set(list.filter(Boolean))];
+}
+// Get a specific manager email for a division (used for forgot-PIN, escalations)
+function getDivManager(div, role){
+  const entry=getDivDirectory(div);
+  return (entry.managers && entry.managers[role]) || '';
 }
 
 function renderAdminPins(){
