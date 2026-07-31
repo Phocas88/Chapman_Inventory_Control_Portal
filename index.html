@@ -869,10 +869,6 @@ body.has-banner2{padding-top:84px}
           <div class="cc-sub">Submit &amp; track your tickets</div>
         </button>
       </div>
-      <div class="login-section-title" style="margin-top:20px">Picker Accountability</div>
-      <button class="login-portal-link" onclick="window.open('https://phocas88.github.io/pick_shortages/','_blank')">
-        📋 Shortage &amp; Overpull Log Portal ↗
-      </button>
 
       <!-- How to use -->
       <button class="login-portal-link" style="margin-top:22px;color:#cdd8e8;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)" onclick="openInstructions()">
@@ -894,36 +890,36 @@ body.has-banner2{padding-top:84px}
       <div class="sel-grid">
         <button class="sel-tile" onclick="goPin('icteam')">
           <span class="st-badge" style="background:#7c3aed">IC</span>
-          <span class="st-body"><span class="st-title">IC Team</span><span class="st-sub">Investigate &amp; update</span></span>
+          <span class="st-body"><span class="st-title">IC Team</span></span>
         </button>
         <button class="sel-tile" onclick="goPin('manager')">
           <span class="st-badge" style="background:var(--accent)">MGR</span>
-          <span class="st-body"><span class="st-title">IC Manager</span><span class="st-sub">Full control</span></span>
+          <span class="st-body"><span class="st-title">IC Manager</span></span>
         </button>
       </div>
       <div class="login-section-title" style="margin-top:16px">Quality Control</div>
       <div class="sel-grid">
         <button class="sel-tile" onclick="goPin('qcmanager')">
           <span class="st-badge" style="background:#a855f7">QC</span>
-          <span class="st-body"><span class="st-title">QC Manager</span><span class="st-sub">QC / receiving tickets</span></span>
+          <span class="st-body"><span class="st-title">QC Manager</span></span>
         </button>
       </div>
       <div class="login-section-title" style="margin-top:16px">Operations &amp; Receiving</div>
       <div class="sel-grid">
         <button class="sel-tile" onclick="goPin('dockmanager')">
           <span class="st-badge" style="background:#0891b2">RCV</span>
-          <span class="st-body"><span class="st-title">Receiving Manager</span><span class="st-sub">Dock &amp; receiving</span></span>
+          <span class="st-body"><span class="st-title">Receiving Manager</span></span>
         </button>
         <button class="sel-tile" onclick="goPin('ops')">
           <span class="st-badge" style="background:#6366f1">OPS</span>
-          <span class="st-body"><span class="st-title">Operations Manager</span><span class="st-sub">Release allocated</span></span>
+          <span class="st-body"><span class="st-title">Operations Manager</span></span>
         </button>
       </div>
       <div class="login-section-title" style="margin-top:16px">System</div>
       <div class="sel-grid">
         <button class="sel-tile" onclick="goPin('admin')">
           <span class="st-badge" style="background:var(--red)">⚙</span>
-          <span class="st-body"><span class="st-title">Admin</span><span class="st-sub">Settings, PINs, banners</span></span>
+          <span class="st-body"><span class="st-title">Admin</span></span>
         </button>
       </div>
       <div class="login-section-title" style="margin-top:20px">Warehouse Resources</div>
@@ -935,6 +931,10 @@ body.has-banner2{padding-top:84px}
         <button class="sel-tile" onclick="window.open('https://phocas88.github.io/CF_Roster_App/','_blank')">
           <span class="st-badge" style="background:#d97706">🪪</span>
           <span class="st-body"><span class="st-title">WMS Badge Generator ↗</span><span class="st-sub">Create warehouse badges</span></span>
+        </button>
+        <button class="sel-tile" onclick="window.open('https://phocas88.github.io/pick_shortages/','_blank')">
+          <span class="st-badge" style="background:#0d3d6e">📋</span>
+          <span class="st-body"><span class="st-title">Picker Accountability ↗</span><span class="st-sub">Shortage &amp; overpull log</span></span>
         </button>
       </div>
     </div>
@@ -1757,6 +1757,14 @@ body.has-banner2{padding-top:84px}
       <button onclick="saveAutoEmails()" style="margin-top:10px;padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">Save Global BCC</button>
     </div>
 
+    <!-- Legacy cleanup -->
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px">🧹 Clean Up Legacy Tickets</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Retires old tickets from removed/internal divisions (CI, KA, or any division no longer active) so they stop counting toward "Total Tickets Open." Tickets are marked Retired, not deleted — the record is preserved.</div>
+      <button onclick="adminCleanupLegacy()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer">Retire Legacy / Orphaned Tickets</button>
+      <div id="admCleanupResult" style="font-size:12px;color:var(--muted);margin-top:8px"></div>
+    </div>
+
     <!-- Danger zone -->
     <div style="background:rgba(220,38,38,.05);border:1.5px solid rgba(220,38,38,.3);border-radius:12px;padding:16px 18px;margin-bottom:16px">
       <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">⚠ Danger Zone — Delete Database</div>
@@ -1778,8 +1786,8 @@ body.has-banner2{padding-top:84px}
       <div class="merge-modal-title">🔍 New QC / Receiving Ticket</div>
       <button class="merge-close-btn" onclick="document.getElementById('qcNewOverlay').style.display='none'">✕</button>
     </div>
-    <div style="padding:16px 22px">
-      <div class="pri-legend" style="border-radius:10px;border:1px solid var(--border);margin-bottom:14px">
+    <div style="padding:16px 22px;background:var(--panel2)">
+      <div class="pri-legend" style="border-radius:10px;border:1px solid var(--border);margin-bottom:16px">
         <span class="pll">Priority Response Times:</span>
         <span class="pli pli-0">P0 · 4h</span>
         <span class="pli pli-1">P1 · 8h</span>
@@ -1787,41 +1795,51 @@ body.has-banner2{padding-top:84px}
         <span class="pli pli-3">P3 · 48h</span>
         <span class="pli pli-4">P4 · 72h</span>
       </div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Ticket Basics</div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
-        <div class="sf-field" style="flex:1;min-width:150px"><label>Division <span style="color:var(--red)">*</span></label>
-          <select id="qcDivision"></select>
+
+      <div class="card">
+        <div class="card-title">🎯 Ticket Basics</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+          <div class="sf-field" style="flex:1;min-width:150px"><label>Division <span style="color:var(--red)">*</span></label>
+            <select id="qcDivision"></select>
+          </div>
+          <div class="sf-field" style="flex:1;min-width:150px"><label>Issue Type <span style="color:var(--red)">*</span></label>
+            <select id="qcType">
+              <option value="">Select…</option>
+              <option>Barcode Issue</option><option>Shipping Damage</option><option>Shortage</option>
+              <option>Mislabeled</option><option>Wrong Product</option><option>Quality Defect</option><option>Receiving Discrepancy</option><option>Dock Damage</option><option>PO Count Discrepancy</option><option>Other</option>
+            </select>
+          </div>
         </div>
-        <div class="sf-field" style="flex:1;min-width:150px"><label>Issue Type <span style="color:var(--red)">*</span></label>
-          <select id="qcType">
-            <option value="">Select…</option>
-            <option>Barcode Issue</option><option>Shipping Damage</option><option>Shortage</option>
-            <option>Mislabeled</option><option>Wrong Product</option><option>Quality Defect</option><option>Receiving Discrepancy</option><option>Dock Damage</option><option>PO Count Discrepancy</option><option>Other</option>
-          </select>
+        <div style="display:flex;gap:14px;flex-wrap:wrap">
+          <div class="sf-field" style="flex:1;min-width:150px"><label>PO #</label><input type="text" id="qcPO" placeholder="PO number"></div>
+          <div class="sf-field" style="flex:1;min-width:150px"><label>Container #</label><input type="text" id="qcContainer" placeholder="Container number"></div>
         </div>
       </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
-        <div class="sf-field" style="flex:1;min-width:150px"><label>PO #</label><input type="text" id="qcPO" placeholder="PO number"></div>
-        <div class="sf-field" style="flex:1;min-width:150px"><label>Container #</label><input type="text" id="qcContainer" placeholder="Container number"></div>
-      </div>
-      <div style="border-top:1px solid var(--border);margin-bottom:16px"></div>
-      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Issue Details</div>
-      <div class="sf-field" style="margin-bottom:16px"><label>Product Code(s) <span style="color:var(--red)">*</span> <span style="font-weight:400;color:var(--muted);font-size:10px">— comma separated for multiple</span></label>
-        <input type="text" id="qcProducts" placeholder="e.g. ABC123, DEF456" style="text-transform:uppercase">
-      </div>
-      <div class="sf-field" style="margin-bottom:16px"><label>Attention To <span style="font-weight:400;color:var(--muted);font-size:10px">— specific people to alert (optional)</span></label>
-        <div id="qcAttnList" class="email-multiselect" style="max-height:130px;overflow-y:auto"></div>
-      </div>
-      <div class="sf-field" style="margin-bottom:16px"><label>Description <span style="color:var(--red)">*</span></label>
-        <textarea id="qcDesc" rows="3" placeholder="Describe the QC issue…"></textarea>
-      </div>
-      <div class="sf-field" style="margin-bottom:10px"><label>Attach Images / Files <span style="font-weight:400;color:var(--muted);font-size:10px">— photos, PDF, Excel, CSV</span></label>
-        <div class="upload-zone" id="qcUploadZone" style="padding:16px">
-          <input type="file" id="qcFileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.xlsx,.xls,.csv" onchange="onQCFilePick(event)">
-          <div style="font-size:22px">📎</div>
-          <p style="font-size:12px"><strong>Click to attach</strong> or drag &amp; drop</p>
+
+      <div class="card">
+        <div class="card-title">📦 Product &amp; Recipients</div>
+        <div class="sf-field" style="margin-bottom:14px"><label>Product Code(s) <span style="color:var(--red)">*</span> <span style="font-weight:400;color:var(--muted);font-size:10px">— comma separated for multiple</span></label>
+          <input type="text" id="qcProducts" placeholder="e.g. ABC123, DEF456" style="text-transform:uppercase">
         </div>
-        <div class="file-list" id="qcFileList"></div>
+        <div class="sf-field"><label>Attention To <span style="font-weight:400;color:var(--muted);font-size:10px">— specific people to alert (optional)</span></label>
+          <div id="qcAttnList" class="email-multiselect" style="max-height:130px;overflow-y:auto"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📝 Description &amp; Attachments</div>
+        <div class="sf-field" style="margin-bottom:14px"><label>Description <span style="color:var(--red)">*</span></label>
+          <textarea id="qcDesc" rows="3" placeholder="Describe the QC issue…"></textarea>
+        </div>
+        <div class="sf-field"><label>Attach Images / Files <span style="font-weight:400;color:var(--muted);font-size:10px">— photos, PDF, Excel, CSV</span></label>
+          <div class="upload-zone" id="qcUploadZone" style="padding:16px">
+            <input type="file" id="qcFileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.xlsx,.xls,.csv" onchange="onQCFilePick(event)">
+            <div style="font-size:22px">📎</div>
+            <p style="font-size:12px"><strong>Click to attach</strong> or drag &amp; drop</p>
+            <small>PDF, Excel, CSV, PNG, JPG · Max 10 MB · Up to 5 files</small>
+          </div>
+          <div class="file-list" id="qcFileList"></div>
+        </div>
       </div>
     </div>
     <div class="merge-modal-footer">
@@ -4141,12 +4159,19 @@ async function loadICWorkloadOverview(){
     } else if(CFG.DEMO_MODE){
       source=DEMO_TIX;
     } else {
-      const docs=await fsQuery('tickets',null,null,1000);
-      source=docs.map(normalizeTicket);
+      // Use fsLoadTickets so CI/KA and hidden divisions are already stripped out
+      source=await fsLoadTickets();
     }
-    const openStatuses=['Completed','Retired','Merged'];
+    // Valid, currently-active divisions only. Any ticket whose division is no longer
+    // a real division (legacy internal/CI/KA leftovers) is excluded from the count.
+    const validDivs=Object.keys(CFG.DIV_PINS).filter(d=>!HIDDEN_DIVS.includes(d));
+    const closedStatuses=['Completed','Retired','Merged','Closed','Cancelled','Canceled'];
     const allActive=(source||[])
-      .filter(t=>!openStatuses.includes(t.progress) && !t.archived && !HIDDEN_DIVS.includes(t.division))
+      .filter(t=>
+        validDivs.includes(t.division) &&
+        !closedStatuses.includes(t.progress) &&
+        !t.archived
+      )
       .map(t=>({division:t.division}));
     const total=allActive.length;
     const divsWithOpen=new Set(allActive.map(t=>t.division)).size;
@@ -7313,6 +7338,32 @@ function saveAutoEmails(){
   const v=document.getElementById('admAutoEmails').value.trim();
   localStorage.setItem('admAutoEmails',v);
   toast('Email settings saved ✓ (applies to new tickets)','success');
+}
+
+async function adminCleanupLegacy(){
+  const validDivs=Object.keys(CFG.DIV_PINS).filter(d=>!HIDDEN_DIVS.includes(d));
+  if(!confirm('Retire all tickets belonging to removed or internal divisions (anything not in your current active division list)?\n\nThey will be marked Retired, not deleted.')) return;
+  const res=document.getElementById('admCleanupResult');
+  showLoad('Scanning for legacy tickets…');
+  try{
+    const docs=await fsQuery('tickets',null,null,2000);
+    const tix=docs.map(normalizeTicket);
+    const closed=['Completed','Retired','Merged','Closed','Cancelled','Canceled'];
+    const legacy=tix.filter(t=>(!validDivs.includes(t.division)) && !closed.includes(t.progress));
+    if(!legacy.length){ hideLoad(); if(res) res.textContent='No legacy or orphaned open tickets found. ✓'; toast('Nothing to clean up','success'); return; }
+    let n=0;
+    for(const t of legacy){
+      const tid=t.inquiryId;
+      if(!tid) continue;
+      await fsPatch('tickets/'+encodeURIComponent(tid),{progress:'Retired',updatedAt:new Date().toISOString()}).catch(()=>{});
+      n++;
+    }
+    // Clear caches so counts recompute
+    sessionClear();
+    hideLoad();
+    if(res) res.textContent='Retired '+n+' legacy/orphaned ticket(s). ✓';
+    toast('Retired '+n+' legacy ticket(s)','success');
+  }catch(e){ hideLoad(); toast('Cleanup failed: '+e.message,'error'); if(res) res.textContent='Cleanup failed: '+e.message; }
 }
 
 async function adminDeleteDatabase(){
