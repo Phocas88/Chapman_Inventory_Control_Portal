@@ -125,6 +125,9 @@ body.has-banner2{padding-top:84px}
 /* Shortages / cycle-count screen */
 .sh-tab{padding:7px 14px;border:none;background:none;border-radius:7px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
 .sh-tab-active{background:var(--accent);color:#fff}
+.qc-kind-btn{flex:1;min-width:180px;text-align:left;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;background:var(--panel2);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;transition:all .14s}
+.qc-kind-btn:hover{border-color:var(--accent)}
+.qc-kind-btn.qc-kind-active{border-color:var(--accent);background:var(--accent-l);box-shadow:0 0 0 1px var(--accent) inset}
 .sh-group{background:var(--surface);border:1px solid var(--border);border-radius:11px;margin-bottom:12px;overflow:hidden}
 .sh-group-head{display:flex;align-items:center;gap:10px;padding:11px 15px;background:var(--panel2);border-bottom:1px solid var(--border);cursor:pointer}
 .sh-group-key{font-family:var(--mono);font-weight:700;color:var(--accent);font-size:14px}
@@ -132,6 +135,8 @@ body.has-banner2{padding-top:84px}
 .sh-row{display:flex;align-items:flex-start;gap:12px;padding:11px 15px;border-bottom:1px solid var(--border)}
 .sh-row:last-child{border-bottom:none}
 .sh-row.checked{background:rgba(16,185,129,.06)}
+.sh-row.sh-confirmed{background:rgba(16,185,129,.1);opacity:.7}
+.sh-row.sh-confirmed .sh-cell-codes{text-decoration:line-through;text-decoration-color:var(--green)}
 .sh-row input[type=checkbox]{margin-top:3px;width:17px;height:17px;accent-color:var(--green);flex-shrink:0;cursor:pointer}
 .sh-cell-main{flex:1;min-width:0}
 .sh-cell-codes{font-family:var(--mono);font-weight:700;color:var(--text);font-size:13px}
@@ -1692,7 +1697,9 @@ body.has-banner2{padding-top:84px}
       <option value="bin">Group by Bin</option>
       <option value="none">No Grouping</option>
     </select>
-    <button class="refresh-btn" onclick="printCycleCountList()" style="background:var(--accent-l);border-color:var(--accent);color:var(--accent);font-weight:600">🖨 Print Cycle-Count List</button>
+    <button class="refresh-btn" onclick="printCycleCountList()" title="Printable cycle-count list — excludes already-counted items" style="background:var(--accent-l);border-color:var(--accent);color:var(--accent);font-weight:600">🖨 Cycle-Count List</button>
+    <button class="refresh-btn" onclick="exportCycleCountCSV()" title="Download uncounted items as a CSV file" style="background:rgba(16,185,129,.1);border-color:var(--green);color:var(--green);font-weight:600">⬇ CSV</button>
+    <button class="refresh-btn" onclick="printFullReport()" title="Full report of all records in range (shortage or over-pull), with counted status" style="background:var(--panel2);border-color:var(--border);color:var(--text);font-weight:600">📄 Full Report</button>
     <button class="refresh-btn" onclick="openVerifySheet()" title="Open the IC Verify Sheet in the Inventory Accountability Portal" style="background:rgba(16,185,129,.12);border-color:var(--green);color:var(--green);font-weight:600">📋 IC Verify Sheet ↗</button>
   </div>
 
@@ -1712,7 +1719,8 @@ body.has-banner2{padding-top:84px}
     </div>
     <div class="screen-hdr-meta" id="qcHdrMeta"></div>
     <button id="qcBackToDiv" onclick="qcReturnHome()" class="refresh-btn" style="display:none;margin-left:auto;background:var(--accent-l);border-color:var(--accent);color:var(--accent);font-weight:600">← Back to My Tickets</button>
-    <button onclick="openNewQCTicket()" style="padding:9px 18px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" id="qcNewBtn">+ New QC Ticket</button>
+    <button onclick="openNewQCTicket('qc')" style="padding:9px 16px;background:#a855f7;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" id="qcNewBtn">🔬 New QC Ticket</button>
+    <button onclick="openNewQCTicket('receiving')" style="padding:9px 16px;background:#0891b2;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer" id="qcNewRcvBtn">📥 New Receiving Ticket</button>
     <button class="refresh-btn" onclick="loadQCScreen()">↻ Refresh</button>
     <button class="refresh-btn" onclick="logout()" style="background:var(--red-l);border-color:var(--red);color:var(--red)">🔒 Log Out</button>
   </div>
@@ -1720,25 +1728,17 @@ body.has-banner2{padding-top:84px}
   <div class="dash-toolbar">
     <div class="search-box">
       <span style="color:var(--muted)">🔍</span>
-      <input type="text" id="qcSearch" placeholder="Search QC tickets — PO#, container, product, division…" oninput="renderQCList()">
+      <input type="text" id="qcSearch" placeholder="Search tickets — PO#, container, product, division…" oninput="renderQCList()">
     </div>
+    <select id="qcKindFilter" onchange="renderQCList()" class="filter-sel">
+      <option value="">All Tickets</option>
+      <option value="qc">🔬 QC Only</option>
+      <option value="receiving">📥 Receiving Only</option>
+    </select>
     <select id="qcStatusFilter" onchange="renderQCList()" class="filter-sel">
       <option value="open">Open</option>
       <option value="all">All Statuses</option>
       <option value="Completed">Completed</option>
-    </select>
-    <select id="qcTypeFilter" onchange="renderQCList()" class="filter-sel">
-      <option value="">All Types</option>
-      <option>Barcode Issue</option>
-      <option>Shipping Damage</option>
-      <option>Shortage</option>
-      <option>Mislabeled</option>
-      <option>Wrong Product</option>
-      <option>Quality Defect</option>
-      <option>Receiving Discrepancy</option>
-      <option>Dock Damage</option>
-      <option>PO Count Discrepancy</option>
-      <option>Other</option>
     </select>
   </div>
   <div style="flex:1;overflow:auto;padding:16px 20px 28px"><div class="ticket-cards" id="qcList"></div></div>
@@ -1868,7 +1868,7 @@ body.has-banner2{padding-top:84px}
 <div class="merge-overlay" id="qcNewOverlay" style="display:none">
   <div class="merge-modal" style="max-width:560px;max-height:90vh;overflow-y:auto">
     <div class="merge-modal-header">
-      <div class="merge-modal-title">🔍 New QC / Receiving Ticket</div>
+      <div class="merge-modal-title" id="qcModalTitle">🔍 New QC Ticket</div>
       <button class="merge-close-btn" onclick="document.getElementById('qcNewOverlay').style.display='none'">✕</button>
     </div>
     <div style="padding:16px 22px;background:var(--panel2)">
@@ -1882,17 +1882,27 @@ body.has-banner2{padding-top:84px}
       </div>
 
       <div class="card">
+        <div class="card-title">🏷️ Ticket Type</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="button" id="qcKindQC" class="qc-kind-btn qc-kind-active" onclick="setQCKind('qc')">
+            🔬 Quality (QC) Ticket
+            <span style="display:block;font-size:10px;font-weight:400;color:var(--muted);margin-top:2px">Damage, defects, mislabeled, barcode</span>
+          </button>
+          <button type="button" id="qcKindRcv" class="qc-kind-btn" onclick="setQCKind('receiving')">
+            📥 Receiving Ticket
+            <span style="display:block;font-size:10px;font-weight:400;color:var(--muted);margin-top:2px">Wrong qty, PO count, dock discrepancy</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-title">🎯 Ticket Basics</div>
         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
           <div class="sf-field" style="flex:1;min-width:150px"><label>Division <span style="color:var(--red)">*</span></label>
             <select id="qcDivision"></select>
           </div>
           <div class="sf-field" style="flex:1;min-width:150px"><label>Issue Type <span style="color:var(--red)">*</span></label>
-            <select id="qcType">
-              <option value="">Select…</option>
-              <option>Barcode Issue</option><option>Shipping Damage</option><option>Shortage</option>
-              <option>Mislabeled</option><option>Wrong Product</option><option>Quality Defect</option><option>Receiving Discrepancy</option><option>Dock Damage</option><option>PO Count Discrepancy</option><option>Other</option>
-            </select>
+            <select id="qcType"></select>
           </div>
         </div>
         <div style="display:flex;gap:14px;flex-wrap:wrap">
@@ -6972,6 +6982,8 @@ function normalizeQC(d){
     status: d.status || 'Open',
     timestamp: d.timestamp || new Date().toISOString(),
     createdBy: d.createdBy || 'QC',
+    kind: d.kind || 'qc',
+    ticketKind: d.ticketKind || (d.kind==='receiving'?'Receiving':'QC'),
     conversationLog: Array.isArray(d.conversationLog) ? d.conversationLog : [],
     attachments: Array.isArray(d.attachments) ? d.attachments : [],
   };
@@ -6993,21 +7005,25 @@ function renderQCList(){
   const el=document.getElementById('qcList'); if(!el) return;
   const q=(document.getElementById('qcSearch')?.value||'').toLowerCase();
   const sf=document.getElementById('qcStatusFilter')?.value||'open';
-  const tf=document.getElementById('qcTypeFilter')?.value||'';
+  const kf=document.getElementById('qcKindFilter')?.value||'';
   let list=qcTickets.slice();
   if(role==='division') list=list.filter(t=>t.division===currentDiv);
   if(sf==='open') list=list.filter(t=>t.status!=='Completed');
   else if(sf==='Completed') list=list.filter(t=>t.status==='Completed');
-  if(tf) list=list.filter(t=>t.type===tf);
+  if(kf) list=list.filter(t=>(t.kind||'qc')===kf);
   if(q) list=list.filter(t=>[t.id,t.po,t.container,t.products,t.division,t.type,t.description].join(' ').toLowerCase().includes(q));
   list.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-  if(!list.length){ el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">No QC tickets found.</div>'; return; }
+  if(!list.length){ el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)">No tickets found.</div>'; return; }
   el.innerHTML=list.map(t=>{
     const unread=(t.conversationLog||[]).some(m=> (role==='division'? (m.direction==='outbound'&&!m.divRead) : (m.direction==='inbound'&&!m.read)) );
+    const kindBadge = t.kind==='receiving'
+      ? '<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:rgba(8,145,178,.15);color:#0891b2;border:1px solid rgba(8,145,178,.3)">📥 RECEIVING</span>'
+      : '<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:rgba(168,85,247,.15);color:#a855f7;border:1px solid rgba(168,85,247,.3)">🔬 QC</span>';
     return `<div class="ticket-card${unread?' unread':''}" onclick="openQCTicket('${t.id}')" style="cursor:pointer;margin-bottom:12px">
       <div class="tc-head">
         <div class="tc-id">${t.id}</div>
         <div class="tc-title">${esc(t.products||'—')}</div>
+        <div style="margin-left:auto">${kindBadge}</div>
         <div class="tc-date">${fmtDateShort(t.timestamp)}</div>
       </div>
       <div class="tc-meta">
@@ -7023,16 +7039,34 @@ function renderQCList(){
   }).join('');
 }
 
-function openNewQCTicket(){
+function openNewQCTicket(defaultKind){
   // Populate division dropdown
   const dsel=document.getElementById('qcDivision');
   dsel.innerHTML='<option value="">Select…</option>'+Object.keys(CFG.DIV_PINS).filter(d=>!HIDDEN_DIVS.includes(d)).sort().map(d=>`<option value="${d}">${d} — ${esc(DIV_NAMES[d]||d)}</option>`).join('');
   dsel.onchange=()=>renderQCAttnList(dsel.value);
   ['qcPO','qcContainer','qcProducts','qcDesc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  document.getElementById('qcType').value='';
   qcFiles=[]; renderFL(qcFiles,'qcFileList',null);
   document.getElementById('qcAttnList').innerHTML='<div style="padding:8px;font-size:11px;color:var(--muted)">Select a division first</div>';
+  // Receiving Manager defaults to a Receiving ticket; everyone else to QC
+  const kind = defaultKind || (role==='dockmanager' ? 'receiving' : 'qc');
+  setQCKind(kind);
   document.getElementById('qcNewOverlay').style.display='flex';
+}
+
+// QC vs Receiving ticket kinds have different issue-type lists but the same format.
+const QC_TYPES_QUALITY=['Barcode Issue','Shipping Damage','Mislabeled','Wrong Product','Quality Defect','Damaged Packaging','Other'];
+const QC_TYPES_RECEIVING=['Wrong Qty Received','PO Count Discrepancy','Receiving Discrepancy','Dock Damage','Short Shipment','Wrong Item Received','Missing PO','Other'];
+let _qcKind='qc';
+function setQCKind(kind){
+  _qcKind=kind;
+  const qcBtn=document.getElementById('qcKindQC'), rcvBtn=document.getElementById('qcKindRcv');
+  if(qcBtn) qcBtn.classList.toggle('qc-kind-active',kind==='qc');
+  if(rcvBtn) rcvBtn.classList.toggle('qc-kind-active',kind==='receiving');
+  const title=document.getElementById('qcModalTitle');
+  if(title) title.textContent = kind==='receiving' ? '📥 New Receiving Ticket' : '🔬 New QC Ticket';
+  const types = kind==='receiving' ? QC_TYPES_RECEIVING : QC_TYPES_QUALITY;
+  const sel=document.getElementById('qcType');
+  if(sel) sel.innerHTML='<option value="">Select…</option>'+types.map(t=>`<option>${t}</option>`).join('');
 }
 
 function renderQCAttnList(div){
@@ -7064,24 +7098,26 @@ async function submitQCTicket(){
   showLoad('Creating QC ticket…');
   try{
     const id=await generateQCId();
+    const kindLabel = _qcKind==='receiving' ? 'Receiving' : 'QC';
     const doc={
       qcId:id, division, type, po, container, products, attnTo, description:desc,
+      kind:_qcKind, ticketKind:kindLabel,
       status:'Open', timestamp:new Date().toISOString(), createdBy:role,
       attachments: okFiles.map(f=>({name:f.name,type:f.type,size:f.size,b64:f.b64,du:f.du})),
     };
     if(!CFG.DEMO_MODE){
       await fsPatch('qctickets/'+id, doc);
       // Initial message
-      await fsAddMessage2('qctickets', id, {direction:'outbound', sentBy:'QC Manager', body:'QC ticket created: '+type+'\n\n'+desc, timestamp:new Date().toISOString(), attachments:doc.attachments, read:true, divRead:false});
+      await fsAddMessage2('qctickets', id, {direction:'outbound', sentBy:kindLabel+' Manager', body:kindLabel+' ticket created: '+type+'\n\n'+desc, timestamp:new Date().toISOString(), attachments:doc.attachments, read:true, divRead:false});
       // Email division — use directory routing (division + issue specific)
       const routed=resolveRecipients(division, type);
       const recips=(attnTo.length?attnTo:(routed.length?routed:getDivEmails(division))).join(',');
-      gasEmail('sendQCEmail', {qcId:id, division, type, po, container, products, description:desc, contactEmail:recips, sentBy:'QC Manager'});
+      gasEmail('sendQCEmail', {qcId:id, division, type, po, container, products, description:desc, contactEmail:recips, sentBy:kindLabel+' Manager'});
     }
     hideLoad();
     document.getElementById('qcNewOverlay').style.display='none';
     qcFiles=[];
-    toast('QC ticket '+id+' created ✓','success');
+    toast(kindLabel+' ticket '+id+' created ✓','success');
     loadQCScreen();
   }catch(e){ hideLoad(); toast('Failed: '+e.message,'error'); }
 }
@@ -8677,7 +8713,34 @@ async function pkQuery(collectionId, limit){
   return (docs||[]).filter(d=>d.document).map(d=>fromFSDoc(d.document));
 }
 
-let _shShort=[], _shOver=[], _shTab='short', _shChecked={};
+let _shShort=[], _shOver=[], _shTab='short', _shChecked={}, _shConfirms={};
+
+// ── Cycle-count confirmations (persisted in IITS Firestore `cycleCounts`) ──
+// Keyed by the picker doc id so both IC Team & Manager share the same record.
+async function loadCycleConfirms(){
+  try{
+    const docs=await fsQuery('cycleCounts',null,null,3000).catch(()=>[]);
+    const map={};
+    docs.forEach(d=>{ if(d._id) map[d._id]=d; });
+    _shConfirms=map;
+  }catch(e){ _shConfirms={}; }
+}
+function isConfirmed(id){ return !!(_shConfirms[id] && _shConfirms[id].confirmed); }
+async function confirmCounted(id, kind){
+  const rec={ confirmed:true, confirmedBy:(role==='manager'?'IC Manager':'IC Team'), confirmedAt:new Date().toISOString(), kind:kind||_shTab };
+  _shConfirms[id]=rec;
+  try{ await fsPatch('cycleCounts/'+encodeURIComponent(id), rec); }
+  catch(e){ toast('Could not save confirmation: '+e.message,'error'); }
+  renderShortagesList();
+  renderShStats();
+}
+async function unconfirmCounted(id){
+  const rec={ confirmed:false, confirmedBy:'', confirmedAt:'', kind:_shTab };
+  _shConfirms[id]=rec;
+  try{ await fsPatch('cycleCounts/'+encodeURIComponent(id), rec); }catch(e){}
+  renderShortagesList();
+  renderShStats();
+}
 
 function openShortagesScreen(){
   showScreen('shortages');
@@ -8693,7 +8756,10 @@ function closeShortagesScreen(){
   else showScreen('dash');
 }
 function openVerifySheet(){
-  window.open(PICKER_DB.PORTAL_URL, '_blank');
+  // Deep-link to the IC Verify Sheet. IC logs in (IC Team/Manager), and the portal
+  // auto-opens the Verify Sheet because of the #verify hash.
+  window.open(PICKER_DB.PORTAL_URL + '#verify', '_blank');
+  toast('Opening the Inventory Accountability Portal — log in as IC to reach the Verify Sheet','success');
 }
 function shQuickRange(days){
   const to=new Date();
@@ -8739,6 +8805,7 @@ async function loadShortagesData(force){
       pkQueryRange(PICKER_DB.ACTIVE_SHORT, fromISO, toISO, 2000).catch(e=>{ console.warn('shortages read',e); return []; }),
       pkQueryRange(PICKER_DB.ACTIVE_OVER, fromISO, toISO, 2000).catch(e=>{ console.warn('overpull read',e); return []; }),
     ]);
+    await loadCycleConfirms();
     _shShort = shorts.filter(s=>{
       const st=(s.status||'open').toLowerCase();
       return st!=='located' && st!=='resolved' && !s.foundInShortedBin;
@@ -8847,13 +8914,20 @@ function shRowHTML(r){
     r.packer?('Packer '+esc(r.packer)):'',
     dt,
   ].filter(Boolean).join(' · ');
-  return `<div class="sh-row ${checked?'checked':''}" data-id="${esc(id)}">
-    <input type="checkbox" ${checked} onchange="toggleShCheck('${esc(id)}',this)">
+  const conf=isConfirmed(id);
+  const confMeta = conf && _shConfirms[id] ? `<div style="font-size:11px;color:var(--green);font-weight:600;margin-top:3px">✓ Counted by ${esc(_shConfirms[id].confirmedBy||'IC')} · ${_shConfirms[id].confirmedAt?new Date(_shConfirms[id].confirmedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):''}</div>` : '';
+  const confBtn = conf
+    ? `<button onclick="event.stopPropagation();unconfirmCounted('${esc(id)}')" title="Undo — put back on the count list" style="background:var(--panel2);border:1px solid var(--border);color:var(--muted);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">↩ Undo</button>`
+    : `<button onclick="event.stopPropagation();confirmCounted('${esc(id)}')" title="Mark this counted — records who & when, removes it from the printable list" style="background:var(--green);border:none;color:#fff;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">✓ Counted</button>`;
+  return `<div class="sh-row ${checked?'checked':''} ${conf?'sh-confirmed':''}" data-id="${esc(id)}">
+    <input type="checkbox" ${checked} ${conf?'disabled':''} onchange="toggleShCheck('${esc(id)}',this)">
     <div class="sh-cell-main">
       <div class="sh-cell-codes">${esc(r.productCode||'—')} ${binPart}</div>
       <div class="sh-cell-meta">${meta}${r.notes?('<br><span style=\"opacity:.8\">'+esc(r.notes)+'</span>'):''}</div>
+      ${confMeta}
     </div>
     <div class="sh-qty">${esc(String(qty))}<div style="font-size:9px;color:var(--muted);font-weight:400">${esc(r.uom||'EA')}</div></div>
+    ${confBtn}
   </div>`;
 }
 
@@ -8862,13 +8936,18 @@ function toggleShCheck(id,el){
   const row=el.closest('.sh-row'); if(row) row.classList.toggle('checked',el.checked);
 }
 
+// Rows eligible for the cycle-count list: filtered, and NOT already confirmed counted.
+function _cycleRows(){
+  return _shFiltered().filter(r=>!isConfirmed(r._id));
+}
+
 function printCycleCountList(){
-  const rows=_shFiltered();
+  const rows=_cycleRows();
   const checkedRows=rows.filter(r=>_shChecked[r._id]);
   const useRows = checkedRows.length ? checkedRows : rows;
+  if(!useRows.length){ toast('Nothing to print — all items in range are already counted.','success'); return; }
   const isShort=_shTab==='short';
   const groupBy=document.getElementById('shGroupBy').value;
-  // Sort for counting: by bin if grouping by bin, else by product
   useRows.sort((a,b)=>{
     if(groupBy==='bin') return (a.shortedBin||'').localeCompare(b.shortedBin||'');
     return (a.productCode||'').localeCompare(b.productCode||'');
@@ -8892,7 +8971,7 @@ function printCycleCountList(){
       <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #0d3d6e;padding-bottom:8px;margin-bottom:14px">
         <div><div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#0d3d6e;font-weight:700">C &amp; F · Inventory Control</div>
         <div style="font-size:20px;font-weight:800">${title}</div></div>
-        <div style="text-align:right;font-size:11px;color:#555">Generated ${today}<br>${useRows.length} item(s)${checkedRows.length?' · selected only':''}</div>
+        <div style="text-align:right;font-size:11px;color:#555">Generated ${today}<br>${useRows.length} uncounted item(s)${checkedRows.length?' · selected only':''}</div>
       </div>
       <table style="width:100%;border-collapse:collapse;font-size:12px">
         <thead><tr style="background:#0d3d6e;color:#fff">
@@ -8903,7 +8982,84 @@ function printCycleCountList(){
         </tr></thead>
         <tbody>${rowsHTML}</tbody>
       </table>
-      <div style="margin-top:14px;font-size:10px;color:#888">Inventory Accountability Portal · set up cycle counts in Apprise · check items as entered</div>
+      <div style="margin-top:14px;font-size:10px;color:#888">Already-counted items are excluded automatically · set up cycle counts in Apprise · mark items "✓ Counted" in the portal when done</div>
+    </div>`;
+  window.print();
+}
+
+// CSV export — same eligible rows (uncounted). Downloads a .csv file.
+function exportCycleCountCSV(){
+  const rows=_cycleRows();
+  const checkedRows=rows.filter(r=>_shChecked[r._id]);
+  const useRows = checkedRows.length ? checkedRows : rows;
+  if(!useRows.length){ toast('Nothing to export — all items in range are already counted.','success'); return; }
+  const isShort=_shTab==='short';
+  const headers=['Product Code','Bin','Qty','UOM','Division','Order #','Picker','Date',(isShort?'Shorted':'Over-Pulled')];
+  const csvRows=[headers];
+  useRows.forEach(r=>{
+    csvRows.push([
+      r.productCode||'', isShort?(r.shortedBin||''):'',
+      (r.qtyShorted||r.qty||''), r.uom||'EA',
+      r.division||'', r.pickDemand||r.orderNumber||'',
+      r.picker||'', r.date||'', isShort?'Y':'Y'
+    ]);
+  });
+  const csv=csvRows.map(row=>row.map(cell=>{
+    const s=String(cell==null?'':cell);
+    return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+  }).join(',')).join('\r\n');
+  const stamp=new Date().toISOString().slice(0,10);
+  const fname=(isShort?'shortage':'overpull')+'_cyclecount_'+stamp+'.csv';
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=fname; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); },100);
+  toast('Exported '+useRows.length+' item(s) to '+fname,'success');
+}
+
+// Full report print (all rows in range for the active tab, like the IAP report).
+// Shows counted status inline; does NOT drop confirmed rows — it's the record.
+function printFullReport(){
+  const rows=_shFiltered();
+  if(!rows.length){ toast('No records in range to report.','error'); return; }
+  const isShort=_shTab==='short';
+  rows.sort((a,b)=>(a.productCode||'').localeCompare(b.productCode||''));
+  const today=new Date().toLocaleString('en-US',{dateStyle:'medium',timeStyle:'short'});
+  const from=document.getElementById('shFrom').value, to=document.getElementById('shTo').value;
+  const title = isShort ? 'Shortage Report' : 'Over-Pull Report';
+  const totalQty=rows.reduce((n,r)=>n+(parseFloat(r.qtyShorted||r.qty)||0),0);
+  const rowsHTML=rows.map(r=>{
+    const conf=isConfirmed(r._id);
+    return `<tr style="${conf?'background:#eaf7ee':''}">
+      <td style="font-family:monospace;font-weight:700">${esc(r.productCode||'—')}</td>
+      <td style="font-family:monospace">${esc(isShort?(r.shortedBin||''):'')}</td>
+      <td style="text-align:center">${esc(String(r.qtyShorted||r.qty||''))} ${esc(r.uom||'EA')}</td>
+      <td>${esc(r.division||'')}</td>
+      <td style="font-family:monospace">${esc(r.pickDemand||r.orderNumber||'')}</td>
+      <td>${esc(r.picker||'')}</td>
+      <td>${r.date?esc(new Date(r.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})):''}</td>
+      <td style="text-align:center">${conf?('✓ '+(_shConfirms[r._id].confirmedAt?new Date(_shConfirms[r._id].confirmedAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'counted')):'—'}</td>
+    </tr>`;
+  }).join('');
+  const area=document.getElementById('printCycleArea');
+  area.innerHTML=`
+    <div style="font-family:Arial,sans-serif;color:#111">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #0d3d6e;padding-bottom:8px;margin-bottom:14px">
+        <div><div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#0d3d6e;font-weight:700">C &amp; F · Inventory Control</div>
+        <div style="font-size:20px;font-weight:800">${title}</div>
+        <div style="font-size:11px;color:#555">Range ${esc(from)} → ${esc(to)}</div></div>
+        <div style="text-align:right;font-size:11px;color:#555">Generated ${today}<br>${rows.length} record(s) · total qty ${Math.round(totalQty)}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="background:#0d3d6e;color:#fff">
+          <th style="padding:6px;text-align:left">Product Code</th><th style="padding:6px;text-align:left">Bin</th>
+          <th style="padding:6px">Qty</th><th style="padding:6px;text-align:left">Div</th>
+          <th style="padding:6px;text-align:left">Order #</th><th style="padding:6px;text-align:left">Picker</th>
+          <th style="padding:6px;text-align:left">Date</th><th style="padding:6px">Counted</th>
+        </tr></thead>
+        <tbody>${rowsHTML}</tbody>
+      </table>
+      <div style="margin-top:14px;font-size:10px;color:#888">Highlighted rows are already cycle-counted (with confirmation date).</div>
     </div>`;
   window.print();
 }
